@@ -11,8 +11,11 @@ eval 'exec perl -Ssw $0 "$@"'
 $n = 0;
 foreach $file (@ARGV) {
 	open(FD, $file) || die "$0: can't open $file";
+	$file =~ s/\.\d+$//;
+        @_ = split(/\//, $file);
+	push(@host, $_[$#_]);
+	$file = $_[$#_ - 1];
 	$file =~ s|/|-|;
-	$file =~ s/\.\d+//;
 	push(@file, $file);
 	$mhz = 0;
 	while (<FD>) {
@@ -281,9 +284,25 @@ foreach $file (@ARGV) {
 
 print<<EOF;
 
-                 L M B E N C H  1 . 9   S U M M A R Y
+                 L M B E N C H  2 . 0   S U M M A R Y
                  ------------------------------------
 		 (Alpha software, do not distribute)
+
+Basic system parameters
+----------------------------------------------------
+Host                 OS Description              Mhz
+                                                    
+--------- ------------- ----------------------- ----
+EOF
+
+for ($i = 0; $i <= $#uname; $i++) {
+        printf "%-9.9s %13.13s %23.23s ", $host[$i], &getos($uname[$i]), $file[$i];
+            printf "%4.4s\n",
+            $misc_mhz[$i],
+	    0;
+}
+
+print<<EOF;
 
 Processor, Processes - times in microseconds - smaller is better
 ----------------------------------------------------------------
@@ -303,19 +322,19 @@ for ($i = 0; $i <= $#uname; $i++) {
 	} else {
 		$tmp = ($lat_read[$i] + $lat_write[$i]) / 2;
 	}
-        printf "%-9.9s %13.13s ", $file[$i], &getos($uname[$i]);
-            printf "%4.0f %4.4s %4.4s %4.4s %4.4s %5.5s %4.4s %4.4s %4.4s %4.4s %4.4s\n",
+        printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
+            printf "%4.0f %4.4s %4.4s %4.4s %4.4s %5.5s %4.4s %4.4s %3.3sK %3.3sK %3.3sK\n",
             $misc_mhz[$i],
-            &num($lat_syscall[$i], "%4.1f"),
-            &num($tmp, "%4.1f"),
-            &num($lat_stat[$i], "%4.1f"),
-            &num($lat_openclose[$i], "%4.1f"),
-            &num($lat_select[$i]/1000, "%4.2fK"),
-            &num($lat_siginstall[$i], "%4.1f"),
-            &num($lat_sigcatch[$i], "%4.1f"),
-            &num($lat_nullproc[$i]/1000., "%3.1fK"),
-            &num($lat_simpleproc[$i]/1000., "%3.1fK"),
-            &num($lat_shproc[$i]/1000., "%3.1fK"),
+            &num($lat_syscall[$i], "%3.1f"),
+            &num($tmp, "%3.1f"),
+            &num($lat_stat[$i], "%3.1f"),
+            &num($lat_openclose[$i], "%3.1f"),
+            &num($lat_select[$i], "%4d"),
+            &num($lat_siginstall[$i], "%3.1f"),
+            &num($lat_sigcatch[$i], "%3.1f"),
+            &num($lat_nullproc[$i]/1000., "%3.1f"),
+            &num($lat_simpleproc[$i]/1000., "%3.1f"),
+            &num($lat_shproc[$i]/1000., "%3.1f"),
 	    0;
 }
 
@@ -329,8 +348,8 @@ Host                 OS 2p/0K 2p/16K 2p/64K 8p/16K 8p/64K 16p/16K 16p/64K
 EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
-        printf "%-9.9s %13.13s ", $file[$i], &getos($uname[$i]);
-            printf "%4s   %4s   %4s  %4s   %4s    %4s    %4s\n",
+        printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
+            printf " %4s   %4s   %4s   %4s   %4s    %4s    %4s\n",
             &num($lat_ctx0_2[$i], "%4d"),
             &num($lat_ctx16_2[$i], "%4d"),
             &num($lat_ctx64_2[$i], "%4d"),
@@ -351,7 +370,7 @@ Host                 OS 2p/0K  Pipe AF     UDP  RPC/   TCP  RPC/ TCP
 EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
-        printf "%-9.9s %13.13s ", $file[$i], &getos($uname[$i]);
+        printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
         printf "%5s %5s %4s %5s %5s %5s %5s %4s\n",
             &num($lat_ctx0_2[$i], "%5d"),
             &num($lat_pipe[$i], "%5d"),
@@ -375,7 +394,7 @@ Host                 OS   0K File      10K File      Mmap    Prot    Page
 EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
-        printf "%-9.9s %13.13s ", $file[$i], &getos($uname[$i]);
+        printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
 	$c0k = $fs_create_0k[$i] <= 0 ? -1 : 100000 / $fs_create_0k[$i];
 	$c10k = $fs_create_10k[$i] <= 0 ? -1 : 100000 / $fs_create_10k[$i];
 	$d0k = $fs_delete_0k[$i] <= 0 ? -1 : 100000 / $fs_delete_0k[$i];
@@ -400,7 +419,7 @@ Host                OS  Pipe AF    TCP  File   Mmap  Bcopy  Bcopy  Mem   Mem
 EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
-        printf "%-9.9s %13.13s ", $file[$i], &getos($uname[$i]);
+        printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
         printf "%4.0f %4s %4.0f %6.0f %6.0f %6.0f %6.0f %4.0f %5.0f\n",
             $bw_pipe[$i], &num($bw_unix[$i], "%4.0f"), $bw_tcp_local[$i], 
             $bw_reread[$i], $bw_mmap[$i], $bw_bcopy_libc[$i],
@@ -420,7 +439,7 @@ EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
         printf "%-9.9s %13.13s   %3d",
-	    $file[$i], &getos($uname[$i]), $misc_mhz[$i];
+	    $host[$i], &getos($uname[$i]), $misc_mhz[$i];
 	$msg = &check_caches;
 	if ($lat_l1[$i] < 0) {
         	printf "%6s %6s %11s    %s",
