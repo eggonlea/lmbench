@@ -19,10 +19,12 @@ void	server_main(int ac, char **av);
 void	client_main(int ac, char **av);
 
 void
-doit()
+benchmark(uint64 iterations, void* cookie)
 {
-	int	sock = unix_connect("/tmp/af_unix");
-	close(sock);
+	while (iterations-- > 0) {
+		int	sock = unix_connect("/tmp/af_unix");
+		close(sock);
+	}
 }
 
 int
@@ -43,16 +45,13 @@ main(int ac, char **av)
 void
 client_main(int ac, char **av)
 {
-	char	buf[256];
-
 	if (ac != 1) {
 		fprintf(stderr, "usage: %s\n", av[0]);
 		exit(1);
 	}
 
-	BENCH(doit(), 100000);
-	sprintf(buf, "UNIX connection cost ");
-	micro(buf, get_n());
+	benchmp(NULL, benchmark, NULL, 0, 1, NULL);
+	micro("UNIX connection cost ", get_n());
 	exit(0);
 	/* NOTREACHED */
 }

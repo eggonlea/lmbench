@@ -26,22 +26,32 @@ int	ncpus;
 #define	max(a, b)	((a) > (b) ? (a) : (b))
 #endif
 
-int	process_size, *data;	/* size & pointer to an array that big */
-int	pids[MAXPROC];
-int	p[MAXPROC][2];
-double	pipe_cost(int p[][2], int procs);
-int	ctx(int procs, int nprocs);
-int	sumit(int);
-void	killem(int procs);
-void	doit(int p[MAXPROC][2], int rd, int wr);
-int	create_pipes(int p[][2], int procs);
-int	create_daemons(int p[][2], int pids[], int procs);
+int	sumit(int*, int);
+void	killem(int* pids, int procs);
+void	doit(int **p, int rd, int wr, int process_size);
+int	create_pipes(int **p, int procs);
+int	create_daemons(int **p, int pids[], int procs, int process_size);
+void	initialize_overhead(void* cookie);
+void	cleanup_overhead(void* cookie);
+void	benchmark_overhead(uint64 iterations, void* cookie);
+void	initialize(void* cookie);
+void	cleanup(void* cookie);
+void	benchmark(uint64 iterations, void* cookie);
+
+struct _state {
+	int	process_size;
+	double	overhead;
+	int	procs;
+	int*	pids;
+	int	**p;
+	int*	data;
+};
 
 int
 main(int ac, char **av)
 {
-	int	i, max_procs;
-	double	overhead = 0;
+	int	i;
+	struct _state state;
 
 	if (ac < 2) {
 usage:		printf("Usage: %s [-s kbytes] processes [processes ...]\n",
@@ -57,6 +67,9 @@ usage:		printf("Usage: %s [-s kbytes] processes [processes ...]\n",
 		exit(1);
 	}
 
+	state.process_size = 0;
+	state.overhead = 0.0;
+
 	/*
 	 * If they specified a context size, get it.
 	 */
@@ -64,15 +77,7 @@ usage:		printf("Usage: %s [-s kbytes] processes [processes ...]\n",
 		if (ac < 4) {
 			goto usage;
 		}
-		process_size = atoi(av[2]) * 1024;
-		if (process_size > 0) {
-			data = (int *)calloc(1, max(process_size, CHUNK));
-			BENCHO(sumit(CHUNK), sumit(0), 0);
-			overhead = gettime();
-			overhead /= get_n();
-			overhead *= process_size;
-			overhead /= CHUNK;
-		}
+		state.process_size = atoi(av[2]) * 1024;
 		ac -= 2;
 		av += 2;
 	}
@@ -81,72 +86,164 @@ usage:		printf("Usage: %s [-s kbytes] processes [processes ...]\n",
 	ncpus = sysmp(MP_NPROCS);
 	sysmp(MP_MUSTRUN, 0);
 #endif
-	for (max_procs = atoi(av[1]), i = 1; i < ac; ++i) {
-		int procs = atoi(av[i]);
-		if (max_procs < procs) max_procs = procs;
-	}
-	max_procs = create_pipes(p, max_procs);
-	overhead += pipe_cost(p, max_procs);
-	max_procs = create_daemons(p, pids, max_procs);
-	fprintf(stderr, "\n\"size=%dk ovr=%.2f\n", process_size/1024, overhead);
+	fprintf(stderr, "\n\"size=%dk ovr=%.2f\n", state.process_size/1024, state.overhead);
 	for (i = 1; i < ac; ++i) {
+		int parallel;
 		double	time;
-		int	procs = atoi(av[i]);
+		state.procs = atoi(av[i]);
 
-		if (procs > max_procs) continue;
+		benchmp(initialize_overhead, benchmark_overhead, cleanup_overhead, 0, 1, &state);
+		if (gettime() == 0) continue;
+		state.overhead = gettime();
+		state.overhead /= get_n();
 
-		BENCH(ctx(procs, max_procs), 0);
-		time = usecs_spent();
-		time /= get_n();
-		time /= procs;
-		time /= TRIPS;
-		time -= overhead;
-	    	fprintf(stderr, "%d %.2f\n", procs, time);
+		for (parallel = 1; parallel < 4; ++parallel) {
+			benchmp(initialize, benchmark, cleanup, 0, parallel, &state);
+			if (gettime() == 0) continue;
+			time = gettime();
+			time /= get_n();
+			time /= state.procs;
+			time -= state.overhead;
+
+		    	fprintf(stderr, "%d %.2f %d\n", state.procs, time, parallel);
+		}
 	}
+
+	return (0);
+}
+
+void
+initialize_overhead(void* cookie)
+{
+	int i;
+	int procs;
+	int* p;
+	struct _state* pState = (struct _state*)cookie;
+
+	pState->p = (int**)malloc(pState->procs * (sizeof(int*) + 2 * sizeof(int)));
+	p = (int*)&pState->p[pState->procs];
+	for (i = 0; i < pState->procs; ++i) {
+		pState->p[i] = p;
+		p += 2;
+	}
+
+	pState->pids = (int*)malloc(pState->procs * sizeof(int));
+	pState->data = (pState->process_size > 0) ? malloc(pState->process_size) : NULL;
+	if (pState->data)
+		bzero((void*)pState->data, pState->process_size);
+
+	procs = create_pipes(pState->p, pState->procs);
+	if (procs < pState->procs) {
+		cleanup_overhead(cookie);
+		exit(1);
+	}
+}
+
+void
+cleanup_overhead(void* cookie)
+{
+	int i;
+	struct _state* pState = (struct _state*)cookie;
+
+     	for (i = 0; i < pState->procs; ++i) {
+		close(pState->p[i][0]);
+		close(pState->p[i][1]);
+	}
+
+	free(pState->p);
+	free(pState->pids);
+	if (pState->data) free(pState->data);
+}
+
+void
+benchmark_overhead(uint64 iterations, void* cookie)
+{
+	struct _state* pState = (struct _state*)cookie;
+	int	k = 0;
+	int	msg = 1;
+	int	sum = 0;
+	uint64	i;
+
+	for (i = 0; i < iterations; ++i) {
+		if (write(pState->p[k][1], &msg, sizeof(msg)) != sizeof(msg)) {
+			perror("read/write on pipe");
+			exit(1);				
+		}
+		if (read(pState->p[k][0], &msg, sizeof(msg)) != sizeof(msg)) {
+			perror("read/write on pipe");
+			exit(1);
+		}
+		if (++k == pState->procs) {
+			k = 0;
+		}
+		sum += sumit(pState->data, pState->process_size);
+	}
+	use_int(sum);
+}
+
+void 
+initialize(void* cookie)
+{
+	int procs;
+	struct _state* pState = (struct _state*)cookie;
+
+	initialize_overhead(cookie);
+
+	procs = create_daemons(pState->p, pState->pids, pState->procs, pState->process_size);
+	if (procs < pState->procs) {
+		pState->procs = procs;
+		cleanup(cookie);
+		exit(1);
+	}
+};
+
+void cleanup(void* cookie)
+{
+	int i;
+	struct _state* pState = (struct _state*)cookie;
 
 	/*
 	 * Close the pipes and kill the children.
 	 */
-     	killem(max_procs);
-     	for (i = 0; i < max_procs; ++i) {
-		close(p[i][0]);
-		close(p[i][1]);
-		if (i > 0) {
-			wait(0);
-		}
+     	killem(pState->pids, pState->procs);
+     	for (i = 1; i < pState->procs; ++i) {
+		wait(0);
 	}
-	return (0);
-}
+
+	cleanup_overhead(cookie);
+};
 
 
-int
-ctx(int procs, int nprocs)
+void
+benchmark(uint64 iterations, void* cookie)
 {
+	struct _state* pState = (struct _state*)cookie;
 	int	msg;
-	int	i;
-	int	sum;
+	uint64	i;
+	int	sum = 0;
 
 	/*
 	 * Main process - all others should be ready to roll, time the
 	 * loop.
 	 */
-	for (i = 0; i < TRIPS; ++i) {
-		if (write(p[nprocs - procs][1], &msg, sizeof(msg)) !=
+	for (i = 0; i < iterations; ++i) {
+		if (write(pState->p[0][1], &msg, sizeof(msg)) !=
 		    sizeof(msg)) {
 			perror("read/write on pipe");
 			exit(1);
 		}
-		if (read(p[nprocs-1][0], &msg, sizeof(msg)) != sizeof(msg)) {
+		if (read(pState->p[pState->procs-1][0], &msg, sizeof(msg)) != sizeof(msg)) {
 			perror("read/write on pipe");
 			exit(1);
 		}
-		sum = sumit(process_size);
+		sum += sumit(pState->data, pState->process_size);
 	}
-	return (sum);
+	use_int(sum);
 }
 
+
 void
-killem(int procs)
+killem(int* pids, int procs)
 {
 	int	i;
 
@@ -158,18 +255,22 @@ killem(int procs)
 }
 
 void
-doit(int p[][2], int rd, int wr)
+doit(int **p, int rd, int wr, int process_size)
 {
 	int	msg, sum = 0 /* lint */;
+	int*	data = NULL;
 
 	signal(SIGTERM, SIG_DFL);
-	if (data) bzero((void*)data, process_size);	
+	if (process_size) {
+		data = malloc(process_size);
+		if (data) bzero((void*)data, process_size);
+	}
 	for ( ;; ) {
 		if (read(p[rd][0], &msg, sizeof(msg)) != sizeof(msg)) {
 			perror("read/write on pipe");
 			break;
 		}
-		sum = sumit(process_size);
+		sum = sumit(data, process_size);
 		if (write(p[wr][1], &msg, sizeof(msg)) != sizeof(msg)) {
 			perror("read/write on pipe");
 			break;
@@ -179,50 +280,9 @@ doit(int p[][2], int rd, int wr)
 	exit(1);
 }
 
-int
-doit_cost(int p[][2], int procs)
-{
-	static	int k;
-	int	msg = 1;
-	int	i;
-
-	for (i = 0; i < TRIPS; ++i) {
-		if (write(p[k][1], &msg, sizeof(msg)) != sizeof(msg)) {
-			perror("read/write on pipe");
-			exit(1);				
-		}
-		if (read(p[k][0], &msg, sizeof(msg)) != sizeof(msg)) {
-			perror("read/write on pipe");
-			exit(1);
-		}
-		if (++k == procs) {
-			k = 0;
-		}
-	}
-	return (msg);
-}
-
-/*
- * The cost returned is the cost of going through one pipe once in usecs.
- * No memory costs are included here, this is different than lmbench1.
- */
-double
-pipe_cost(int p[][2], int procs)
-{
-	double	result;
-
-	/*
-	 * Measure the overhead of passing a byte around the ring.
-	 */
-	BENCH(doit_cost(p, procs), 0);
-	result = usecs_spent();
-	result /= get_n();
-	result /= TRIPS;
-	return result;
-}
 
 int
-create_daemons(int p[][2], int pids[], int procs)
+create_daemons(int **p, int pids[], int procs, int process_size)
 {
 	int	i;
 	int	msg;
@@ -244,7 +304,7 @@ create_daemons(int p[][2], int pids[], int procs)
 #if	defined(sgi) && defined(PIN)
 			sysmp(MP_MUSTRUN, i % ncpus);
 #endif
-			doit(p, i-1, i);
+			doit(p, i-1, i, process_size);
 			/* NOTREACHED */
 
 		    default:	/* parent */
@@ -261,12 +321,11 @@ create_daemons(int p[][2], int pids[], int procs)
 		perror("write/read/write on pipe");
 		exit(1);
 	}
-	if (data) bzero((void*)data, process_size);	
 	return procs;
 }
 
 int
-create_pipes(int p[][2], int procs)
+create_pipes(int **p, int procs)
 {
 	int	i;
 	/*
@@ -286,7 +345,7 @@ create_pipes(int p[][2], int procs)
  * line is 16 bytes.
  */
 int
-sumit(int howmuch)
+sumit(int* data, int howmuch)
 {
 	int	done, sum = 0;
 	register int *d = data;
@@ -323,3 +382,4 @@ sumit(int howmuch)
 	}
 	return (sum);
 }
+

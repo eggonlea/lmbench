@@ -6,103 +6,134 @@
  * (1) the benchmark is unmodified, and
  * (2) the version in the sccsid below is included in the report.
  */
-char	*id = "$Id$\n";
+char	*id = "$Id: s.lat_syscall.c 1.11 97/06/15 22:38:58-07:00 lm $\n";
 
 #include "bench.h"
 #define	FNAME "/usr/include/sys/types.h"
 
+struct _state {
+	int fd;
+	char* file;
+};
+
 void
-do_write(int fd)
+do_getppid(uint64 iterations, void *cookie)
 {
+	struct _state *pState = (struct _state*)cookie;
 	char	c;
 
-	if (write(fd, &c, 1) != 1) {
-		perror("/dev/null");
-		return;
+	for (; iterations > 0; --iterations) {
+		getppid();
 	}
 }
 
 void
-do_read(int fd)
+do_write(uint64 iterations, void *cookie)
 {
+	struct _state *pState = (struct _state*)cookie;
 	char	c;
 
-	if (read(fd, &c, 1) != 1) {
-		perror("/dev/zero");
-		return;
+	for (; iterations > 0; --iterations) {
+		if (write(pState->fd, &c, 1) != 1) {
+			perror("/dev/null");
+			return;
+		}
 	}
 }
 
 void
-do_stat(char *s)
+do_read(uint64 iterations, void *cookie)
 {
+	struct _state *pState = (struct _state*)cookie;
+	char	c;
+
+	for (; iterations > 0; --iterations) {
+		if (read(pState->fd, &c, 1) != 1) {
+			perror("/dev/zero");
+			return;
+		}
+	}
+}
+
+void
+do_stat(uint64 iterations, void *cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
 	struct	stat sbuf;
 
-	if (stat(s, &sbuf) == -1) {
-		perror(s);
-		return;
+	for (; iterations > 0; --iterations) {
+		if (stat(pState->file, &sbuf) == -1) {
+			perror(pState->file);
+			return;
+		}
 	}
 }
 
 void
-do_fstat(int fd)
+do_fstat(uint64 iterations, void *cookie)
 {
+	struct _state *pState = (struct _state*)cookie;
 	struct	stat sbuf;
 
-	if (fstat(fd, &sbuf) == -1) {
-		perror("fstat");
-		return;
+	for (; iterations > 0; --iterations) {
+		if (fstat(pState->fd, &sbuf) == -1) {
+			perror("fstat");
+			return;
+		}
 	}
 }
 
 void
-do_openclose(char *s)
+do_openclose(uint64 iterations, void *cookie)
 {
+	struct _state *pState = (struct _state*)cookie;
 	int	fd;
 
-	fd = open(s, 0);
-	if (fd == -1) {
-		perror(s);
-		return;
+	for (; iterations > 0; --iterations) {
+		fd = open(pState->file, 0);
+		if (fd == -1) {
+			perror(pState->file);
+			return;
+		}
+		close(fd);
 	}
-	close(fd);
 }
 
 int
 main(int ac, char **av)
 {
-	int	fd;
-	char	*file;
+	struct _state state;
 
 	if (ac < 2) goto usage;
-	file = av[2] ? av[2] : FNAME;
+	state.file = av[2] ? av[2] : FNAME;
 
 	if (!strcmp("null", av[1])) {
-		BENCH(getppid(), 0);
+		benchmp(NULL, do_getppid, NULL, 0, 1, &state);
 		micro("Simple syscall", get_n());
 	} else if (!strcmp("write", av[1])) {
-		fd = open("/dev/null", 1);
-		BENCH(do_write(fd), 0);;
+		state.fd = open("/dev/null", 1);
+		benchmp(NULL, do_write, NULL, 0, 1, &state);
 		micro("Simple write", get_n());
-		close(fd);
+		close(state.fd);
 	} else if (!strcmp("read", av[1])) {
-		fd = open("/dev/zero", 0);
-		if (fd == -1) {
+		state.fd = open("/dev/zero", 0);
+		if (state.fd == -1) {
 			fprintf(stderr, "Read from /dev/zero: -1");
 			return(1);
 		}
-		BENCH(do_read(fd), 0);
+		benchmp(NULL, do_read, NULL, 0, 1, &state);
 		micro("Simple read", get_n());
-		close(fd);
+		close(state.fd);
 	} else if (!strcmp("stat", av[1])) {
-		BENCH(do_stat(file), 0);
+		benchmp(NULL, do_stat, NULL, 0, 1, &state);
 		micro("Simple stat", get_n());
 	} else if (!strcmp("fstat", av[1])) {
-		fd = open(file, 0);
-		BENCH(do_fstat(fd), 0);
+		state.fd = open(state.file, 0);
+		benchmp(NULL, do_fstat, NULL, 0, 1, &state);
 		micro("Simple fstat", get_n());
+		close(state.fd);
 	} else if (!strcmp("open", av[1])) {
-		BENCH(do_openclose(file), 0);
+		benchmp(NULL, do_openclose, NULL, 0, 1, &state);
 		micro("Simple open/close", get_n());
 	} else {
 usage:		printf("Usage: %s null|read|write|stat|open\n", av[0]);
