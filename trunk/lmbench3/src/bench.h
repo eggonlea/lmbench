@@ -39,6 +39,7 @@ typedef unsigned char bool_t;
 #endif
 #include	<rpc/types.h>
 
+#include 	<stdarg.h>
 #ifndef HAVE_uint
 typedef unsigned int uint;
 #endif
@@ -128,7 +129,7 @@ typedef long long int64;
 #ifdef HAVE_RAND
 #define srand48		srand
 #define drand48()	((double)rand() / (double)RAND_MAX)
-#elif defined(USE_RANDOM)
+#elif defined(HAVE_RANDOM)
 #define srand48		srandom
 #define drand48()	((double)random() / (double)RAND_MAX)
 #endif /* HAVE_RAND */

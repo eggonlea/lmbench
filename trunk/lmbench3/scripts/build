@@ -152,26 +152,34 @@ if [ ${HAVE_int64} = 0 ]; then
 fi
 
 # check that we have drand48 and srand48
+HAVE_RANDOM=0
 echo "#include <stdlib.h>" > ${BASE}$$.c
 echo "main() { srand48(973); return (int)(1.0E9 * drand48()); }" >> ${BASE}$$.c
 if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
 	CFLAGS="${CFLAGS} -DHAVE_DRAND48"
+	HAVE_RANDOM=1
 fi
 rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
 
-echo "#include <stdlib.h>" > ${BASE}$$.c
-echo "main() { srand(973); return (10 * rand()) / RAND_MAX; }" >> ${BASE}$$.c
-if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
+if [ ${HAVE_RANDOM} -eq 0 ]; then
+    echo "#include <stdlib.h>" > ${BASE}$$.c
+    echo "main() { srand(973); return (10 * rand()) / RAND_MAX; }" >> ${BASE}$$.c
+    if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
 	CFLAGS="${CFLAGS} -DHAVE_RAND"
+	HAVE_RANDOM=1
+    fi
+    rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
 fi
-rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
 
-echo "#include <stdlib.h>" > ${BASE}$$.c
-echo "main() { srandom(973); return (10 * random()) / RAND_MAX; }" >> ${BASE}$$.c
-if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
+if [ ${HAVE_RANDOM} -eq 0 ]; then
+    echo "#include <stdlib.h>" > ${BASE}$$.c
+    echo "main() { srandom(973); return (10 * random()) / RAND_MAX; }" >> ${BASE}$$.c
+    if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
 	CFLAGS="${CFLAGS} -DHAVE_RANDOM"
+	HAVE_RANDOM=1
+    fi
+    rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
 fi
-rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
 
 
 # echo Building for $(TARGET)
