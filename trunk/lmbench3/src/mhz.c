@@ -183,13 +183,13 @@ filter_data(double values[], int size)
 	int i;
 	int tests;
 	double median;
-	double *d = (double *)malloc(size * sizeof(double));
+	double *d = (double *)malloc((size + 1) * sizeof(double));
 
 	for (i = 0; i < size; ++i) d[i] = values[i];
 	qsort(d, size, sizeof(double), double_compare);
 
 	median = d[size/2];
-	if (size % 2 == 0) median = (median + d[size/2 - 1]) / 2.0;
+	if (size > 0 && size % 2 == 0) median = (median + d[size/2 - 1]) / 2.0;
 
 	free(d);
 
