@@ -46,7 +46,7 @@ main(int ac, char **av)
 {
 	int	c;
 	int	i, n, start, level, prev;
-	int	line;
+	int	line = -1;
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	print_cost = 0;
@@ -55,8 +55,6 @@ main(int ac, char **av)
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 	struct cache_results* r;
 	struct mem_state state;
-
-	line = getpagesize() / 8;
 
 	while (( c = getopt(ac, av, "cL:M:W:N:")) != EOF) {
 		switch(c) {
@@ -81,6 +79,16 @@ main(int ac, char **av)
 			lmbench_usage(ac, av, usage);
 			break;
 		}
+	}
+
+	if (line <= 0) {
+		state.width = 1;
+		state.len = maxlen;
+		state.maxlen = maxlen;
+		state.pagesize = getpagesize();
+		line = line_find(maxlen, warmup, repetitions, &state);
+		if (line <= 0)
+			line = getpagesize() / 8;
 	}
 
 	n = collect_data(512, line, maxlen, warmup, repetitions, &r);
@@ -134,17 +142,21 @@ main(int ac, char **av)
 int
 find_cache(int start, int n, struct cache_results* p)
 {
-	int	i, j;
+	int	i, j, prev;
 	double	max = -1.;
 
+	prev = (start == 0 ? start : start - 1);
 	for (i = start; i < n; ++i) {
 		if (p[i].latency < 0.) continue;
-		if (p[i].ratio > max) {
-			j = i;
-			max = p[i].ratio;
-		} else if (max > THRESHOLD) {
-			return j;
+		if (p[prev].ratio <= p[i].ratio) {
+			if (p[i].ratio > max) {
+				j = i;
+				max = p[i].ratio;
+			} else if (max > THRESHOLD) {
+				return j;
+			}
 		}
+		prev = i;
 	}
 	return -1;
 }
