@@ -19,8 +19,9 @@ else	echo Using defaults > ${OUTPUT}
 	ENOUGH=1000000
 	TIMING_O=0
 	LOOP_O=0
+	LINE_SIZE=512
 fi
-export ENOUGH TIMING_O LOOP_O SYNC_MAX SYNC_PID
+export ENOUGH TIMING_O LOOP_O SYNC_MAX SYNC_PID LINE_SIZE
 
 if [ X$FILE = X ]
 then	FILE=/tmp/XXX
@@ -71,7 +72,7 @@ fi
 
 # Figure out as much stuff as we can about this system.
 # Sure would be nice if everyone had SGI's "hinv".
-echo \[lmbench1.1 results for `uname -a`] 1>&2
+echo \[lmbench3.0 results for `uname -a`] 1>&2
 echo \[ALL: ${ALL}] 1>&2
 echo \[DISKS: ${DISKS}] 1>&2
 echo \[DISK_DESC: ${DISK_DESC}] 1>&2
@@ -82,6 +83,7 @@ echo \[FILE: ${FILE}] 1>&2
 echo \[FSDIR: ${FSDIR}] 1>&2
 echo \[HALF: ${HALF}] 1>&2
 echo \[INFO: ${INFO}] 1>&2
+echo \[LINE_SIZE: ${LINE_SIZE}] 1>&2
 echo \[LOOP_O: ${LOOP_O}] 1>&2
 echo \[MB: ${MB}] 1>&2
 echo \[MHZ: ${MHZ}] 1>&2
@@ -173,6 +175,8 @@ lat_sig catch
 lat_sig prot lat_sig
 if [ $MP = Y ]; then synchronize $SYNC/lat_pipe; fi
 lat_pipe
+if [ $MP = Y ]; then synchronize $SYNC/lat_ops; fi
+lat_ops
 if [ $MP = Y ]; then synchronize $SYNC/lat_unix; fi
 lat_unix
 if [ $MP = Y ]
@@ -378,6 +382,21 @@ for size in $CTX
 do	if [ $MP = Y ]; then synchronize $SYNC/lat_ctx${size}_${N}; fi
 	lat_ctx -s $size $N
 done
+
+date > ${OUTPUT}
+echo Calculating effective TLB size > ${OUTPUT}
+msleep 250
+echo "" 1>&2
+if [ $MP = Y ]; then synchronize $SYNC/tlb; fi
+tlb -L $LINE_SIZE -M ${MB}M
+
+date > ${OUTPUT}
+echo Calculating memory load parallelism > ${OUTPUT}
+msleep 250
+echo "" 1>&2
+if [ $MP = Y ]; then synchronize $SYNC/loads; fi
+echo "Memory load parallelism" 1>&2
+loads -L $LINE_SIZE -M ${MB}M
 
 date > ${OUTPUT}
 echo Calculating memory load latency > ${OUTPUT}
