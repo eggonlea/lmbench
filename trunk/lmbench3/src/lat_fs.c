@@ -8,6 +8,7 @@ char	*id = "$Id$\n";
 
 
 struct _state {
+	char	*tmpdir;
 	int	max;
 	int	n;
 	char**	names;
@@ -39,6 +40,7 @@ main(int ac, char **av)
 
 	state.size = 0;
 	state.max = 100;
+	state.tmpdir = NULL;
 
 	while (( c = getopt(ac, av, "s:n:P:W:N:")) != EOF) {
 		switch(c) {
@@ -67,7 +69,7 @@ main(int ac, char **av)
 		lmbench_usage(ac, av, usage);
 	}
 	if (optind == ac - 1) {
-		chdir(av[1]);
+		state.tmpdir = av[1];
 	}
 
 	if (state.size) {
@@ -153,7 +155,7 @@ setup_names(iter_t iterations, void* cookie)
 	long	i, ndirs, depth;
 	iter_t	foff;
 	iter_t	doff;
-	char	dirname_tmpl[L_tmpnam];
+	char	dirname_tmpl[L_tmpnam + 256];
 	char*	dirname;
 	struct _state* state = (struct _state*)cookie;
 
@@ -179,13 +181,17 @@ setup_names(iter_t iterations, void* cookie)
 		state->dirs[i] = NULL;
 	}
 
-	sprintf(dirname_tmpl, "lat_fsXXXXXX");
-	dirname = mkdtemp(dirname_tmpl);
+	sprintf(dirname_tmpl, "lat_fs_%d_XXXXXX", getpid());
+	dirname = tempnam(state->tmpdir, dirname_tmpl);
 	if (!dirname) {
-		perror("mkdtemp failed");
+		perror("tempnam failed");
 		exit(1);
 	}
-	state->dirs[0] = strdup(dirname);
+	if (mkdir(dirname, S_IRUSR|S_IWUSR|S_IXUSR)) {
+		perror("mkdir failed");
+		exit(1);
+	}
+	state->dirs[0] = dirname;
 	foff = 0;
 	doff = 0;
 	setup_names_recurse(&foff, &doff, depth, state);
