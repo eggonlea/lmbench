@@ -236,6 +236,12 @@
 %D December 1995
 
 %z Article
+%K McCalpin2002
+%A John D. McCalpin
+%T The STREAM2 home page
+%o http://www.cs.virginia.edu/stream/stream2/
+
+%z Article
 %K FSF89
 %A Richard Stallman
 %Q Free Software Foundation
@@ -330,8 +336,34 @@
 %A Jack Lo
 %A Susan Eggers
 %A Henry Levy
-%T Suppoerting fine-grain synchronization on a simultaneous multithreaded processor
+%T Supporting fine-grain synchronization on a simultaneous multithreaded processor
 %B Proceedings of the 5th International Symposium on High Performance Computer Architecture
 %D January 1999
 %P 54-58
 %O http://www.cs.washington.edu/research/smt/papers/hpca.ps
+
+%z Article
+%K SPEChpc96
+%Q Standard Performance Evaluation Corporation
+%T SPEC HPC96 benchmark
+%D 1996
+%o http://www.specbench.org/hpg/hpc96/
+
+%z Article
+%K Parkbench
+%Q PARallel Kernels and BENCHmarks committee
+%T PARKBENCH
+%D 2002
+%o http://www.netlib.org/parkbench/
+
+%z Article
+%K NAS
+%Q NASA Advanced Supercomputing Division, NASA Ames Research Center
+%T NAS parallel benchmarks
+%o http://www.nas.nasa.gov/NAS/NPB
+
+%z Article
+%K Glendinning94
+%A Ian Glendinning
+%T GENESIS distributed memory benchmark suite
+%o http://wotug.ukc.ac.uk/parallel/performance/benchmarks/genesis
