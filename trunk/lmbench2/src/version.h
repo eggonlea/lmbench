@@ -1,2 +1,2 @@
 #define	MAJOR	2
-#define	MINOR	-%L%	/* negative is alpha, it "increases" */
+#define	MINOR	-12	/* negative is alpha, it "increases" */
