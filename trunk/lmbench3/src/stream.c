@@ -161,7 +161,7 @@ main(int ac, char **av)
 			mb(3 * datasize * get_n());
 		}
 
-		benchmp(initialize, cumsum, cleanup, 
+		benchmp(initialize, sum, cleanup, 
 			0, parallel, warmup, repetitions, &state);
 		if (gettime() > 0) {
 			save_minimum();
