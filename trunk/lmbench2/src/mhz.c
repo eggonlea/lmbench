@@ -469,8 +469,7 @@ main(int ac, char **av)
 	    for (j = 0; j < TRIES; ++j) {
 		for (k = 0; k < NTESTS; ++k) {
 		    (*loops[k])(0);
-		    if (gettime() > 0)
-			insertsort(gettime(), get_n(), &data[k]);
+		    insertsort(gettime(), get_n(), &data[k]);
 		}
 	    }
 	    save_data(data, data_save);
