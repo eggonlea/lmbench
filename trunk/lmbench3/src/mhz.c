@@ -113,6 +113,12 @@ typedef	long	TYPE;
 			TEN(A) TEN(A) TEN(A) TEN(A) TEN(A)
 
 #define MHZ(M, contents)						\
+char*									\
+name_##M()								\
+{									\
+	return #contents;						\
+}									\
+									\
 TYPE**									\
 _mhz_##M (register long n, register TYPE **p, 				\
 	  register TYPE a, register TYPE b)				\
@@ -385,12 +391,59 @@ compute_mhz(result_t *r)
 	return -1;
 }
 
+void
+save_data(result_t* data, result_t* data_save)
+{
+	int	i;
+
+	for (i = 0; i < NTESTS; ++i) {
+		data_save[i] = data[i];
+	}
+}
+
+void
+print_data(double mhz, result_t* data)
+{
+	int	i, j;
+	char	*CPU_name = "CPU";
+	char	*uname = "uname";
+	char	*email = "email";
+	int	speed = -1;
+	char	*names[NTESTS];
+
+	names[0] = name_1();
+	names[1] = name_2();
+	names[2] = name_3();
+	names[3] = name_4();
+	names[4] = name_5();
+	names[5] = name_6();
+	names[6] = name_7();
+	names[7] = name_8();
+	names[8] = name_9();
+
+	printf("/* \"%s\", \"%s\", \"%s\", %d, %.0f, %d, %f, %f */\n", 
+	       CPU_name, uname, email, speed, 
+	       mhz, get_enough(0), l_overhead(), t_overhead());
+	printf("result_t* data[] = { \n");
+	for (i = 0; i < NTESTS; ++i) {
+	    printf("\t/* %s */ { %d, {", names[i], data[i].N);
+	    for (j = 0; j < data[i].N; ++j) {
+		printf("\n\t\t{ /* %f */ %lu, %lu}", data[i].v[j].u / (100. * data[i].v[j].n), (unsigned long)data[i].v[j].u, (unsigned long)data[i].v[j].n);
+		if (j < TRIES - 1) printf(", ");
+	    }
+	    if (i < NTESTS - 1) printf("}},\n");
+	    else printf("}}\n");
+	}
+	printf("};\n");
+}
+
 int
 main(int ac, char **av)
 {
 	int	i, j, k, mhz = -1;
 	double	runtime;
 	result_t data[NTESTS];
+	result_t data_save[NTESTS];
 
 	putenv("LOOP_O=0.0"); /* should be at most 1% */
 
@@ -418,7 +471,18 @@ main(int ac, char **av)
 			insertsort(gettime(), get_n(), &data[k]);
 		}
 	    }
+	    save_data(data, data_save);
 	    mhz = compute_mhz(data);
+	}
+
+	if (ac > 1 && !strcmp(av[1], "-d")) {
+		if (ac > 1) {
+			ac --;
+			for (i = 1; i < ac; ++i) {
+				av[i] = av[i+1];
+			}
+		}
+		print_data(mhz, data_save);
 	}
 
 	if (mhz < 0.) {
