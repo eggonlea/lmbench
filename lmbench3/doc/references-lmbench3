@@ -1,20 +1,4 @@
 %z Article
-%K Staelin01a
-%A Carl Staelin
-%T Analyzing the memory hierarchy
-%D October 2001
-%I Hewlett-Packard Laboratories
-%C Palo Alto, CA
-
-%z Article
-%K Staelin01c
-%A Carl Staelin
-%T Utilizing intra-processor parallelism
-%D October 2001
-%I Hewlett-Packard Laboratories
-%C Palo Alto, CA
-
-%z Article
 %K Staelin98
 %A Carl Staelin
 %A Larry McVoy
@@ -34,11 +18,19 @@
 %D January 1996
 %P 279-284
 
-%a Thesis
+%z Thesis
 %K Prestor01
 %A Uros Prestor
 %T Evaluating the memory performance of a ccNUMA system
+%I Department of Computer Science, University of Utah
+%D May 2001
 
+%z Thesis
+%K Saavedra92
+%A Rafael H. Saavedra-Barrera
+%T CPU Performance evaluation and execution time prediction using narrow spectrum benchmarking
+%I Department of Computer Science, University of California at Berkeley
+%D 1992
 
 %z Article
 %K Saavedra95
