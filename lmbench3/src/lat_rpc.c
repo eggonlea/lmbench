@@ -85,7 +85,7 @@ benchmark(uint64 iterations, void* _state)
 	}
 }
 
-void
+int
 main(int ac, char **av)
 {
 	int	i;
