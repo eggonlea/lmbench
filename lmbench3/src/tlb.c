@@ -24,6 +24,8 @@ struct _state {
 	int	repetitions;
 };
 
+int find_tlb(int start, int maxpages, double* tlb_time, double* cache_time, 
+	     struct _state* state);
 void compute_times(struct _state* state, double* tlb_time, double* cache_time);
 void initialize_tlb(void* cookie);
 void initialize_cache(void* cookie);
@@ -48,7 +50,7 @@ void cleanup(void* cookie);
 int
 main(int ac, char **av)
 {
-	int	i, l, len, tlb, maxpages, lower, upper;
+	int	i, l, len, tlb, maxpages;
 	int	c;
 	int	print_cost = 0;
 	int	maxline = getpagesize() / sizeof(char*);
@@ -73,15 +75,7 @@ main(int ac, char **av)
 			state.line = atoi(optarg);
 			break;
 		case 'M':
-			l = strlen(optarg);
-			if (optarg[l-1] == 'm' || optarg[l-1] == 'M') {
-				maxpages = 1024 * 1024;
-				optarg[l-1] = 0;
-			} else if (optarg[l-1] == 'k' || optarg[l-1] == 'K') {
-				maxpages = 1024;
-				optarg[l-1] = 0;
-			}
-			maxpages *= atoi(optarg);	/* max in bytes */
+			maxpages = bytes(optarg);	/* max in bytes */
 			maxpages /= getpagesize();	/* max in pages */
 			break;
 		case 'W':
@@ -96,35 +90,8 @@ main(int ac, char **av)
 		}
 	}
 
-	for (i = 2; i <= maxpages; i<<=1) {
-		state.pages = i;
-		compute_times(&state, &tlb_time, &cache_time);
-
-		if (tlb_time / cache_time > THRESHOLD) {
-			lower = i>>1;
-			upper = i;
-			i = lower + (upper - lower) / 2;
-			break;
-		}
-	}
-
-	/* we can't find any tlb effect */
-	if (i >= maxpages)
-		exit(0);
-
-	/* use a binary search to locate point at which TLB effects start */
-	while (lower + 1 < upper) {
-		state.pages = i;
-		compute_times(&state, &tlb_time, &cache_time);
-
-		if (tlb_time / cache_time > THRESHOLD) {
-			upper = i;
-		} else {
-			lower = i;
-		}
-		i = lower + (upper - lower) / 2;
-	}
-	tlb = lower;
+	/* assumption: no TLB will have less than 16 entries */
+	tlb = find_tlb(8, maxpages, &tlb_time, &cache_time, &state);
 
 	if (print_cost) {
 		state.pages *= 2;
@@ -134,7 +101,51 @@ main(int ac, char **av)
 		fprintf(stderr, "tlb: %d pages\n", tlb);
 	}
 
+	for (i = tlb<<1; i <= maxpages; i<<=1) {
+		state.pages = i;
+		compute_times(&state, &tlb_time, &cache_time);
+	}
+
 	return(0);
+}
+
+int
+find_tlb(int start, int maxpages, double* tlb_time, double* cache_time, struct _state* state)
+{
+	int	i, lower, upper;
+
+	for (i = start; i <= maxpages; i<<=1) {
+		state->pages = i;
+		compute_times(state, tlb_time, cache_time);
+
+		if (*tlb_time / *cache_time > THRESHOLD) {
+			lower = i>>1;
+			upper = i;
+			i = lower + (upper - lower) / 2;
+			break;
+		}
+	}
+
+	/* we can't find any tlb effect */
+	if (i >= maxpages) {
+		state->pages = 0;
+		return (0);
+	}
+
+	/* use a binary search to locate point at which TLB effects start */
+	while (lower + 1 < upper) {
+		state->pages = i;
+		compute_times(state, tlb_time, cache_time);
+
+		if (*tlb_time / *cache_time > THRESHOLD) {
+			upper = i;
+		} else {
+			lower = i;
+		}
+		i = lower + (upper - lower) / 2;
+	}
+	state->pages = lower;
+	return (lower);
 }
 
 void
@@ -166,7 +177,9 @@ compute_times(struct _state* state, double* tlb_time, double* cache_time)
 	*cache_time = (1000. * (double)gettime()) / (100. * (double)get_n());
 	set_results(r_save);
 
-	/* fprintf(stderr, "%d %.5f %.5f\n", state->pages, *tlb_time, *cache_time); */
+	/**/
+	fprintf(stderr, "%d %.5f %.5f\n", state->pages, *tlb_time, *cache_time);
+	/**/
 }
 
 /*
@@ -176,7 +189,7 @@ compute_times(struct _state* state, double* tlb_time, double* cache_time)
 void
 initialize_tlb(void* cookie)
 {
-	int i, nwords, nlines, npages;
+	int i, nwords, nlines, npages, pagesize;
 	unsigned int r;
 	char ***pages;
 	int    *lines;
@@ -184,125 +197,31 @@ initialize_tlb(void* cookie)
 	struct _state* state = (struct _state*)cookie;
 	register char *p = 0 /* lint */;
 
-	nwords = state->line / sizeof(char*);
-	nlines = state->pagesize / state->line;
-	npages = state->pages;
+	pagesize = state->pagesize;
+	nwords   = state->line / sizeof(char*);
+	nlines   = pagesize / state->line;
+	npages   = state->pages;
 
-	words = (int*)malloc(nwords * sizeof(int));
-	lines = (int*)malloc(nlines * sizeof(int));
+	srand(getpid());
+
+	words = permutation(nwords);
+	lines = permutation(nlines);
 	pages = (char***)malloc(npages * sizeof(char**));
-	state->p = state->addr = (char*)malloc((state->pages + 2) * state->pagesize);
+	state->addr = (char*)valloc(pagesize);
 
 	if (state->addr == NULL || pages == NULL || lines == NULL) {
 		exit(0);
 	}
 
-	if ((unsigned long)state->p % state->pagesize) {
-		state->p += state->pagesize - (unsigned long)state->p % state->pagesize;
-	}
-
-	srand(getpid());
-
 	/* first, layout the sequence of page accesses */
-	p = state->p;
-	for (i = 0; i < state->pages; ++i) {
-		pages[i] = (char**)p;
-		p += state->pagesize;
-	}
-
-	/* randomize the page sequences (except for zeroth page) */
-	r = (rand() << 15) ^ rand();
-	for (i = state->pages - 2; i > 0; --i) {
-		char** l;
-		r = (r << 1) ^ (rand() >> 4);
-		l = pages[(r % i) + 1];
-		pages[(r % i) + 1] = pages[i + 1];
-		pages[i + 1] = l;
-	}
-
-	/* layout the sequence of line accesses */
-	for (i = 0; i < nlines; ++i) {
-		lines[i] = i * state->pagesize / (nlines * sizeof(char*));
-	}
-
-	/* randomize the line sequences */
-	for (i = nlines - 2; i > 0; --i) {
-		int l;
-		r = (r << 1) ^ (rand() >> 4);
-		l = lines[(r % i) + 1];
-		lines[(r % i) + 1] = lines[i];
-		lines[i] = l;
-	}
-
-	/* layout the sequence of word accesses */
-	for (i = 0; i < nwords; ++i) {
-		words[i] = i * state->line / (nwords * sizeof(char*));
-	}
-
-	/* randomize the word sequences */
-	for (i = nwords - 2; i > 0; --i) {
-		int l;
-		r = (r << 1) ^ (rand() >> 4);
-		l = words[(r % i) + 1];
-		words[(r % i) + 1] = words[i];
-		words[i] = l;
-	}
-
-	/* now setup run through the pages */
-	for (i = 0; i < state->pages - 1; ++i) {
-		pages[i][lines[i % nlines]+words[i%nwords]] = (char*)(pages[i+1] + lines[(i+1) % nlines] + words[(i+1) % nwords]);
-	}
-	pages[i][lines[i % nlines]+words[i%nwords]] = (char*)(pages[0] + lines[0] + words[0]);
-
-	free(pages);
-	free(lines);
-	free(words);
-
-	/* run through the chain once to clear the cache */
-	benchmark((state->pages + 100) / 100, state);
-}
-
-/*
- * This will access len bytes
- */
-void
-initialize_cache(void* cookie)
-{
-	int i, j, nwords, nlines, npages, npointers;
-	unsigned int r;
-	char ***pages;
-	int    *lines;
-	int    *words;
-	struct _state* state = (struct _state*)cookie;
-	register char *p = 0 /* lint */;
-
-	nwords = state->line / sizeof(char*);
-	nlines = state->pagesize / state->line;
-	npages = state->pages / nlines;
-
-	if (state->pages % nlines)
-		npages++;
-
-	words = (int*)malloc(nwords * sizeof(int));
-	lines = (int*)malloc(nlines * sizeof(int));
-	pages = (char***)malloc(npages * sizeof(char**));
-	state->p = state->addr = (char*)malloc((npages + 2) * state->pagesize);
-
-	if ((unsigned long)state->p % state->pagesize) {
-		state->p += state->pagesize - (unsigned long)state->p % state->pagesize;
-	}
-
-	if (state->addr == NULL || pages == NULL) {
-		exit(0);
-	}
-
-	srand(getpid());
-
-	/* first, layout the sequence of page accesses */
-	p = state->p;
 	for (i = 0; i < npages; ++i) {
+		p = (char*)valloc(pagesize);
+		if ((unsigned long)state->p % pagesize) {
+			free(p);
+			p = (char*)valloc(2 * pagesize);
+			p += pagesize - (unsigned long)p % pagesize;
+		}
 		pages[i] = (char**)p;
-		p += state->pagesize;
 	}
 
 	/* randomize the page sequences (except for zeroth page) */
@@ -315,47 +234,91 @@ initialize_cache(void* cookie)
 		pages[i + 1] = l;
 	}
 
-	/* layout the sequence of line accesses */
-	for (i = 0; i < nlines; ++i) {
-		lines[i] = i * state->pagesize / (nlines * sizeof(char*));
+	for (i = 0; i < nlines; ++i)
+		lines[i] *= nwords;
+
+	/* now setup run through the pages */
+	for (i = 0; i < npages - 1; ++i) {
+		pages[i][lines[i % nlines]+words[i%nwords]] = (char*)(pages[i+1] + lines[(i+1) % nlines] + words[(i+1) % nwords]);
+	}
+	pages[i][lines[i % nlines]+words[i%nwords]] = (char*)(pages[0] + lines[0] + words[0]);
+	state->p = (char*)(pages[0] + lines[0] + words[0]);
+
+	free(pages);
+	free(lines);
+	free(words);
+
+	/* run through the chain once to clear the cache */
+	benchmark((npages + 100) / 100, state);
+}
+
+/*
+ * This will access len bytes
+ */
+void
+initialize_cache(void* cookie)
+{
+	int i, j, nwords, nlines, npages, npointers, pagesize;
+	unsigned int r;
+	char ***pages;
+	int    *lines;
+	int    *words;
+	struct _state* state = (struct _state*)cookie;
+	register char *p = 0 /* lint */;
+
+	pagesize = state->pagesize;
+	nwords   = state->line / sizeof(char*);
+	nlines   = pagesize / state->line;
+	npages   = state->pages / nlines;
+
+	srand(getpid());
+
+	if (state->pages % nlines)
+		npages++;
+
+	words = permutation(nwords);
+	lines = permutation(nlines);
+	pages = (char***)malloc(npages * sizeof(char**));
+	state->addr = (char*)valloc((npages + 2) * pagesize);
+
+	if (state->addr == NULL || pages == NULL) {
+		exit(0);
 	}
 
-	/* randomize the line sequences */
-	for (i = nlines - 2; i > 0; --i) {
-		int l;
+	/* first, layout the sequence of page accesses */
+	p = state->addr;
+	for (i = 0; i < npages; ++i, p += pagesize) {
+		pages[i] = (char**)p;
+	}
+	state->p = (char*)pages[0];
+
+	/* randomize the page sequences (except for zeroth page) */
+	r = (rand() << 15) ^ rand();
+	for (i = npages - 2; i > 0; --i) {
+		char** l;
 		r = (r << 1) ^ (rand() >> 4);
-		l = lines[(r % i) + 1];
-		lines[(r % i) + 1] = lines[i];
-		lines[i] = l;
+		l = pages[(r % i) + 1];
+		pages[(r % i) + 1] = pages[i + 1];
+		pages[i + 1] = l;
 	}
 
-	/* layout the sequence of word accesses */
-	for (i = 0; i < nwords; ++i) {
-		words[i] = i * state->line / (nwords * sizeof(char*));
-	}
-
-	/* randomize the word sequences */
-	for (i = nwords - 2; i > 0; --i) {
-		int l;
-		r = (r << 1) ^ (rand() >> 4);
-		l = words[(r % i) + 1];
-		words[(r % i) + 1] = words[i];
-		words[i] = l;
-	}
+	for (i = 0; i < nlines; ++i)
+		lines[i] *= nwords;
 
 	/* setup the run through the pages */
 	for (i = 0, npointers = 0; i < npages; ++i) {
-		for (j = 0; j < nlines - 1 && npointers < state->pages - 1; ++j) {
+		for (j = 0; j < nlines - 1 && npointers < npages - 1; ++j) {
 			pages[i][lines[j]+words[npointers%nwords]] = (char*)(pages[i] + lines[j+1] + words[(npointers+1)%nwords]);
 			npointers++;
 		}
-		if (i == npages - 1 || npointers == state->pages - 1) {
+		if (i == npages - 1 || npointers == npages - 1) {
 			pages[i][lines[j]+words[npointers%nwords]] = (char*)(pages[0] + lines[0] + words[0]);
 		} else {
 			pages[i][lines[j]+words[npointers%nwords]] = (char*)(pages[i+1] + lines[0] + words[0]);
 		}
 		npointers++;
 	}
+	state->p = (char*)(pages[0] + lines[0] + words[0]);
 
 	free(pages);
 	free(lines);
@@ -366,7 +329,8 @@ initialize_cache(void* cookie)
 }
 
 
-void benchmark(iter_t iterations, void *cookie)
+void
+benchmark(iter_t iterations, void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 	static char *addr_save = NULL;
@@ -382,7 +346,8 @@ void benchmark(iter_t iterations, void *cookie)
 	addr_save = state->addr;
 }
 
-void cleanup(void* cookie)
+void
+cleanup(void* cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 	free(state->addr);
