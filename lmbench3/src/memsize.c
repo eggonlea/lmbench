@@ -18,8 +18,9 @@ char	*id = "$Id$\n";
 #define	TOO_LONG	10	/* usecs */
 #endif
 
-void	timeit(char *where, int size);
-static	void touchRange(char *p, char *end, int range);
+void	timeit(char *where, size_t size);
+static	void touchRange(char *p, size_t range, ssize_t stride);
+
 
 int
 main(int ac, char **av)
@@ -30,7 +31,9 @@ main(int ac, char **av)
 	size_t	max;
 
 	if (ac == 2) {
-		max = size = atoi(av[1]) * 1024 * 1024;
+		unsigned long t;
+		sscanf(av[1], "%llu", &t);
+		max = size = t * 1024 * 1024;
 	} else {
 		max = size = 1024 * 1024 * 1024;
 	}
@@ -54,34 +57,61 @@ main(int ac, char **av)
 			break;
 		}
 	} 
-	timeit(where, size);
-	return (0);
+	if (where) {
+		timeit(where, size);
+		free(where);
+	}
+	exit (0);
 }
 
 void
-timeit(char *where, int size)
+timeit(char *where, size_t size)
 {
 	int	sum = 0;
-	int	n;
+	size_t	n;
 	char	*end = where + size;
-	int	range;
+	size_t	range;
+	size_t	incr = 1024 * 1024;
+	ssize_t	stride;
+	size_t	pagesize = getpagesize();
 
 	if (size < 1024*1024 - 16*1024) {
 		fprintf(stderr, "Bad size\n");
 		return;
 	}
 
-	/* Go up in 1MB chunks until we find one too big */
-	for (range = 2*1024*1024; range <= size; range += 1<<20) {
-		touchRange(where, end, range);
+	range = 1024 * 1024;
+	incr = 1024 * 1024;
+	touchRange(where, range, pagesize);
+	for (range += incr; range <= size; range += incr) {
+		touchRange(where + range - incr, incr, pagesize);
 		start(0);
-		touchRange(where, end, range);
+		/* 
+		 * reverse page order to minimize the number
+		 * of pages swapped to disk.  We really
+		 * want only to find when swapping starts.
+		 * Particularly for large memory systems,
+		 * we don't want to "fall off a cliff" and
+		 * suddenly have to wait to swap everything
+		 * when we start swapping.
+		 */
+		touchRange(where, range, -pagesize);
 		sum = stop(0, 0);
-		n = range / 4096;
+		n = range / pagesize;
 		if ((sum / n) > TOO_LONG) {
 			fprintf(stderr, "\n");
-			printf("%d\n", (range>>20) - 1);
-			exit(0);
+			printf("%d\n", (range - incr)>>20);
+			return;
+		}
+		if (range < 20 * 1024 * 1024) 
+			incr = 1024 * 1024;
+		else if (range < 50 * 1024 * 1024)
+			incr = 2 * 1024 * 1024;
+		else if (range < 200 * 1024 * 1024)
+			incr = 10 * 1024 * 1024;
+		else    incr = 20 * 1024 * 1024;
+		if (range < size && size < range + incr) {
+			incr = size - range;
 		}
 		fprintf(stderr, "%dMB OK\r", range/(1024*1024));
 	}
@@ -90,14 +120,17 @@ timeit(char *where, int size)
 }
 
 static void
-touchRange(char *p, char *end, int range)
+touchRange(char *p, size_t range, ssize_t stride)
 {
-	char	*tmp = p;
+	int i = 0;
+	register char	*tmp = p + (stride > 0 ? 0 : range - 1);
+	register size_t delta = (stride > 0 ? stride : -stride);
 
-	while (range > 0 && (tmp < end)) {
+	while (range > delta - 1) {
 		*tmp = 0;
-		tmp += 4096;
-		range -= 4096;
+		tmp += stride;
+		range -= delta;
+		i++;
 	}
 }
 
