@@ -159,8 +159,10 @@ main(int argc, char *argv[])
 	benchmp(initialize, reader, cleanup, MEDIUM, parallel, 
 		warmup, repetitions, &state);
 
-	fprintf(stderr, "AF_UNIX sock stream bandwidth: ");
-	mb(get_n() * parallel * XFER);
+	if (gettime() > 0) {
+		fprintf(stderr, "AF_UNIX sock stream bandwidth: ");
+		mb(get_n() * parallel * XFER);
+	}
 	return(0);
 }
 
