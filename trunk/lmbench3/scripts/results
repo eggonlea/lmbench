@@ -1,0 +1,55 @@
+#!/bin/sh
+
+# $Id$
+
+OS=`../scripts/os`
+CONFIG=`../scripts/config`
+RESULTS=results/$OS
+BASE=../$RESULTS/`uname -n`
+EXT=0
+
+if [ ! -f "../bin/$OS/$CONFIG" ]
+then	echo "No config file?"
+	exit 1
+fi
+. ../bin/$OS/$CONFIG
+
+if [ ! -d ../$RESULTS ]
+then	mkdir -p ../$RESULTS
+fi
+RESULTS=$BASE
+while [ -f $RESULTS ]
+do      EXT=`expr $EXT + 1`
+	RESULTS=$BASE.$EXT
+done
+
+cd ../bin/$OS 
+if [ "X$SYNC_MAX" = X ]; then echo "No SYNC_MAX variable."; exit 1; fi
+if [ $SYNC_MAX -gt 1 ]
+then	export SYNC_PID=1
+	while [ $SYNC_PID -le $SYNC_MAX ]
+	do	echo Results $SYNC_PID going to ${RESULTS}_$SYNC_PID
+		../../scripts/lmbench $CONFIG 2>../${RESULTS}_$SYNC_PID &
+		SYNC_PID=`expr $SYNC_PID + 1`
+	done; wait
+else	echo Results going to ${RESULTS}
+	SYNC_PID=1
+	SYNC_MAX=1
+	export SYNC_PID SYNC_MAX
+	../../scripts/lmbench $CONFIG 2>../${RESULTS}
+fi
+
+if [ X$MAIL = Xyes ]
+then	echo Mailing results
+	if [ $SYNC_MAX -gt 1 ]
+	then	(echo ---- $INFO ---; cat $INFO; 
+		for i in ../${RESULTS}_*
+		do	echo ---- $i ----; cat $i
+		done) | mail lmbench2@bitmover.com 
+	else	(echo ---- $INFO ---
+		cat $INFO 
+		echo ---- $RESULTS ---
+		cat ../$RESULTS) | mail lmbench2@bitmover.com 
+	fi
+fi
+exit 0
