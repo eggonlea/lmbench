@@ -85,7 +85,7 @@ main(int ac, char **av)
 	exit(0);
 /**/
 
-	for (i = 2; maxpages; i<<=1) {
+	for (i = 2; i <= maxpages; i<<=1) {
 		state.pages = i;
 		compute_times(&state, &tlb_time, &cache_time);
 
@@ -96,7 +96,11 @@ main(int ac, char **av)
 		tlb = state.pages;
 	}
 
-	for (++i; i < maxpages; ++i) {
+	/* we can't find any tlb effect */
+	if (i == maxpages)
+		exit(0);
+
+	for (++i; i <= maxpages; ++i) {
 		state.pages = i;
 		compute_times(&state, &tlb_time, &cache_time);
 
