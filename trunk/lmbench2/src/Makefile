@@ -118,12 +118,16 @@ install-target:
 
 
 # No special handling for all these
-all irix osf1 aix bsdi linux ultrix sunos unknown: $(EXES)
+all irix osf1 bsdi linux ultrix sunos unknown: $(EXES)
 
 # System specific stuff.
 solaris:
 	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
 	$(MAKE) CC="$(CC)" O=$(BINDIR) LDLIBS="-lnsl -lsocket" SYS5=-DSYS5 all
+
+aix:
+	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
+	$(MAKE) CC="$(CC)" CF="-Dvalloc=malloc" O=$(BINDIR) all
 
 hpux:
 	@echo ======================================
