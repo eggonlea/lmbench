@@ -68,7 +68,7 @@ void initialize(void *cookie)
 		/*NOTREACHED*/
 
 	    default:
-		state->buf = valloc(state->xfer + 128) + 128;
+		state->buf = (char*)valloc(state->xfer + 128) + 128;
 		touch(state->buf, state->xfer);
 		close(state->control[0]);
 		close(state->pipes[1]);
