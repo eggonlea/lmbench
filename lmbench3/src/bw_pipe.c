@@ -47,6 +47,8 @@ void initialize(void *cookie)
 	}
 	switch (state->pid = fork()) {
 	    case 0:
+		close(state->control[1]);
+		close(state->pipes[0]);
 		writer(state->control, state->pipes, state->buf, state);
 		return;
 		/*NOTREACHED*/
@@ -58,6 +60,8 @@ void initialize(void *cookie)
 		/*NOTREACHED*/
 
 	    default:
+		close(state->control[0]);
+		close(state->pipes[1]);
 		break;
 	}
 }
