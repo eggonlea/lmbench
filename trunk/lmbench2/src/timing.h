@@ -42,7 +42,7 @@ void	use_pointer(void *result);
 uint64	usecs_spent(void);
 void	touch(char *buf, int size);
 
-#if defined(hpux) || defined(__hpux)
+#if defined(hpux) || defined(__hpux) || defined(WIN32)
 int	getpagesize();
 #endif
 
