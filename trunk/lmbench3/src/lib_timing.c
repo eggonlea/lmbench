@@ -73,6 +73,14 @@ lmbench_usage(int argc, char *argv[], char* usage)
 	exit(-1);
 }
 
+
+void
+sigchld_wait_handler(int signo)
+{
+	wait(0);
+	signal(SIGCHLD, sigchld_wait_handler);
+}
+
 static int	benchmp_sigterm_received;
 static int	benchmp_sigchld_received;
 static pid_t	benchmp_sigalrm_pid;
@@ -90,7 +98,7 @@ benchmp_sigterm(int signo)
 void
 benchmp_sigchld(int signo)
 {
-	signal(SIGCHLD, SIG_IGN);
+	signal(SIGCHLD, SIG_DFL);
 	benchmp_sigchld_received = 1;
 #ifdef _DEBUG
 	fprintf(stderr, "benchmp_sigchld handler\n");
@@ -212,7 +220,7 @@ benchmp(benchmp_f initialize,
 	benchmp_sigchld_received = 0;
 	benchmp_sigterm_received = 0;
 	benchmp_sigterm_handler = signal(SIGTERM, benchmp_sigterm);
-	benchmp_sigterm_handler = signal(SIGCHLD, benchmp_sigchld);
+	benchmp_sigchld_handler = signal(SIGCHLD, benchmp_sigchld);
 	pids = (pid_t*)malloc(parallel * sizeof(pid_t));
 	if (!pids) return;
 	bzero((void*)pids, parallel * sizeof(pid_t));
@@ -274,9 +282,10 @@ benchmp(benchmp_f initialize,
 
 error_exit:
 	/* give the children a chance to clean up gracefully */
-	signal(SIGCHLD, SIG_IGN);
+	signal(SIGCHLD, SIG_DFL);
 	while (--i >= 0) {
 		kill(pids[i], SIGTERM);
+		waitpid(pids[i], NULL, 0);
 	}
 
 cleanup_exit:
@@ -295,18 +304,17 @@ cleanup_exit:
 	benchmp_sigalrm_timeout = (int)((2 * enough)/1000000) + 2;
 	if (benchmp_sigalrm_timeout < 5)
 		benchmp_sigalrm_timeout = 5;
-	signal(SIGCHLD, SIG_IGN);
-	signal(SIGALRM, SIG_IGN);
+	signal(SIGCHLD, SIG_DFL);
 	while (i-- > 0) {
 		/* wait timeout seconds for child to die, then kill it */
 		benchmp_sigalrm_pid = pids[i];
-		signal(SIGALRM, benchmp_sigalrm);
+		benchmp_sigalrm_handler = signal(SIGALRM, benchmp_sigalrm);
 		alarm(benchmp_sigalrm_timeout); 
 
 		waitpid(pids[i], NULL, 0);
 
 		alarm(0);
-		signal(SIGALRM, SIG_IGN);
+		signal(SIGALRM, benchmp_sigalrm_handler);
 	}
 
 	if (pids) free(pids);
@@ -475,7 +483,7 @@ benchmp_parent(	int response,
 	}
 
 	/* we allow children to die now, without it causing an error */
-	signal(SIGCHLD, SIG_IGN);
+	signal(SIGCHLD, SIG_DFL);
 	
 	/* send 'exit' signals */
 	write(exit_signal, results, parallel * sizeof(char));
@@ -488,9 +496,10 @@ error_exit:
 #ifdef _DEBUG
 	fprintf(stderr, "benchmp_parent: error_exit!\n");
 #endif
-	signal(SIGCHLD, SIG_IGN);
+	signal(SIGCHLD, SIG_DFL);
 	for (i = 0; i < parallel; ++i) {
 		kill(pids[i], SIGTERM);
+		waitpid(pids[i], NULL, 0);
 	}
 	free(merged_results);
 cleanup_exit:
@@ -537,11 +546,29 @@ benchmp_childid()
 }
 
 void
+benchmp_child_sigchld(int signo)
+{
+#ifdef _DEBUG
+	fprintf(stderr, "benchmp_child_sigchld handler\n");
+#endif
+	if (_benchmp_child_state.cleanup) {
+		signal(SIGCHLD, SIG_DFL);
+		(*_benchmp_child_state.cleanup)(0, &_benchmp_child_state);
+	}
+	exit(1);
+}
+
+void
 benchmp_child_sigterm(int signo)
 {
 	signal(SIGTERM, SIG_IGN);
-	if (_benchmp_child_state.cleanup)
+	if (_benchmp_child_state.cleanup) {
+		void (*sig)(int) = signal(SIGCHLD, SIG_DFL);
+		if (sig != benchmp_child_sigchld && sig != SIG_DFL) {
+			signal(SIGCHLD, sig);
+		}
 		(*_benchmp_child_state.cleanup)(0, &_benchmp_child_state);
+	}
 	exit(0);
 }
 
@@ -603,7 +630,11 @@ benchmp_child(benchmp_f initialize,
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 0;
 
-	signal(SIGCHLD, benchmp_sigchld_handler);
+	if (benchmp_sigchld_handler != SIG_DFL) {
+		signal(SIGCHLD, benchmp_sigchld_handler);
+	} else {
+		signal(SIGCHLD, benchmp_child_sigchld);
+	}
 
 	if (initialize)
 		(*initialize)(0, cookie);
@@ -639,6 +670,8 @@ benchmp_interval(void* _state)
 	if (!state->need_warmup) {
 		result = stop(0,0);
 		if (state->cleanup) {
+			if (benchmp_sigchld_handler == SIG_DFL)
+				signal(SIGCHLD, SIG_DFL);
 			(*state->cleanup)(iterations, state->cookie);
 		}
 		save_n(state->iterations);
@@ -648,6 +681,8 @@ benchmp_interval(void* _state)
 
 	/* if the parent died, then give up */
 	if (getppid() == 1 && state->cleanup) {
+		if (benchmp_sigchld_handler == SIG_DFL)
+			signal(SIGCHLD, SIG_DFL);
 		(*state->cleanup)(0, state->cookie);
 		exit(0);
 	}
@@ -717,8 +752,11 @@ benchmp_interval(void* _state)
 			 */
 			read(state->result_signal, (void*)&c, sizeof(char));
 			write(state->response, (void*)get_results(), state->r_size);
-			if (state->cleanup)
+			if (state->cleanup) {
+				if (benchmp_sigchld_handler == SIG_DFL)
+					signal(SIGCHLD, SIG_DFL);
 				(*state->cleanup)(0, state->cookie);
+			}
 
 			/* Now wait for signal to exit */
 			read(state->exit_signal, (void*)&c, sizeof(char));
