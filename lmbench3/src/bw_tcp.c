@@ -30,7 +30,7 @@ void	client_main(int parallel, state_t *state);
 void	source(int data);
 
 void	initialize(void* cookie);
-void	loop_transfer(uint64 iter, void *cookie);
+void	loop_transfer(iter_t iterations, void *cookie);
 void	cleanup(void* cookie);
 
 int main(int ac, char **av)
@@ -139,7 +139,7 @@ initialize(void *cookie)
 }
 
 void 
-loop_transfer(uint64 iterations, void *cookie)
+loop_transfer(iter_t iterations, void *cookie)
 {
 	int	c;
 	long	todo;

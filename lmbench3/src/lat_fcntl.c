@@ -41,7 +41,7 @@ struct _state {
 };
 
 void initialize(void* cookie);
-void benchmark(uint64 iterations, void* cookie);
+void benchmark(iter_t iterations, void* cookie);
 void cleanup(void* cookie);
 
 void
@@ -147,12 +147,11 @@ initialize(void* cookie)
 }
 
 void
-benchmark(uint64 iterations, void* cookie)
+benchmark(iter_t iterations, void* cookie)
 {
 	struct _state* state = (struct _state*)cookie;
-	uint64	i;
 	
-	for (i = 0; i < iterations; ++i) {
+	while (iterations-- > 0) {
 		procA(state);
 	}
 }

@@ -88,7 +88,7 @@ void cleanup_io(void * cookie)
 	close(state->fd);
 }
 
-void time_with_open(uint64 iterations, void * cookie)
+void time_with_open(iter_t iterations, void * cookie)
 {
 	state_t	*state = (state_t *) cookie;
 	char	*filename = state->filename;
@@ -101,7 +101,7 @@ void time_with_open(uint64 iterations, void * cookie)
 	}
 }
 
-void time_io_only(uint64 iterations,void * cookie)
+void time_io_only(iter_t iterations,void * cookie)
 {
 	state_t *state = (state_t *) cookie;
 	int fd = state->fd;

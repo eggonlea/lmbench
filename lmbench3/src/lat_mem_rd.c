@@ -130,7 +130,7 @@ void initialize_loads(void* cookie)
 	}
 }
 
-void benchmark_loads(uint64 iterations, void *cookie)
+void benchmark_loads(iter_t iterations, void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 	register char **p = (char**)state->addr;

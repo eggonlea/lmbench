@@ -34,7 +34,7 @@ typedef struct _state {
 
 void	init(void *cookie);
 void	cleanup(void *cookie);
-void	domapping(uint64 iterations, void * cookie);
+void	domapping(iter_t iterations, void * cookie);
 
 int main(int ac, char **av)
 {
@@ -106,7 +106,7 @@ void cleanup(void * cookie)
  * This alg due to Linus.  The goal is to have both sparse and full
  * mappings reported.
  */
-void domapping(uint64 iterations, void *cookie)
+void domapping(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	register int fd = state->fd;

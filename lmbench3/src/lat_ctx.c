@@ -32,10 +32,10 @@ int	create_pipes(int **p, int procs);
 int	create_daemons(int **p, int pids[], int procs, int process_size);
 void	initialize_overhead(void* cookie);
 void	cleanup_overhead(void* cookie);
-void	benchmark_overhead(uint64 iterations, void* cookie);
+void	benchmark_overhead(iter_t iterations, void* cookie);
 void	initialize(void* cookie);
 void	cleanup(void* cookie);
-void	benchmark(uint64 iterations, void* cookie);
+void	benchmark(iter_t iterations, void* cookie);
 
 struct _state {
 	int	process_size;
@@ -163,25 +163,24 @@ cleanup_overhead(void* cookie)
 }
 
 void
-benchmark_overhead(uint64 iterations, void* cookie)
+benchmark_overhead(iter_t iterations, void* cookie)
 {
 	struct _state* pState = (struct _state*)cookie;
-	int	k = 0;
+	int	i = 0;
 	int	msg = 1;
 	int	sum = 0;
-	uint64	i;
 
-	for (i = 0; i < iterations; ++i) {
-		if (write(pState->p[k][1], &msg, sizeof(msg)) != sizeof(msg)) {
+	while (iterations-- > 0) {
+		if (write(pState->p[i][1], &msg, sizeof(msg)) != sizeof(msg)) {
 			perror("read/write on pipe");
 			exit(1);				
 		}
-		if (read(pState->p[k][0], &msg, sizeof(msg)) != sizeof(msg)) {
+		if (read(pState->p[i][0], &msg, sizeof(msg)) != sizeof(msg)) {
 			perror("read/write on pipe");
 			exit(1);
 		}
-		if (++k == pState->procs) {
-			k = 0;
+		if (++i == pState->procs) {
+			i = 0;
 		}
 		sum += sumit(pState->data, pState->process_size);
 	}
@@ -222,18 +221,17 @@ void cleanup(void* cookie)
 }
 
 void
-benchmark(uint64 iterations, void* cookie)
+benchmark(iter_t iterations, void* cookie)
 {
 	struct _state* pState = (struct _state*)cookie;
 	int	msg;
-	uint64	i;
 	int	sum = 0;
 
 	/*
 	 * Main process - all others should be ready to roll, time the
 	 * loop.
 	 */
-	for (i = 0; i < iterations; ++i) {
+	while (iterations-- > 0) {
 		if (write(pState->p[0][1], &msg, sizeof(msg)) !=
 		    sizeof(msg)) {
 			perror("read/write on pipe");

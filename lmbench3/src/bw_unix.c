@@ -13,7 +13,7 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-void	reader(uint64 iterations, void * cookie);
+void	reader(iter_t iterations, void * cookie);
 void	writer(int control[2], int pipes[2], char* buf);
 
 int	XFER	= 10*1024*1024;
@@ -68,7 +68,7 @@ void cleanup(void * cookie)
 	kill(state->pid, 9);
 }
 
-void reader(uint64 iterations, void * cookie)
+void reader(iter_t iterations, void * cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 	int	done, n;

@@ -35,8 +35,8 @@ typedef struct _state {
 	TYPE	*lastone;
 } state_t;
 
-void time_no_open(uint64 iter, void * cookie);
-void time_with_open(uint64 iter, void * cookie);
+void time_no_open(iter_t iterations, void * cookie);
+void time_with_open(iter_t iterations, void * cookie);
 void init_open(void *cookie);
 void cleanup(void *cookie);
 
@@ -137,7 +137,7 @@ int doit(register TYPE *p, register TYPE *lastone)
 	return sum;
 }
 
-void time_no_open(uint64 iterations, void * cookie)
+void time_no_open(iter_t iterations, void * cookie)
 {
 	state_t *state = (state_t *) cookie;
 	register TYPE *p = state->buf;
@@ -151,7 +151,7 @@ void time_no_open(uint64 iterations, void * cookie)
 	use_int(sum);
 }
 
-void time_with_open(uint64 iterations, void *cookie)
+void time_with_open(iter_t iterations, void *cookie)
 {
 	state_t *state    = (state_t *) cookie;
 	char 	*filename = state->filename;
