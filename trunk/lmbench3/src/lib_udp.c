@@ -79,7 +79,7 @@ udp_connect(char *host, u_long prog, int rdwr)
 	sin.sin_family = AF_INET;
 	bcopy((void*)h->h_addr, (void *) &sin.sin_addr, h->h_length);
 #ifdef	NO_PORTMAPPER
-	sin.sin_port = prog;
+	sin.sin_port = htons(prog);
 #else
 	port = pmap_getport(&sin, prog, (u_long)1, IPPROTO_UDP);
 	if (!port) {
