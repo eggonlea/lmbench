@@ -1,7 +1,7 @@
 /*
  * lat_fifo.c - named pipe transaction test
  *
- * usage: lat_fifo [-P <parallelism>]
+ * usage: lat_fifo [-P <parallelism>] [-W <warmup>] [-N <repetitions>]
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -32,14 +32,22 @@ int main(int ac, char **av)
 {
 	state_t state;
 	int parallel = 1;
+	int warmup = 0;
+	int repetitions = TRIES;
 	int c;
-	char* usage = "[-P <parallelism>]\n";
+	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
 
-	while (( c = getopt(ac, av, "P:")) != EOF) {
+	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -50,7 +58,8 @@ int main(int ac, char **av)
 		lmbench_usage(ac, av, usage);
 	}
 
-	benchmp(initialize, doit, cleanup, SHORT, parallel, &state);
+	benchmp(initialize, doit, cleanup, SHORT, parallel, 
+		warmup, repetitions, &state);
 	micro("Fifo latency", get_n());
 }
 

@@ -103,15 +103,23 @@ int
 main(int ac, char **av)
 {
 	int parallel = 1;
+	int warmup = 0;
+	int repetitions = TRIES;
 	int c;
 	struct _state state;
-	char* usage = "[-P <parallelism>] null|read|write|stat|open [file]\n";
+	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] null|read|write|stat|open [file]\n";
 
-	while (( c = getopt(ac, av, "P:")) != EOF) {
+	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -127,11 +135,13 @@ main(int ac, char **av)
 		state.file = av[optind + 1];
 
 	if (!strcmp("null", av[optind])) {
-		benchmp(NULL, do_getppid, NULL, 0, parallel, &state);
+		benchmp(NULL, do_getppid, NULL, 0, parallel, 
+			warmup, repetitions, &state);
 		micro("Simple syscall", get_n());
 	} else if (!strcmp("write", av[optind])) {
 		state.fd = open("/dev/null", 1);
-		benchmp(NULL, do_write, NULL, 0, parallel, &state);
+		benchmp(NULL, do_write, NULL, 0, parallel, 
+			warmup, repetitions, &state);
 		micro("Simple write", get_n());
 		close(state.fd);
 	} else if (!strcmp("read", av[optind])) {
@@ -140,19 +150,23 @@ main(int ac, char **av)
 			fprintf(stderr, "Read from /dev/zero: -1");
 			return(1);
 		}
-		benchmp(NULL, do_read, NULL, 0, parallel, &state);
+		benchmp(NULL, do_read, NULL, 0, parallel, 
+			warmup, repetitions, &state);
 		micro("Simple read", get_n());
 		close(state.fd);
 	} else if (!strcmp("stat", av[optind])) {
-		benchmp(NULL, do_stat, NULL, 0, parallel, &state);
+		benchmp(NULL, do_stat, NULL, 0, parallel, 
+			warmup, repetitions, &state);
 		micro("Simple stat", get_n());
 	} else if (!strcmp("fstat", av[optind])) {
 		state.fd = open(state.file, 0);
-		benchmp(NULL, do_fstat, NULL, 0, parallel, &state);
+		benchmp(NULL, do_fstat, NULL, 0, parallel, 
+			warmup, repetitions, &state);
 		micro("Simple fstat", get_n());
 		close(state.fd);
 	} else if (!strcmp("open", av[optind])) {
-		benchmp(NULL, do_openclose, NULL, 0, parallel, &state);
+		benchmp(NULL, do_openclose, NULL, 0, parallel, 
+			warmup, repetitions, &state);
 		micro("Simple open/close", get_n());
 	} else {
 		lmbench_usage(ac, av, usage);

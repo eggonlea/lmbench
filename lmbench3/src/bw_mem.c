@@ -1,7 +1,7 @@
 /*
  * bw_mem.c - simple memory write bandwidth benchmark
  *
- * Usage: bw_mem [-P <parallelism>] size what
+ * Usage: bw_mem [-P <parallelism>] [-W <warmup>] [-N <repetitions>] size what
  *        what: rd wr rdwr cp fwr frd fcp bzero bcopy
  *
  * Copyright (c) 1994-1996 Larry McVoy.  Distributed under the FSF GPL with
@@ -59,16 +59,24 @@ void	adjusted_bandwidth(uint64 t, uint64 b, uint64 iter, double ovrhd);
 int main(int ac, char **av)
 {
 	int	parallel = 1;
+	int	warmup = 0;
+	int	repetitions = TRIES;
 	int	nbytes;
 	state_t	state;
 	int	c;
-	char	*usage = "[-P <parallelism>] <size> what [conflict]\nwhat: rd wr rdwr cp fwr frd fcp bzero bcopy\n";
+	char	*usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> what [conflict]\nwhat: rd wr rdwr cp fwr frd fcp bzero bcopy\n";
 
-	while (( c = getopt(ac, av, "P:")) != EOF) {
+	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -95,54 +103,72 @@ int main(int ac, char **av)
 	}
 		
 	if (streq(av[optind+1], "rd")) {
-		benchmp(init_overhead, rd, cleanup, 0, parallel, &state);
+		benchmp(init_overhead, rd, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 		state.overhead = gettime();
 		state.overhead /= get_n();
-		benchmp(init_loop, rd, cleanup, 0, parallel, &state);
+		benchmp(init_loop, rd, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "wr")) {
-		benchmp(init_overhead, wr, cleanup, 0, parallel, &state);
+		benchmp(init_overhead, wr, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 		state.overhead = gettime();
 		state.overhead /= get_n();
-		benchmp(init_loop, wr, cleanup, 0, parallel, &state);
+		benchmp(init_loop, wr, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "rdwr")) {
-		benchmp(init_overhead, rdwr, cleanup, 0, parallel, &state);
+		benchmp(init_overhead, rdwr, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 		state.overhead = gettime();
 		state.overhead /= get_n();
-		benchmp(init_loop, rdwr, cleanup, 0, parallel, &state);
+		benchmp(init_loop, rdwr, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "cp")) {
-		benchmp(init_overhead, cp, cleanup, 0, parallel, &state);
+		benchmp(init_overhead, cp, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 		state.overhead = gettime();
 		state.overhead /= get_n();
-		benchmp(init_loop, cp, cleanup, 0, parallel, &state);
+		benchmp(init_loop, cp, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "frd")) {
-		benchmp(init_overhead, frd, cleanup, 0, parallel, &state);
+		benchmp(init_overhead, frd, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 		state.overhead = gettime();
 		state.overhead /= get_n();
-		benchmp(init_loop, frd, cleanup, 0, parallel, &state);
+		benchmp(init_loop, frd, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "fwr")) {
-		benchmp(init_overhead, fwr, cleanup, 0, parallel, &state);
+		benchmp(init_overhead, fwr, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 		state.overhead = gettime();
 		state.overhead /= get_n();
-		benchmp(init_loop, fwr, cleanup, 0, parallel, &state);
+		benchmp(init_loop, fwr, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "fcp")) {
-		benchmp(init_overhead, fcp, cleanup, 0, parallel, &state);
+		benchmp(init_overhead, fcp, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 		state.overhead = gettime();
 		state.overhead /= get_n();
-		benchmp(init_loop, fcp, cleanup, 0, parallel, &state);
+		benchmp(init_loop, fcp, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "bzero")) {
-		benchmp(init_overhead, loop_bzero, cleanup,0,parallel, &state);
+		benchmp(init_overhead, loop_bzero, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 		state.overhead = gettime();
 		state.overhead /= get_n();
-		benchmp(init_loop, loop_bzero, cleanup, 0, parallel, &state);
+		benchmp(init_loop, loop_bzero, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "bcopy")) {
 		/* XXX - if gcc inlines this the numbers could be off */
 		/* But they are off in a good way - the bcopy will appear
 		 * to cost around 0...
 		 */
-		benchmp(init_overhead, loop_bcopy, cleanup,0,parallel, &state);
+		benchmp(init_overhead, loop_bcopy, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 		state.overhead = gettime();
 		state.overhead /= get_n();
-		benchmp(init_loop, loop_bcopy, cleanup, 0, parallel, &state);
+		benchmp(init_loop, loop_bcopy, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 	} else {
 		lmbench_usage(ac, av, usage);
 	}

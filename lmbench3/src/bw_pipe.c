@@ -1,7 +1,7 @@
 /*
  * bw_pipe.c - pipe bandwidth benchmark.
  *
- * Usage: bw_pipe [-P <parallelism>]
+ * Usage: bw_pipe [-P <parallelism>] [-W <warmup>] [-N <repetitions>]
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -108,16 +108,24 @@ main(int ac, char *av[])
 {
 	struct _state state;
 	int parallel = 1;
+	int warmup = 0;
+	int repetitions = TRIES;
 	int c;
-	char* usage = "[-P <parallelism>]\n";
+	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
 
 	state.bytes = XFER;
 
-	while (( c = getopt(ac, av, "P:")) != EOF) {
+	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -127,7 +135,8 @@ main(int ac, char *av[])
 	if (optind < ac) {
 		lmbench_usage(ac, av, usage);
 	}
-	benchmp(initialize, reader, cleanup, MEDIUM, parallel, &state);
+	benchmp(initialize, reader, cleanup, MEDIUM, parallel, 
+		warmup, repetitions, &state);
 
 	fprintf(stderr, "Pipe bandwidth: ");
 	mb(get_n() * parallel * XFER);

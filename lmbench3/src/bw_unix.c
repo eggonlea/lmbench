@@ -1,7 +1,7 @@
 /*
  * bw_unix.c - simple Unix stream socket bandwidth test
  *
- * Usage: bw_unix [-P <parallelism>]
+ * Usage: bw_unix [-P <parallelism>] [-W <warmup>] [-N <repetitions>]
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -107,16 +107,24 @@ main(int argc, char *argv[])
 {
 	struct _state state;
 	int parallel = 1;
+	int warmup = 0;
+	int repetitions = TRIES;
 	int c;
-	char* usage = "[-P <parallelism>]\n";
+	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
 
 	state.bytes = XFER;
 
-	while (( c = getopt(argc,argv,"P:")) != EOF) {
+	while (( c = getopt(argc,argv,"P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(argc, argv, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(argc, argv);
@@ -126,7 +134,8 @@ main(int argc, char *argv[])
 	if (optind < argc) {
 		lmbench_usage(argc, argv);
 	}
-	benchmp(initialize, reader, cleanup, MEDIUM, parallel, &state);
+	benchmp(initialize, reader, cleanup, MEDIUM, parallel, 
+		warmup, repetitions, &state);
 
 	fprintf(stderr, "AF_UNIX sock stream bandwidth: ");
 	mb(get_n() * parallel * XFER);

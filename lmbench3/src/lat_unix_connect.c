@@ -3,7 +3,7 @@
  *
  * Three programs in one -
  *	server usage:	lat_connect -s
- *	client usage:	lat_connect [-P <parallelism>]
+ *	client usage:	lat_connect [-P <parallelism>] [-W <warmup>] [-N <repetitions>]
  *	shutdown:	lat_connect -q
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
@@ -32,7 +32,9 @@ void benchmark(uint64 iterations, void* cookie)
 int main(int ac, char **av)
 {
 	int parallel = 1;
-	char	*usage = "-s\n OR [-P <parallelism>]\n OR -q\n";
+	int warmup = 0;
+	int repetitions = TRIES;
+	char	*usage = "-s\n OR [-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n OR -q\n";
 	int	c;
 
 	/* Start the server "-s" or Shut down the server "-q" */
@@ -54,11 +56,17 @@ int main(int ac, char **av)
 	/*
 	 * Rest is client
 	 */
-	while (( c = getopt(ac, av, "P:")) != EOF) {
+	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -70,7 +78,7 @@ int main(int ac, char **av)
 		lmbench_usage(ac, av, usage);
 	}
 
-	benchmp(NULL, benchmark, NULL, 0, parallel, NULL);
+	benchmp(NULL, benchmark, NULL, 0, parallel, warmup, repetitions, NULL);
 	micro("UNIX connection cost ", get_n());
 }
 

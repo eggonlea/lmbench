@@ -3,7 +3,7 @@
  *
  * Three programs in one -
  *	server usage:	tcp_xact -s
- *	client usage:	tcp_xact [-P <parallelism>] hostname
+ *	client usage:	tcp_xact [-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] hostname
  *	shutdown:	tcp_xact -hostname
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
@@ -34,13 +34,15 @@ main(int ac, char **av)
 {
 	state_t state;
 	int	parallel = 1;
+	int	warmup = 0;
+	int	repetitions = TRIES;
 	int 	c;
 	char	buf[256];
-	char	*usage = "-s\n OR [-m <message size>] [-P <parallelism>] server\n OR -S server\n";
+	char	*usage = "-s\n OR [-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] server\n OR -S server\n";
 
 	state.msize = 1;
 
-	while (( c = getopt(ac, av, "sSP:m:")) != EOF) {
+	while (( c = getopt(ac, av, "sSm:P:W:N:")) != EOF) {
 		switch(c) {
 		case 's': /* Server */
 			if (fork() == 0) {
@@ -61,6 +63,12 @@ main(int ac, char **av)
 			if (parallel <= 0)
 				lmbench_usage(ac, av, usage);
 			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
+			break;
 		default:
 			lmbench_usage(ac, av, usage);
 			break;
@@ -72,7 +80,8 @@ main(int ac, char **av)
 	}
 
 	state.server = av[optind];
-	benchmp(init, doclient, cleanup, MEDIUM, parallel, &state);
+	benchmp(init, doclient, cleanup, MEDIUM, parallel, 
+		warmup, repetitions, &state);
 
 	sprintf(buf, "TCP latency using %s", state.server);
 	micro(buf, get_n());

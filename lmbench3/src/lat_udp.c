@@ -2,9 +2,9 @@
  * udp_xact.c - simple UDP transaction latency test
  *
  * Three programs in one -
- *	server usage:	udp_xact -s
- *	client usage:	udp_xact hostname
- *	shutdown:	udp_xact -hostname
+ *	server usage:	lat_udp -s
+ *	client usage:	lat_udp [-P <parallelism>] [-W <warmup>] [-N <repetitions>] hostname
+ *	shutdown:	lat_udp -S hostname
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -15,8 +15,10 @@
 char	*id = "$Id$\n";
 #include "bench.h"
 
+#define MAX_MSIZE (10 * 1024 * 1024)
+
 void	client_main(int ac, char **av);
-void	server_main(int msize);
+void	server_main();
 void	init(void *cookie);
 void	cleanup(void *cookie);
 void    doit(uint64 iter, void *cookie);
@@ -35,11 +37,13 @@ int main(int ac, char **av)
 	state_t state;
 	int	c;
 	int	parallel = 1;
+	int	warmup = 0;
+	int	repetitions = TRIES;
 	int	server = 0;
 	int	shutdown = 0;
 	int	msize = 4;
  	char	buf[256];
-	char	*usage = "-s\n OR [-S] [-P <parallelism>] server\n NOTE: message size must be >= 4\n";
+	char	*usage = "-s\n OR [-S] [-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] server\n NOTE: message size must be >= 4\n";
 
 	if (sizeof(int) != 4) {
 		fprintf(stderr, "lat_udp: Wrong sequence size\n");
@@ -70,11 +74,21 @@ int main(int ac, char **av)
 				lmbench_usage(ac, av, usage);
 				msize = 4;
 			}
+			if (msize > MAX_MSIZE) {
+				lmbench_usage(ac, av, usage);
+				msize = MAX_MSIZE;
+			}
 			break;
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0)
 				lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -84,7 +98,7 @@ int main(int ac, char **av)
 
 	if (server) {
 		if (fork() == 0) {
-			server_main(msize);
+			server_main();
 		}
 		exit(0);
 	}
@@ -95,7 +109,8 @@ int main(int ac, char **av)
 
 	state.server = av[optind];
 	state.msize = msize;
-	benchmp(init, doit, cleanup, SHORT, parallel, &state);
+	benchmp(init, doit, cleanup, SHORT, parallel, 
+		warmup, repetitions, &state);
 	sprintf(buf, "UDP latency using %s", state.server);
 	micro(buf, get_n());
 	exit(0);
@@ -141,9 +156,9 @@ void cleanup(void * cookie)
 }
 
 void
-server_main(int msize)
+server_main()
 {
-	char	*buf = (char*)valloc(msize);
+	char	*buf = (char*)valloc(MAX_MSIZE);
 	int     sock, sent, namelen, seq = 0;
 	struct sockaddr_in it;
 
@@ -152,9 +167,10 @@ server_main(int msize)
 	sock = udp_server(UDP_XACT, SOCKOPT_NONE);
 
 	while (1) {
+		int nbytes;
 		namelen = sizeof(it);
-		if (recvfrom(sock, (void*)buf, msize, 0, 
-		    (struct sockaddr*)&it, &namelen) < 0) {
+		if ((nbytes = recvfrom(sock, (void*)buf, MAX_MSIZE, 0, 
+		    (struct sockaddr*)&it, &namelen)) < 0) {
 			fprintf(stderr, "lat_udp server: recvfrom: got wrong size\n");
 			exit(9);
 		}
@@ -167,7 +183,7 @@ server_main(int msize)
 			seq = sent;
 		}
 		*(int*)buf = htonl(seq);
-		if (sendto(sock, (void*)buf, msize, 0, 
+		if (sendto(sock, (void*)buf, nbytes, 0, 
 		    (struct sockaddr*)&it, sizeof(it)) < 0) {
 			perror("lat_udp sendto");
 			exit(9);

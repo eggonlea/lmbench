@@ -1,5 +1,5 @@
 /*
- * tlb.c - guess the cache line size
+ * cache.c - guess the cache size(s)
  *
  * usage: tlb
  *
@@ -37,7 +37,7 @@ void cleanup(void* cookie);
  * Assumptions:
  *
  * 1) Cache lines are a multiple of pointer-size words
- * 2) Cache lines are smaller than 1/4 a page size
+ * 2) Cache lines are no larger than 1/8 of a page (typically 512 bytes)
  * 3) Pages are an even multiple of cache lines
  */
 int
@@ -45,16 +45,18 @@ main(int ac, char **av)
 {
 	int	i, l, len;
 	int	c;
+	int	warmup = 0;
+	int	repetitions = TRIES;
 	int	print_cost = 0;
 	int	maxlen = 32 * 1024 * 1024;
 	double	time;
 	struct _state state;
-	char   *usage = "[-c] [-L <line size>] [-M len[K|M]]\n";
+	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 
-	state.line = getpagesize() / (4 * sizeof(char*));
+	state.line = getpagesize() / 8;
 	state.pagesize = getpagesize();
 
-	while (( c = getopt(ac, av, "cL:M:")) != EOF) {
+	while (( c = getopt(ac, av, "cL:M:W:N:")) != EOF) {
 		switch(c) {
 		case 'c':
 			print_cost = 1;
@@ -73,6 +75,12 @@ main(int ac, char **av)
 			}
 			maxlen *= atoi(optarg);
 			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
+			break;
 		default:
 			lmbench_usage(ac, av, usage);
 			break;
@@ -81,18 +89,21 @@ main(int ac, char **av)
 
 	for (i = sizeof(char*); i <= maxlen; i<<=1) {
 		state.len = i;
-		benchmp(initialize, benchmark, cleanup, 0, 1, &state);
+		benchmp(initialize, benchmark, cleanup, 0, 1, 
+			warmup, repetitions, &state);
 
 		/* We want nanoseconds / load. */
 		time = (1000. * (double)gettime()) / (100. * (double)get_n());
 		fprintf(stderr, "cache: %d bytes %.5f nanoseconds\n", state.len, time);
 	}
 
+#if 0
 	if (print_cost) {
 		fprintf(stderr, "cache: %d bytes %.5f nanoseconds\n", len, time);
 	} else {
 		fprintf(stderr, "cache: %d bytes\n", len);
 	}
+#endif
 
 	return(0);
 }
@@ -169,7 +180,7 @@ initialize(void* cookie)
 		words[i] = i * state->line / (nwords * sizeof(char*));
 	}
 
-	/* randomize the line sequences */
+	/* randomize the word sequences */
 	for (i = nwords - 2; i > 0; --i) {
 		int l;
 		r = (r << 1) ^ (rand() >> 4);

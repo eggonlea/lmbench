@@ -3,7 +3,7 @@
  *
  * Three programs in one -
  *	server usage:	lat_connect -s
- *	client usage:	lat_connect [-P <parallelism> hostname
+ *	client usage:	lat_connect [-P <parallelism>] [-W <warmup>] [-N <repetitions>] hostname
  *	shutdown:	lat_connect -hostname
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
@@ -26,11 +26,13 @@ int main(int ac, char **av)
 {
 	state_t state;
 	int	parallel = 1;
+	int	warmup = 0;
+	int	repetitions = TRIES;
 	int 	c;
 	char	buf[256];
-	char	*usage = "-s\n OR [-S] [-P <parallelism>] server\n";
+	char	*usage = "-s\n OR [-S] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] server\n";
 
-	while (( c = getopt(ac, av, "sSP:")) != EOF) {
+	while (( c = getopt(ac, av, "sSP:W:N:")) != EOF) {
 		switch(c) {
 		case 's': /* Server */
 			if (fork() == 0) {
@@ -51,6 +53,12 @@ int main(int ac, char **av)
 			if (parallel <= 0)
 				lmbench_usage(ac, av, usage);
 			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
+			break;
 		default:
 			lmbench_usage(ac, av, usage);
 			break;
@@ -62,7 +70,8 @@ int main(int ac, char **av)
 	}
 
 	state.server = av[optind];
-	benchmp(NULL, doclient, NULL, REAL_SHORT, parallel, &state);
+	benchmp(NULL, doclient, NULL, REAL_SHORT, parallel, 
+		warmup, repetitions, &state);
 
 	sprintf(buf, "TCP/IP connection cost to %s", state.server);
 	micro(buf, get_n());

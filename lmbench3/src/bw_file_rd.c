@@ -1,7 +1,7 @@
 /*
  * bw_file_rd.c - time reading & summing of a file
  *
- * Usage: bw_file_rd [-P <parallelism] size file
+ * Usage: bw_file_rd [-P <parallelism] [-W <warmup>] [-N <repetitions>] size file
  *
  * The intent is that the file is in memory.
  * Disk benchmarking is done with lmdd.
@@ -117,10 +117,12 @@ int main(int ac, char **av)
 	int	fd;
 	state_t state;
 	int	parallel = 1;
+	int	warmup = 0;
+	int	repetitions = TRIES;
 	int	c;
-	char	usage[132];
+	char	usage[1024];
 	
-	sprintf(usage,"[-P <parallelism>] <size> open2close|io_only <filename>"
+	sprintf(usage,"[-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> open2close|io_only <filename>"
 		"\nmin size=%d\n",(int) (XFERSIZE>>10)) ;
 
 	while (( c = getopt(ac, av, "P:")) != EOF) {
@@ -128,6 +130,12 @@ int main(int ac, char **av)
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -154,9 +162,9 @@ int main(int ac, char **av)
 	bzero((void*)buf, XFERSIZE);
 
 	if (!strcmp("open2close", av[optind+1])) {
-	  benchmp(NULL,time_with_open,NULL,0,parallel,&state);
+	  benchmp(NULL,time_with_open,NULL,0,parallel,warmup,repetitions,&state);
 	} else if (!strcmp("io_only", av[optind+1])) {
-	  benchmp(init_open,time_io_only,cleanup_io,0,parallel,&state);
+	  benchmp(init_open,time_io_only,cleanup_io,0,parallel,warmup,repetitions,&state);
 	} else lmbench_usage(ac, av, usage);
 	bandwidth(count, get_n() * parallel, 0);
 	return (0);

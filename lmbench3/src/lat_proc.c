@@ -1,7 +1,7 @@
 /*
  * lat_proc.c - process creation tests
  *
- * Usage: lat_proc [-P <parallelism] procedure|fork|exec|shell
+ * Usage: lat_proc [-P <parallelism] [-W <warmup>] [-N <repetitions>] procedure|fork|exec|shell
  *
  * TODO - linux clone, plan9 rfork, IRIX sproc().
  *
@@ -33,14 +33,22 @@ int
 main(int ac, char **av)
 {
 	int parallel = 1;
+	int warmup = 0;
+	int repetitions = TRIES;
 	int c;
-	char* usage = "[-P <parallelism>] procedure|fork|exec|shell\n";
+	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] procedure|fork|exec|shell\n";
 
-	while (( c = getopt(ac, av, "P:")) != EOF) {
+	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -52,20 +60,21 @@ main(int ac, char **av)
 		lmbench_usage(ac, av, usage);
 	}
 
-#define NOINIT NULL
-#define NOCLEANUP NULL
-
 	if (!strcmp("procedure", av[optind])) {
-		benchmp(NOINIT,do_procedure,NOCLEANUP, 0, parallel, &ac);
+		benchmp(NULL, do_procedure, NULL, 0, parallel, 
+			warmup, repetitions, &ac);
 		micro("Procedure call", get_n());
 	} else if (!strcmp("fork", av[optind])) {
-		benchmp(NOINIT,do_fork,NOCLEANUP, 0, parallel, NULL);
+		benchmp(NULL, do_fork, NULL, 0, parallel, 
+			warmup, repetitions, NULL);
 		micro(STATIC_PREFIX "Process fork+exit", get_n());
 	} else if (!strcmp("exec", av[optind])) {
-		benchmp(NOINIT,do_forkexec,NOCLEANUP,0,parallel,NULL);
+		benchmp(NULL, do_forkexec, NULL, 0, parallel,
+			warmup, repetitions, NULL);
 		micro(STATIC_PREFIX "Process fork+execve", get_n());
 	} else if (!strcmp("shell", av[optind])) {
-		benchmp(NOINIT,do_shell,NOCLEANUP,0,parallel,NULL);
+		benchmp(NULL, do_shell, NULL, 0, parallel,
+			warmup, repetitions, NULL);
 		micro(STATIC_PREFIX "Process fork+/bin/sh -c", get_n());
 	} else {
 		lmbench_usage(ac, av, usage);

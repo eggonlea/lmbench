@@ -19,6 +19,8 @@ struct _state {
 	char*	p;
 	int	pages;
 	int	pagesize;
+	int	warmup;
+	int	repetitions;
 };
 
 void compute_times(struct _state* state, double* tlb_time, double* cache_time);
@@ -53,6 +55,9 @@ main(int ac, char **av)
 
 	maxpages = 16 * 1024;
 	state.pagesize = getpagesize();
+	state.warmup = 0;
+	state.repetitions = TRIES;
+
 	tlb = 2;
 
 	while (( c = getopt(ac, av, "cM:")) != EOF) {
@@ -70,6 +75,12 @@ main(int ac, char **av)
 				optarg[l-1] = 0;
 			}
 			maxpages *= atoi(optarg);
+			break;
+		case 'W':
+			state.warmup = atoi(optarg);
+			break;
+		case 'N':
+			state.repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -114,6 +125,11 @@ main(int ac, char **av)
 		tlb = state.pages;
 	}
 
+	for (i = 2; i <= maxpages; i<<=1) {
+		state.pages = i;
+		compute_times(&state, &tlb_time, &cache_time);
+	}
+
 	if (print_cost) {
 		fprintf(stderr, "tlb: %d pages %.5f nanoseconds\n", tlb, tlb_time - cache_time);
 	} else {
@@ -126,17 +142,19 @@ main(int ac, char **av)
 void
 compute_times(struct _state* state, double* tlb_time, double* cache_time)
 {
-	benchmp(initialize_tlb, benchmark, cleanup, 0, 1, state);
+	benchmp(initialize_tlb, benchmark, cleanup, 0, 1, 
+		state->warmup, state->repetitions, state);
 	
 	/* We want nanoseconds / load. */
 	*tlb_time = (1000. * (double)gettime()) / (100. * (double)get_n());
 
-	benchmp(initialize_cache, benchmark, cleanup, 0, 1, state);
+	benchmp(initialize_cache, benchmark, cleanup, 0, 1,
+		state->warmup, state->repetitions, state);
 	
 	/* We want nanoseconds / load. */
 	*cache_time = (1000. * (double)gettime()) / (100. * (double)get_n());
 
-	/* fprintf(stderr, "%d %.5f %.5f\n", state->pages, *tlb_time, *cache_time); */
+	fprintf(stderr, "%d %.5f %.5f\n", state->pages, *tlb_time, *cache_time);
 }
 
 /*
@@ -149,6 +167,7 @@ initialize_tlb(void* cookie)
 	int i, npointers;
 	unsigned int r;
 	char ***pages;
+	int    *lines;
 	struct _state* state = (struct _state*)cookie;
 	register char *p = 0 /* lint */;
 
@@ -156,8 +175,9 @@ initialize_tlb(void* cookie)
 
 	state->p = state->addr = (char*)malloc((state->pages + 1) * state->pagesize);
 	pages = (char***)malloc(state->pages * sizeof(char**));
+	lines = (int*)malloc(npointers * sizeof(int));
 
-	if (state->addr == NULL || pages == NULL) {
+	if (state->addr == NULL || pages == NULL || lines == NULL) {
 		exit(0);
 	}
 
@@ -184,13 +204,28 @@ initialize_tlb(void* cookie)
 		pages[i + 1] = l;
 	}
 
+	/* layout the sequence of line accesses */
+	for (i = 0; i < npointers; ++i) {
+		lines[i] = i * state->pagesize / (npointers * sizeof(char*));
+	}
+
+	/* randomize the line sequences */
+	for (i = npointers - 2; i > 0; --i) {
+		int l;
+		r = (r << 1) ^ (rand() >> 4);
+		l = lines[(r % i) + 1];
+		lines[(r % i) + 1] = lines[i];
+		lines[i] = l;
+	}
+
 	/* new setup run through the pages */
 	for (i = 0; i < state->pages - 1; ++i) {
-		pages[i][i % npointers] = (char*)(pages[i+1] + (i+1) % npointers);
+		pages[i][lines[i % npointers]] = (char*)(pages[i+1] + lines[(i+1) % npointers]);
 	}
-	pages[state->pages - 1][(state->pages - 1) % npointers] = (char*)pages[0];
+	pages[state->pages - 1][lines[(state->pages - 1) % npointers]] = (char*)(pages[0] + lines[0]);
 
 	free(pages);
+	free(lines);
 
 	/* run through the chain once to clear the cache */
 	benchmark((state->pages + 100) / 100, state);
