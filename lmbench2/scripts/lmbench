@@ -10,8 +10,6 @@
 PATH=.:../../scripts:$PATH:/etc:/usr/etc:/sbin:/usr/sbin
 export PATH
 
-OUTPUT=`output`
-
 if [ -f $1 ]
 then	echo Using config in $1 > ${OUTPUT}
 	. $1

@@ -337,6 +337,24 @@ EOF
 fi
 
 ############################################################################
+# status output?
+############################################################################
+echo $L
+cat<<EOF;
+
+lmbench outputs status information as it runs various benchmarks.
+By default this output is sent to /dev/tty, but you may redirect
+it to any file you wish (such as /dev/null...).
+
+EOF
+
+echo $ECHON "Status output file [default /dev/tty] $ECHOC"
+read OUTPUT
+if [ "X$OUTPUT" = X ]
+then	OUTPUT=/dev/tty;
+fi
+
+############################################################################
 # Submit results?
 ############################################################################
 echo $L
@@ -428,6 +446,7 @@ VERSION=`../scripts/version`
 C=../bin/$OS/`../scripts/config`
 echo DISKS=\"$DISKS\" > $C
 echo DISK_DESC=\"$DISK_DESC\" >> $C
+echo OUTPUT=\"$OUTPUT\" >> $C
 echo ENOUGH=$ENOUGH >> $C
 echo FASTMEM=\"$FASTMEM\" >> $C
 echo FILE=$FILE >> $C
