@@ -665,9 +665,9 @@ sub print_ctx
 
 Context switching - times in microseconds - smaller is better
 -------------------------------------------------------------------------
-Host                 OS 2p/0K 2p/16K 2p/64K 8p/16K 8p/64K 16p/16K 16p/64K
-                        ctxsw  ctxsw  ctxsw ctxsw  ctxsw   ctxsw   ctxsw
---------- ------------- ----- ------ ------ ------ ------ ------- -------
+Host                 OS  2p/0K 2p/16K 2p/64K 8p/16K 8p/64K 16p/16K 16p/64K
+                         ctxsw  ctxsw  ctxsw ctxsw  ctxsw   ctxsw   ctxsw
+--------- ------------- ------ ------ ------ ------ ------ ------- -------
 EOF
 
 	for ($i = 0; $i <= $#uname; $i++) {
@@ -678,14 +678,14 @@ EOF
 			next; 
 		}
 	        printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-		printf " %4.4s   %4.4s   %4.4s   %4.4s   %4.4s    %4.4s    %4.4s\n",
-			&num($lat_ctx0_2[$i], "%4d"),
-			&num($lat_ctx16_2[$i], "%4d"),
-			&num($lat_ctx64_2[$i], "%4d"),
-			&num($lat_ctx16_8[$i], "%4d"),
-			&num($lat_ctx64_8[$i], "%4d"),
-			&num($lat_ctx16_16[$i], "%4d"),
-			&num($lat_ctx64_16[$i], "%4d");
+		printf "%6.6s %6.6s %6.6s %6.6s %6.6s %7.7s %7.7s\n",
+			&num($lat_ctx0_2[$i], "%6.2f"),
+			&num($lat_ctx16_2[$i], "%6.2f"),
+			&num($lat_ctx64_2[$i], "%6.2f"),
+			&num($lat_ctx16_8[$i], "%6.1f"),
+			&num($lat_ctx64_8[$i], "%6.1f"),
+			&num($lat_ctx16_16[$i], "%7.1f"),
+			&num($lat_ctx64_16[$i], "%7.1f");
 	}
 }
 
@@ -719,8 +719,8 @@ EOF
 			next; 
 		}
 	        printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-        	printf "%5s %5s %4s %5s %5s %5s %5s %4s\n",
-			&num($lat_ctx0_2[$i], "%5d"),
+        	printf "%5.5s %5.5s %4.4s %5.5s %5.5s %5.5s %5.5s %4.4s\n",
+			&num($lat_ctx0_2[$i], "%5.1f"),
 			&num($lat_pipe[$i], "%5d"),
 			&num($lat_unix[$i], "%4d"),
 			&num($lat_udp_local[$i], "%5d"),
