@@ -3,20 +3,34 @@ $Id$
 Add standard deviation and other statistics calculations to "make stats"
 in results
 
+Rewrite scripts/lmbench to use the new "-P <parallelism>" model for
+benchmarking parallel performance.  (replace/update the old
+'synchronize' calls)
+
+Write/extend the results processing system/scripts to graph/display/
+process results in the "-P <parallelism>" dimension, and to properly
+handle results with differing parallelism when reporting standard
+results.  The parallelism is stored in the results file as SYNC_MAX.
+
 Add "-m <message size>" to networking benchmarks; this would specify
 the number of bytes for each message's payload.  (message size must
 be >= 1)
 [partially complete]
 
 Add "cache" benchmark to determine cache sizes (in bytes)
+[in progress]
 
 Add "line" benchmark to determine cache line size (in bytes)
+[in progress]
 
 Add "tlb" benchmark to determine effective TLB size (in pages)
+[in progress]
 
 Add "load" benchmark to determine how many loads a CPU can do in parallel
+[in progress]
 
 Add "bw_udp" benchmark to measure UDP bandwidth
+[in progress]
 
 Make a bw_tcp mode that measures bandwidth for each block and graph that
 as offset/bandwidth.
@@ -33,8 +47,10 @@ use_result.  So all are in function calls.
 
 Fix the getsummary to include simple calls.
 
-Think about the issues of int/long long/double load/stores.  Maybe do them
-all.
+Think about the issues of int/long/long long/double/long double
+load/stores.  Maybe do them all.  This will (at least) require
+adding a test to scripts/build for the presence of long double
+on this system.
 
 Make all results print out bandwidths in powers of 10/sizes in powers of two.
 
