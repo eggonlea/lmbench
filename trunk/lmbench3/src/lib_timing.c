@@ -1599,6 +1599,27 @@ permutation(int max, int scale)
 	return (result);
 }
 
+int
+cp(char* src, char* dst, mode_t mode)
+{
+	int sfd, dfd;
+	char buf[8192];
+	ssize_t size;
+
+	if ((sfd = open(src, O_RDONLY)) < 0) {
+		return -1;
+	}
+	if ((dfd = open(dst, O_CREAT|O_TRUNC|O_RDWR, mode)) < 0) {
+		return -1;
+	}
+	while ((size = read(sfd, buf, 8192)) > 0) {
+		if (write(dfd, buf, size) < size) return -1;
+	}
+	fsync(dfd);
+	close(sfd);
+	close(dfd);
+}
+
 #if defined(hpux) || defined(__hpux)
 int
 getpagesize()

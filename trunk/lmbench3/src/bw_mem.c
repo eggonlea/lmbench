@@ -32,7 +32,7 @@ char	*id = "$Id$";
 void	rd(iter_t iterations, void *cookie);
 void	wr(iter_t iterations, void *cookie);
 void	rdwr(iter_t iterations, void *cookie);
-void	cp(iter_t iterations, void *cookie);
+void	mcp(iter_t iterations, void *cookie);
 void	fwr(iter_t iterations, void *cookie);
 void	frd(iter_t iterations, void *cookie);
 void	fcp(iter_t iterations, void *cookie);
@@ -114,7 +114,7 @@ int main(int ac, char **av)
 		benchmp(init_loop, rdwr, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "cp")) {
-		benchmp(init_loop, cp, cleanup, 0, parallel, 
+		benchmp(init_loop, mcp, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "frd")) {
 		benchmp(init_loop, frd, cleanup, 0, parallel, 
@@ -255,7 +255,7 @@ rdwr(iter_t iterations, void *cookie)
 #undef	DOIT
 
 void
-cp(iter_t iterations, void *cookie)
+mcp(iter_t iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *lastone = state->lastone;
