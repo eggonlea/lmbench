@@ -14,6 +14,7 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
+
 struct cache_results {
 	int	len;
 	int	maxlen;
@@ -36,6 +37,11 @@ double	measure(int size, int repetitions,
 		double* variation, struct mem_state* state);
 double	remove_chunk(int i, int chunk, int npages, int* pages, 
 		       int len, int repetitions, struct mem_state* state);
+
+#ifdef ABS
+#undef ABS
+#endif
+#define ABS(a) ((a) < 0 ? -(a) : (a))
 
 #define THRESHOLD 1.5
 
@@ -144,8 +150,14 @@ main(int ac, char **av)
 
 		/* locate most likely cache latency */
 		for (j = prev, min = prev; j < i; ++j) {
-			if (r[j].latency <= 0.) continue;
-			if (abs(r[j].slope) < abs(r[min].slope))
+			if (r[j].latency <= 0. || r[j].slope == -1.) continue;
+/*
+			fprintf(stderr, 
+				"r[%d].s = %8.3f, r[%d].s = %8.3f, r[%d] = %10.6f\n", 
+				j, r[j].slope, min, r[min].slope,
+				j, r[j].len / (1000. * 1000.));
+/**/
+			if (ABS(r[j].slope) < ABS(r[min].slope))
 				min = j;
 		}
 
@@ -316,7 +328,7 @@ search(int left, int right, int repetitions,
 		if (p[left].ratio < 0.98) {
 			p[left].latency = p[right].latency;
 			p[left].ratio = 1.;
-			p[left].slope = 0.;
+			p[left].slope = -1.;
 		}
 	}
 
@@ -361,6 +373,7 @@ collect_sample(int repetitions, struct mem_state* state,
 		return (p->latency > 0);
 
 	nodiff_chunk_baseline = baseline;
+	if (available_index >= nsparepages) available_index = 0;
 	iters = 0;
 	do {
 		modified = 0;
@@ -434,7 +447,7 @@ collect_sample(int repetitions, struct mem_state* state,
 				nodiff_chunk_baseline = t;
 		}
 		++iters;
-	} while (modified && iters < 4);
+	} while (modified && iters < 8);
 
 	return (p->latency > 0);
 }
