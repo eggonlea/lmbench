@@ -129,15 +129,29 @@ bk.ver: ../SCCS/s.ChangeSet
 	touch bk.ver
 
 dist:
-	@if [ "X`cd ..; bk sfiles -c`" != "X" ]; then echo "modified files!"; false; fi
-	@if [ "X`cd ..; bk pending`" != "X" ]; then echo "pending changes!"; false; fi
-	cd ..; for d in . doc results scripts src; do \
-		(cd $$d; bk clean; bk get -s); \
-	done
-	rm -f bk.ver
-	make bk.ver
-	cp -rp .. ../../lmbench-2dist
-	rm -rf ../../lmbench-2dist/bin/*
+	@if [ "X`cd ..; bk sfiles -c`" != "X" ]; then \
+		echo "modified files!"; \
+		false; \
+	 fi
+	@if [ "X`cd ..; bk pending`" != "X" ]; then \
+		echo "pending changes!"; \
+		false; \
+	 fi
+	cd ..; \
+		PWD=`pwd`; \
+		DIR=`basename $${PWD}`; \
+		cd ..; \
+		bk clone $${DIR} /tmp/$${DIR}; \
+		cd /tmp/$${DIR}; \
+		bk get -s; \
+		for d in doc results scripts src; do \
+			cd $$d; bk get -s; cd ..; \
+		done; \
+		cd src; \
+		make bk.ver; \
+		cd /tmp; \
+		tar czf $${DIR}.tgz $${DIR}; \
+		rm -rf /tmp/$${DIR};
 
 get $(SRCS):
 	get -s $(SRCS)
