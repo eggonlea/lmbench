@@ -30,9 +30,6 @@ char	*id = "$Id: lmdd.c,v 1.23 1997/12/01 23:47:59 lm Exp $\n";
  * TODO - rewrite this entire thing from scratch.  This is disgusting code.
  */
 
-#if	!defined(hpux) && !defined(__hpux)
-#define	RUSAGE
-#endif
 #define	FLUSH
 
 #include	<fcntl.h>
