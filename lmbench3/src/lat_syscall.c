@@ -147,7 +147,7 @@ main(int ac, char **av)
 	} else if (!strcmp("read", av[optind])) {
 		state.fd = open("/dev/zero", 0);
 		if (state.fd == -1) {
-			fprintf(stderr, "Read from /dev/zero: -1");
+			fprintf(stderr, "Read from /dev/zero: -1\n");
 			return(1);
 		}
 		benchmp(NULL, do_read, NULL, 0, parallel, 
