@@ -949,3 +949,16 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 	return (0);
 }
 #endif
+
+void
+TRACE(char* format, ...)
+{
+	va_list	ap;
+
+	va_start(ap, format);
+#ifdef _DEBUG
+	vfprintf(stderr, format, ap);
+	fflush(stderr);
+#endif
+	va_end(ap);
+}
