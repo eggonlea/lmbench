@@ -1,7 +1,8 @@
 $Id$
 
 Add standard deviation and other statistics calculations to "make stats"
-in results
+in results.  Alternatively, we might report min, 1Q, median, 3Q, max,
+as standard deviation for non-normal distributions isn't always sensible.
 
 Add flags to various file-related benchmarks bw_file_rd, bw_mmap_rd,
 lat_fcntl.c, lat_fs, lat_mmap, and lat_pagefault, for parallelism
@@ -21,19 +22,19 @@ faults and VM mapping might have very different performance
 for threads vs. processes since Linux (at least) has per-memory
 space locks for many of these things.  From Linus.
 
-Rewrite scripts/lmbench to use the new "-P <parallelism>" model for
-benchmarking parallel performance. 
-[in progress]
+Add a '-f' option to lat_ctx which causes the work to be floating point
+summation (so we get floating point state too).  (Suggestion by Ingo Molnar)
+
+Add a threads benchmark suite (context switch, mutex, semaphore, ...).
+
+Create a new process for each measurement, rather than reusing the same
+process.  This is mostly to get different page layouts and mostly impacts
+the memory latency benchmarks, although it can also affect lat_ctx.
 
 Write/extend the results processing system/scripts to graph/display/
 process results in the "-P <parallelism>" dimension, and to properly
 handle results with differing parallelism when reporting standard
 results.  The parallelism is stored in the results file as SYNC_MAX.
-
-Add "-m <message size>" to networking benchmarks; this would specify
-the number of bytes for each message's payload.  (message size must
-be >= 1)
-[partially complete]
 
 Add "bw_udp" benchmark to measure UDP bandwidth
 [in progress]
@@ -44,13 +45,6 @@ as offset/bandwidth.
 Make the disk stuff autosize such that you get the same number of data
 points regardless of disk size.
 
-Make sure that all memory referencing benchmarks reference all the
-memory.  So no partial references in the BENCH() macro, it has
-to call something that touches all of it.
-
-Make all benchmarks use the timing overhead for the loop and all call
-use_result.  So all are in function calls.
-
 Fix the getsummary to include simple calls.
 
 Think about the issues of int/long/long long/double/long double
@@ -60,22 +54,11 @@ on this system.
 
 Make all results print out bandwidths in powers of 10/sizes in powers of two.
 
-Make the lat_mem_rd walk in different strides.  Try and make it so that
-you flip back and forth between the same cache line.  So if you assume
-4 byte pointers and 8 byte cache lines, you do
-
-	[ x _ ] [ _ x ] [ x _ ] [ _ x]
-
-such that the stride switches between 4 & 12 bytes.  Make sure this screws
-up HP's prefetch.
-
 Documentation on porting.
 
 Check that file size is right in the benchmarking system.
 
 Compiler version info included in results.  XXX - do this!
-
-Assembler output for the files that need it.
 
 memory store latency (complex)
 	Why can't I just use the read one and make it write?
@@ -90,8 +73,6 @@ Check all the error outputs and make sure they are consistent.
 On all the normalized graphs, make sure that they mean the same thing.
 I do not think that the bandwidth measurements are "correct" in this
 sense.
-
-Move the k/m postfix routine into timing.c and make it an interface.
 
 Document the timing.c interfaces.
 
