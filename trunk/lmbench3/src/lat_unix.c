@@ -76,13 +76,14 @@ void initialize(void* cookie)
 		perror("socketpair");
 	}
 
-	if (pState->pid = fork())
-		return;
-
 	pState->buf = malloc(pState->msize);
 	if (pState->buf == NULL) {
-		perror("buffer allocation");
+		fprintf(stderr, "buffer allocation\n");
+		exit(1);
 	}
+
+	if (pState->pid = fork())
+		return;
 
 	/* Child sits and ping-pongs packets back to parent */
 	signal(SIGTERM, exit);
