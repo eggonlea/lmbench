@@ -73,7 +73,7 @@ client_main(int ac, char **av)
 	 * We don't want more than a few of these, they stack up in time wait.
 	 * XXX - report an error if the clock is too shitty?
 	 */
-	BENCH(doit(server), 25000);
+	BENCH(doit(server), 0);
 	sprintf(buf, "TCP/IP connection cost to %s", server);
 	micro(buf, get_n());
 	exit(0);
@@ -83,7 +83,7 @@ client_main(int ac, char **av)
 void
 server_main(int ac, char **av)
 {
-	int     newsock, sock;
+	int     newsock, sock, n;
 	char	c;
 
 	if (ac != 2) {
@@ -91,12 +91,12 @@ server_main(int ac, char **av)
 		exit(1);
 	}
 	GO_AWAY;
-	sock = tcp_server(TCP_CONNECT, SOCKOPT_NONE);
+	sock = tcp_server(TCP_CONNECT, SOCKOPT_REUSE);
 	for (;;) {
 		newsock = tcp_accept(sock, SOCKOPT_NONE);
 		c = 0;
-		read(newsock, &c, 1);
-		if (c && c == '0') {
+		n = read(newsock, &c, 1);
+		if (n > 0 && c == '0') {
 			tcp_done(TCP_CONNECT);
 			exit(0);
 		}
