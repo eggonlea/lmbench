@@ -53,8 +53,10 @@ int main(int ac, char **av)
 	while (( c = getopt(ac, av, "sSm:P:")) != EOF) {
 		switch(c) {
 		case 's': /* Server */
-			server = 1;
-			break;
+			if (fork() == 0) {
+				server_main();
+			}
+			exit(0);
 		case 'S': /* shutdown serverhost */
 		{
 			int seq, n;
@@ -94,13 +96,6 @@ int main(int ac, char **av)
 			lmbench_usage(ac, av, usage);
 			break;
 		}
-	}
-
-	if (server) {
-		if (fork() == 0) {
-			server_main();
-		}
-		exit(0);
 	}
 
 	if (optind + 1 != ac) {
