@@ -14,9 +14,6 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-double	line_test(int l, int warmup, int repetitions, struct mem_state* state);
-int	line_find(int len, int warmup, int repetitions, struct mem_state* state);
-
 /*
  * Assumptions:
  *
@@ -91,56 +88,3 @@ main(int ac, char **av)
 
 	return (0);
 }
-
-int
-line_find(int len, int warmup, int repetitions, struct mem_state* state)
-{
-	int 	i, j;
-	int 	l = 0;
-	int	maxline = getpagesize() / (8 * sizeof(char*));
-	double	t, threshold;
-
-	state->len = len;
-
-	threshold = .85 * line_test(maxline, warmup, repetitions, state);
-
-	for (i = maxline>>1; i >= 2; i>>=1) {
-		t = line_test(i, warmup, repetitions, state);
-
-		if (t <= threshold) {
-			return ((i<<1) * sizeof(char*));
-		}
-	}
-
-	return (0);
-}
-
-double
-line_test(int len, int warmup, int repetitions, struct mem_state* state)
-{
-	int	i;
-	double	t;
-	result_t r, *r_save;
-
-	state->line = len;
-	r_save = get_results();
-	insertinit(&r);
-	for (i = 0; i < 5; ++i) {
-		benchmp(line_initialize, mem_benchmark_0, mem_cleanup, 
-			0, 1, warmup, repetitions, state);
-		insertsort(gettime(), get_n(), &r);
-	}
-	set_results(&r);
-	t = 10. * (double)gettime() / (double)get_n();
-	set_results(r_save);
-	
-	/*
-	fprintf(stderr, "%d\t%.5f\t%d\n", len * sizeof(char*), t, state->len); 
-	/**/
-
-	return (t);
-}
-
-
-
-
