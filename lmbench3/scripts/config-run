@@ -53,6 +53,12 @@ LOOP_O=`../bin/$OS/loop_o`
 export LOOP_O
 echo "OK, it looks like your benchmark loop costs $LOOP_O usecs."
 echo ""
+echo "Hang on, we are calculating your cache line size."
+../bin/$OS/msleep 250
+LINE_SIZE=`../bin/$OS/line`
+export LINE_SIZE
+echo "OK, it looks like your cache line is $LINE_SIZE bytes."
+echo ""
 
 ############################################################################
 # Figure out memory size.
@@ -441,6 +447,7 @@ echo FASTMEM=\"$FASTMEM\" >> $C
 echo FILE=$FILE >> $C
 echo FSDIR=$FSDIR >> $C
 echo INFO=$INFO >> $C
+echo LINE_SIZE=$LINE_SIZE >> $C
 echo LOOP_O=$LOOP_O >> $C
 echo MAIL=$MAIL >> $C
 echo MB=$MB >> $C
