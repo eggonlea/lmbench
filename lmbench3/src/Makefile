@@ -43,7 +43,7 @@ SAMPLES=lmbench/Results/aix/rs6000 lmbench/Results/hpux/snake \
 
 COMPILE=$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
-INCS =	bench.h lib_tcp.h lib_udp.h stats.h timing.h
+INCS =	bench.h lib_mem.h lib_tcp.h lib_udp.h stats.h timing.h
 
 SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
 	bw_unix.c	\
@@ -52,9 +52,10 @@ SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
 	lat_mem_rd.c lat_mmap.c lat_ops.c lat_pagefault.c lat_pipe.c 	\
 	lat_proc.c lat_rpc.c lat_select.c lat_sig.c lat_syscall.c	\
 	lat_tcp.c lat_udp.c lat_unix.c lat_unix_connect.c		\
-	lib_stats.c lib_tcp.c lib_timing.c lib_udp.c lib_unix.c		\
-	line.c lmdd.c lmhttp.c par_mem.c par_ops.c loop_o.c memsize.c mhz.c 	\
-	msleep.c rhttp.c seek.c timing_o.c tlb.c stream.c		\
+	lib_mem.c lib_stats.c lib_tcp.c lib_timing.c lib_udp.c 		\
+	lib_unix.c		\
+	line.c lmdd.c lmhttp.c par_mem.c par_ops.c loop_o.c memsize.c 	\
+	mhz.c msleep.c rhttp.c seek.c timing_o.c tlb.c stream.c		\
 	bench.h lib_tcp.h lib_udp.h lib_unix.h names.h stats.h		\
 	timing.h version.h
 
@@ -79,7 +80,7 @@ MAN8 =	$D/bw_file_rd.8 $D/bw_mem_cp.8 $D/bw_mem_rd.8 $D/bw_mem_wr.8	\
 	$D/lat_syscall.8 $D/lat_tcp.8 $D/lat_udp.8 $D/lmbench.8 	\
 	$D/lmdd.8 $D/mhz.8 
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o 	\
-	$O/lib_stats.o $O/getopt.o
+	$O/lib_mem.o $O/lib_stats.o $O/getopt.o
 
 lmbench: $(UTILS)
 	@env CFLAGS=-O ../scripts/build all
@@ -170,8 +171,9 @@ shar:
 depend: ../scripts/depend
 	../scripts/depend
 
-$O/lmbench.a: lib_timing.c lib_tcp.c lib_udp.c lib_unix.c lib_stats.c getopt.c bench.h timing.h stats.h lib_tcp.h lib_udp.h names.h
+$O/lmbench.a: lib_mem.c lib_timing.c lib_tcp.c lib_udp.c lib_unix.c lib_stats.c getopt.c bench.h timing.h stats.h lib_mem.h lib_tcp.h lib_udp.h names.h
 	$(COMPILE) -c lib_timing.c -o $O/lib_timing.o
+	$(COMPILE) -c lib_mem.c -o $O/lib_mem.o
 	$(COMPILE) -c lib_tcp.c -o $O/lib_tcp.o
 	$(COMPILE) -c lib_udp.c -o $O/lib_udp.o
 	$(COMPILE) -c lib_unix.c -o $O/lib_unix.o

@@ -240,6 +240,7 @@ extern void benchmp(support_f initialize,
 extern void* benchmp_getstate();
 extern iter_t benchmp_interval(void* _state);
 
+#include	"lib_mem.h"
 
 /*
  * Generated from msg.x which is included here:
