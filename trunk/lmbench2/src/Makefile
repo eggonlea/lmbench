@@ -155,7 +155,7 @@ dist: bk.ver
 		make bk.ver; \
 		cd /tmp; \
 		tar czf $${SRCDIR}/../$${DIR}-$${TODAY}.tgz $${DIR}-$${VERSION}; \
-		rm -rf /tmp/$${DIR};
+		rm -rf /tmp/$${DIR}-$${VERSION};
 
 get $(SRCS):
 	get -s $(SRCS)
