@@ -136,9 +136,9 @@ main(int ac, char **av)
 	}
 
 	if (print_cost) {
-		fprintf(stderr, "tlb: %d pages %.5f nanoseconds\n", tlb, tlb_time - cache_time);
+		printf("tlb: %d pages %.5f nanoseconds\n", tlb, tlb_time - cache_time);
 	} else {
-		fprintf(stderr, "tlb: %d pages\n", tlb);
+		printf("tlb: %d pages\n", tlb);
 	}
 
 	return(0);
