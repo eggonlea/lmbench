@@ -51,7 +51,7 @@ int main(int ac, char **av)
 		return(1);
 	}
 
-	while (( c = getopt(ac, av, "sS:m:P:")) != EOF) {
+	while (( c = getopt(ac, av, "sS:m:P:W:N:")) != EOF) {
 		switch(c) {
 		case 's': /* Server */
 			if (fork() == 0) {
