@@ -6,58 +6,86 @@ OS=`../scripts/os`
 TARGET=`../scripts/target`
 BINDIR="../bin/${OS}"
 CONFIG="../bin/${OS}/`../scripts/config`"
+NULL=/dev/null
+BASE=/tmp/dummy
 
-trap 'rm -f /tmp/dummy$$.s /tmp/dummy$$.c /tmp/dummy$$.o /tmp/dummy$$; exit 1' 1 2 15
+trap 'rm -f ${BASE}$$.s ${BASE}$$.c ${BASE}$$.o ${BASE}$$; exit 1' 1 2 15
 
 # check for HP-UX's ANSI compiler
-if [ X$CC = "Xcc" ]
+echo "main(int ac, char *av[]) { int i; }" > ${BASE}$$.c
+if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}
 then
-	echo "main(int ac, char *av[]) { int i; }" > /tmp/dummy$$.c
-	${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -Ae"
-	rm -f /tmp/dummy$$ /tmp/dummy$$.c
+	true;
+else
+	rm -f ${BASE}$$
+	if ${CC} ${CFLAGS} -Ae -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}
+	then
+		CFLAGS="${CFLAGS} -Ae"
+	fi
+fi
+rm -f ${BASE}$$ ${BASE}$$.c
+	
+# check for IA64 HP-UX w/ HP's ANSI compiler; may need pointer swizzling
+arch=`echo $OS | awk -F- '{print $1;}'`
+if [ X$CC = "Xcc" -a X$arch = "Xia64" ]
+then
+	echo "#include <stdlib.h>" > ${BASE}$$.c
+	echo "main(int ac, char *av[])" >> ${BASE}$$.c
+	echo "{ long* p = (long*)malloc(sizeof(long));" >> ${BASE}$$.c
+	echo "*p = 0; exit((int)*p); }" >> ${BASE}$$.c
+	${CC} ${CFLAGS} +DD64 -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
+		&& [ -x ${BASE}$$ ] \
+		&& ${BASE}$$ \
+		&& CFLAGS="${CFLAGS} +DD64"
+	rm -f ${BASE}$$ ${BASE}$$.c
 fi
 	
 # check for bcopy (optionally set the SYS5 flag)
-echo "#include <string.h>" > /tmp/dummy$$.c
-echo "main() { char buf1[256]; char buf2[256]; bcopy(buf1, buf2, 256); }" >> /tmp/dummy$$.c
-${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -DSYS5"
-rm -f /tmp/dummy$$ /tmp/dummy$$.c
+echo "#include <string.h>" > ${BASE}$$.c
+echo "main() { char a[256], b[256]; bcopy(a, b, 256); }" >> ${BASE}$$.c
+${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
+	|| CFLAGS="${CFLAGS} -DSYS5"
+rm -f ${BASE}$$ ${BASE}$$.c
 
 # check for valloc
-echo "#include <stdlib.h>" > /tmp/dummy$$.c
-echo "main() { char* buf = valloc(123); }" >> /tmp/dummy$$.c
-${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -Dvalloc=malloc"
-rm -f /tmp/dummy$$ /tmp/dummy$$.c
+echo "#include <stdlib.h>" > ${BASE}$$.c
+echo "main() { char* buf = valloc(123); }" >> ${BASE}$$.c
+${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
+	|| CFLAGS="${CFLAGS} -Dvalloc=malloc"
+rm -f ${BASE}$$ ${BASE}$$.c
 
 # check for getrusage
-echo "#include <sys/types.h>" > /tmp/dummy$$.c
-echo "#include <sys/time.h>" >> /tmp/dummy$$.c
-echo "#include <sys/resource.h>" >> /tmp/dummy$$.c
-echo "#ifndef RUSAGE_SELF" >> /tmp/dummy$$.c
-echo "#define RUSAGE_SELF 0" >> /tmp/dummy$$.c
-echo "#endif /* RUSAGE_SELF */" >> /tmp/dummy$$.c
-echo "main() { struct rusage ru; getrusage(RUSAGE_SELF, &ru); }" >> /tmp/dummy$$.c
-${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null && CFLAGS="${CFLAGS} -DRUSAGE"
-rm -f /tmp/dummy$$ /tmp/dummy$$.c
+echo "#include <sys/types.h>" > ${BASE}$$.c
+echo "#include <sys/time.h>" >> ${BASE}$$.c
+echo "#include <sys/resource.h>" >> ${BASE}$$.c
+echo "#ifndef RUSAGE_SELF" >> ${BASE}$$.c
+echo "#define RUSAGE_SELF 0" >> ${BASE}$$.c
+echo "#endif /* RUSAGE_SELF */" >> ${BASE}$$.c
+echo "main() { struct rusage ru; getrusage(RUSAGE_SELF, &ru); }" >> ${BASE}$$.c
+${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
+	&& CFLAGS="${CFLAGS} -DRUSAGE"
+rm -f ${BASE}$$ ${BASE}$$.c
 
 # check for -lnsl
-echo "extern int pmap_getport(); main() { pmap_getport(); }" > /tmp/dummy$$.c
-if ${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null; then
+echo "extern int pmap_getport(); main() { pmap_getport(); }" > ${BASE}$$.c
+if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
 	true;
 else
-	${CC} -o /tmp/dummy$$ /tmp/dummy$$.c -lnsl 1>/dev/null 2>/dev/null && LDLIBS="${LDLIBS} -lnsl"
+	${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c -lnsl 1>${NULL} 2>${NULL} \
+		&& LDLIBS="${LDLIBS} -lnsl"
 fi
-rm -f /tmp/dummy$$ /tmp/dummy$$.c
+rm -f ${BASE}$$ ${BASE}$$.c
 
 
 # check for -lsocket
-echo "extern void* getservent(); main() { getservent(); }" > /tmp/dummy$$.c
-if ${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null; then
+echo "extern void* getservent(); main() { getservent(); }" > ${BASE}$$.c
+if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
 	true;
 else
-	${CC} -o /tmp/dummy$$ /tmp/dummy$$.c -lsocket 1>/dev/null 2>/dev/null && LDLIBS="${LDLIBS} -lsocket"
+	${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c -lsocket 1>${NULL} 2>${NULL} \
+		&& LDLIBS="${LDLIBS} -lsocket"
 fi
-rm -f /tmp/dummy$$ /tmp/dummy$$.c
+rm -f ${BASE}$$ ${BASE}$$.c
 
 
 # echo Building for $(TARGET)
