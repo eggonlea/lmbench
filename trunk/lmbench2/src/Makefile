@@ -37,15 +37,12 @@ CONFIG=../bin/$(OS)/`../scripts/config`
 UTILS=../scripts/target ../scripts/os ../scripts/gnu-os ../scripts/compiler \
 	../scripts/info ../scripts/info-template ../scripts/version \
 	../scripts/config ../scripts/config-run ../scripts/results \
-	../scripts/lmbench
+	../scripts/lmbench ../scripts/build
 INSTALL=cp
 RESULTS=Results/$(OS)
 SAMPLES=lmbench/Results/aix/rs6000 lmbench/Results/hpux/snake \
 	lmbench/Results/irix/indigo2 lmbench/Results/linux/pentium \
 	lmbench/Results/osf1/alpha lmbench/Results/solaris/ss20* 
-
-SYS5=
-CFLAGS = -O $(SYS5) $(CF)
 
 COMPILE=$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
@@ -84,16 +81,13 @@ MAN8 =	$D/bw_file_rd.8 $D/bw_mem_cp.8 $D/bw_mem_rd.8 $D/bw_mem_wr.8	\
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o $O/lib_stats.o
 
 lmbench: $(UTILS)
-	@echo Building for $(TARGET)
-	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
-	$(MAKE) CC="$(CC)" O=$(BINDIR) $(TARGET)
+	@env CFLAGS=-O ../scripts/build
 
-results: $(UTILS)
-	@$(MAKE) lmbench CC=$(CC) O=$(BINDIR) $(TARGET)
+results: lmbench
 	@../scripts/config-run
 	@../scripts/results
 
-rerun: $(UTILS)
+rerun: lmbench
 	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; fi
 	@../scripts/results
 
@@ -118,35 +112,13 @@ install-target:
 
 
 # No special handling for all these
-all irix osf1 bsdi linux ultrix sunos unknown: $(EXES)
-
-# System specific stuff.
-solaris:
-	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
-	$(MAKE) CC="$(CC)" O=$(BINDIR) LDLIBS="-lnsl -lsocket" SYS5=-DSYS5 all
-
-aix:
-	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
-	$(MAKE) CC="$(CC)" CF="-Dvalloc=malloc" O=$(BINDIR) all
-
-hpux:
-	@echo ======================================
-	@echo If you have gcc, try "make -e CC=gcc"
-	@echo ======================================
-	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
-	$(MAKE) CC="$(CC)" O=$(BINDIR) CFLAGS="$(CFLAGS) -Dvalloc=malloc" all
-
-bsd:
-	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
-	$(MAKE) CC="$(CC)" CFLAGS="$(CFLAGS)" O=$(BINDIR) all
+all: $(EXES)
 
 Wall:
-	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
-	$(MAKE) CC="$(CC)" CF="-Wall -ansi" O=$(BINDIR) $(TARGET)
+	@env CFLAGS="-Wall -ansi" ../scripts/build
 
 debug:
-	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
-	$(MAKE) CC="$(CC)" CF=-g O=$(BINDIR) $(TARGET)
+	@env CFLAGS=-g ../scripts/build
 
 get $(SRCS):
 	get -s $(SRCS)
@@ -167,6 +139,9 @@ shar:
 
 depend: ../scripts/depend
 	../scripts/depend
+
+$(UTILS):
+	@cd ../scripts; make get
 
 $O/lmbench.a: lib_timing.c lib_tcp.c lib_udp.c lib_unix.c lib_stats.c bench.h timing.h stats.h lib_tcp.h lib_udp.h names.h
 	$(COMPILE) -c lib_timing.c -o $O/lib_timing.o
