@@ -76,22 +76,20 @@ int main(int ac, char **av)
 		benchmp(initialize, doit, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
 		sprintf(buf, "Select on %d tcp fd's", state.num);
+		kill(state.pid, SIGKILL);
+		waitpid(state.pid, NULL, 0);
 		micro(buf, get_n());
 	} else if (streq("file", av[optind])) {
 		state.fid_f = open_file;
 		server(&state);
 		benchmp(initialize, doit, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
+		unlink(state.fname);
 		sprintf(buf, "Select on %d fd's", state.num);
 		micro(buf, get_n());
 	} else {
 		lmbench_usage(ac, av, usage);
 	}
-
-	close(state.fid);
-	unlink(state.fname);
-	if (state.pid > 0)
-		kill(state.pid, SIGKILL);
 
 	exit(0);
 }
@@ -103,6 +101,21 @@ server(void* cookie)
 	state_t* state = (state_t*)cookie;
 
 	pid = getpid();
+	state->pid = 0;
+
+	if (state->fid_f == open_file) {
+		/* Create a temporary file for clients to open */
+		sprintf(state->fname, "lat_selectXXXXXX");
+		state->fid = mkstemp(state->fname);
+		if (state->fid <= 0) {
+			char buf[L_tmpnam+128];
+			sprintf(buf, "lat_select: Could not create temp file %s", state->fname);
+			perror(buf);
+			exit(1);
+		}
+		close(state->fid);
+		return;
+	}
 
 	/* Create a socket for clients to connect to */
 	state->sock = tcp_server(TCP_SELECT, SOCKOPT_REUSE);
@@ -111,21 +124,10 @@ server(void* cookie)
 		exit(1);
 	}
 
-	/* Create a temporary file for clients to open */
-	tmpnam(state->fname);
-	state->fid = open(state->fname, O_RDWR|O_APPEND|O_CREAT, 0666);
-	if (state->fid <= 0) {
-		char buf[L_tmpnam+128];
-		sprintf(buf, "lat_select: Could not create temp file %s", state->fname);
-		perror(buf);
-		exit(1);
-	}
-
 	/* Start a server process to accept client connections */
 	switch(state->pid = fork()) {
 	case 0:
 		/* child server process */
-		close(state->fid);
 		while (pid == getppid()) {
 			int newsock = tcp_accept(state->sock, SOCKOPT_NONE);
 			read(newsock, &state->fid, 1);
