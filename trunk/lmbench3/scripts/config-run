@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/sh
 
 # Configure parameters for lmbench.
 # %I% %E% %@%
