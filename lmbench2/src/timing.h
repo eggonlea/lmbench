@@ -1,6 +1,8 @@
-/* timing.c */
-
-#define	uint64	unsigned long long
+/*
+ * $Id$
+ */
+#ifndef _TIMING_H
+#define _TIMING_H
 
 char	*p64(uint64 big);
 char	*p64sz(uint64 big);
@@ -43,3 +45,5 @@ void	touch(char *buf, int size);
 #if defined(hpux) || defined(__hpux)
 int	getpagesize();
 #endif
+
+#endif /* _TIMING_H */
