@@ -297,11 +297,11 @@ $O/memsize:  memsize.c timing.h stats.h bench.h $O/lmbench.a
 $O/msleep:  msleep.c timing.h stats.h bench.h 
 	$(COMPILE) -o $O/msleep msleep.c
 
-$O/line:  line.c timing.h stats.h bench.h 
+$O/line:  line.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/line line.c $O/lmbench.a $(LDLIBS)
 
-$O/tlb:  tlb.c timing.h stats.h bench.h 
+$O/tlb:  tlb.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/tlb tlb.c $O/lmbench.a $(LDLIBS)
 
-$O/cache:  cache.c timing.h stats.h bench.h 
+$O/cache:  cache.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/cache cache.c $O/lmbench.a $(LDLIBS)
