@@ -191,6 +191,9 @@ delim $$
 \fI\s+2Hewlett-Packard Laboratories Israel\s0\fP
 .SP
 .AB
+\*[lmbench] is a portable, extensible suite of micro-
+benchmarks which measure a variety of important features
+of system performance.
 \*[lmbench] version 3 incorporates a new timing harness,
 benchmp, designed to measure performance at specific levels 
 of parallel (simultaneous) load.  It also incorporates some
@@ -264,7 +267,6 @@ expensive compared to integer operations.
 By quickly building \*[lat_ops] the author was
 able to verify that the floating point performance
 should be no worse than integer performance.
-(See
 .LP
 An important feature of multi-processor systems is their
 ability to scale their performance.  \*[lmbench] version
@@ -369,6 +371,10 @@ STREAM to measure scalable memory subsystem
 performance, particularly for multi-processor
 machines.
 .LP
+Uros Prestor
+.RN Prestor01
+XXX
+.LP
 Micro-benchmarking extends this "kernel" 
 approach, by measuring the performance
 of operations or resources in isolation.
@@ -410,7 +416,9 @@ laying out data contiguously on disk.
 .LP
 I/O benchmarks have a tendency to age poorly.
 For example, IOStone
-.RN Park90a 
+.RN Park90a ,
+IOBench
+.RN Wolman89 ,
 and the Andrew benchmark
 .RN Howard88
 used fixed size datasets, whose size was
@@ -419,13 +427,16 @@ measure I/O performance as the data can now
 fit in the processor cache of many modern
 machines.
 .LP
+The Andrew benchmark attempts to separately
+measure the time to create, write, re-read, 
+and then delete a large number of files in
+a hierarchical file system.  
+.LP
 Bonnie
 .RN Bray90
 measures sequential, streaming I/O bandwidth
-for a single process.  
-IOBench
-.RN Wolman89
-XXX
+for a single process, and random I/O latency
+for multiple processes.
 .LP
 Peter Chen developed an adaptive harness for
 I/O benchmarking
@@ -435,10 +446,6 @@ uniqueBytes, sizeMean, readFrac, seqFrac, and
 processNum.  The benchmark then explores the
 parameter space to measure file system performance
 in a scalable fashion.
-.LP
-The AIM benchmark... XXX
-.LP
-Prestor's memory analysis and Saavedra's work XXX
 .NH 1
 Computer Architecture Primer
 .LP
@@ -518,12 +525,8 @@ cache lines is replaced.  The control logic
 for direct-mapped caches is much cheaper to
 build, but they are generally only as 
 effective as a set-associative cache half
-the size.\**
-.FS 
-See
-.RN Hennessy96
-page 396.
-.FE
+the size
+.RN Hennessy96 .
 .LP
 Another key element of memory hierarchy design
 is the management of dirty data; at what point
@@ -668,6 +671,12 @@ that error due to clock resolution is negligible
 timing measurements can be postponed to allow
 the OS scheduler to settle and adjust to the
 load
+.IP 5.
+the reported results should be representative 
+and the data analysis should be robust
+.IP 6.
+timing intervals should be as short as possible
+while ensuring accurate results
 .LP
 Developing an accurate timing harness with a
 valid experimental design is more difficult 
@@ -705,14 +714,47 @@ process, and it uses this figure to compute the
 number of iterations necessary to ensure that
 each child runs for at least one second.
 .NH 2
+Clock resolution
+.LP
+\*[lmbench] uses the \*[gettimeofday] clock, whose 
+interface resolves time down to 1 micro-second.  
+However, many system clock's resolution is only 10 
+milli-seconds, and there is no portable way to query 
+the system to discover the true clock resolution.
+.LP
+The problem is that the timing intervals must
+be substantially larger than the clock resolution
+in order to ensure that the timing error doesn't
+impact the results.  For example, the true duration
+of an event measured with a 10 milli-second clock
+can vary $+-$10 milli-seconds from the true time,
+assuming that the reported time is always a
+truncated version of the true time.  If the clock
+itself is not updated precisely, the true error
+can be even larger.  
+This implies that timing intervals on these systems
+should be at least 1 second.
+.LP
+However, the \*[gettimeofday] clock resolution in
+most modern systems is 1 micro-second, so timing
+intervals can as small as a few milli-seconds
+without incurring significant timing errors related
+to clock resolution.
+.LP
+Since there is no interface to query the operating
+system for the clock resolution, \*[lmbench] must 
+experimentally determine the appropriate timing 
+interval duration which provides results in a timely 
+fashion with a negligible clock resolution error.
+.NH 2
 Coordination
 .LP
-However, developing a timing harness that
-correctly manages $N$ processes and accurately
-measures system performance over those same
-$N$ processes is significantly more difficult
-because of the asynchronous nature of the
-distributed programming problem.
+Developing a timing harness that correctly manages 
+$N$ processes and accurately measures system performance 
+over those same $N$ processes is significantly more difficult
+than simply measuring system performance with a single
+process because of the asynchronous nature of
+parallel programming.
 .LP
 In essence, the new timing harness needs to create
 $N$ jobs, and measure the average performance of the
@@ -950,6 +992,48 @@ allow users to specify that the benchmarked processes
 are run for long enough to (hopefully) get the
 scheduler past the transient startup phase, so it
 can measure the steady-state behavior.
+.NH 2
+Data analysis
+.LP
+Analyzing the data to produce representative results
+is a crucial step in the benchmarking process.  
+\*[lmbench] generally reports the \fImedian\fP
+result for $11$ measurements.  
+Most benchmarks report the results of a single measurement
+.RN Howard88 ,
+an average of several results
+.RN McCalpin95 ,
+or a trimmed mean
+.RN Brown97 .
+XXX UNKNOWN:
+.RN Weicker84,Shein89,Park,Wolman89,Banga97,Saavedra92,Chen94a,Bray90
+.LP
+Since \*[lmbench] is able to use timing intervals
+that are often smaller than a scheduler time slice,
+the raw timing results are often severely skewed.
+The median is preferable to the mean when the data
+can be very skewed
+.RN Jain91 .
+.LP
+In some instances, however, \*[lmbench] internally
+uses the \fIminimum\fP rather than the median, 
+such as in \*[mhz].  
+In those instances, we are not trying to find the 
+\fIrepresentative\fP value, but rather the 
+\fIminimum\fP value.
+There are only a few sources of error which could
+cause a the measured timing result to be shorter 
+than the true elapsed time: the system clock is
+adjusted, and round-off error in the clock resolution.
+The timing interval duration is set to ensure that
+the round-off error is bounded to 1% of the timing
+interval, and we blithely assume that people don't
+reset their system clocks while benchmarking their
+systems.
+.LP
+\*[lmbench] does not currently report any statistics
+representing measurement variation, such as the 
+difference between the first and third quartiles.
 .NH 1
 Interface
 .LP
@@ -1112,8 +1196,12 @@ l & l .
 Name&Measures
 _
 &Bandwidth
-bw_file_rd&\*[read] and then load into processor
-bw_mem&read, write, and copy data to/from memory
+bw_file_rd&T{
+\*[read] and then load into processor
+T}
+bw_mem&T{
+read, write, and copy data to/from memory
+T}
 bw_mmap_rd&read from \*[mmap]'ed memory
 bw_pipe&\*[pipe] inter-process
 bw_tcp&TCP inter-process
@@ -1121,9 +1209,13 @@ bw_unix&UNIX inter-process
 _
 &Latency
 lat_connect&TCP socket connection
-lat_ctx&context switch via \*[pipe]-based ``hot-potato'' token passing
+lat_ctx&T{
+context switch via \*[pipe]-based ``hot-potato'' token passing
+T}
 lat_fcntl&\*[fcntl]
-lat_fifo&FIFO ``hot-potato'' token passing
+lat_fifo&T{
+FIFO ``hot-potato'' token passing
+T}
 lat_fs&file creation and deletion
 lat_http&
 lat_mem_rd&memory read
@@ -1137,8 +1229,12 @@ procedure call overhead and process creation using \*[fork],
 T}
 lat_rpc&SUN RPC procedure call
 lat_select&\*[select]
-lat_sem&semaphore ``hot-potato'' token passing
-lat_sig&signal handle installation and handling
+lat_sem&T{
+semaphore ``hot-potato'' token passing
+T}
+lat_sig&T{
+signal handle installation and handling
+T}
 lat_syscall&
 lat_tcp&TCP ``hot-potato'' token passing
 lat_udp&UDP ``hot-potato'' token passing
@@ -1161,6 +1257,33 @@ lmdd&\fIdd\fR clone
 .LP
 Table \n[TABLE] contains the full list of micro-benchmarks
 in \*[lmbench].
+.NH 2
+Bandwidth
+.LP
+description of bandwidth benchmarks with some sample results.
+.NH 2
+Latency
+.LP
+description of latency benchmarks with some sample results.
+.NH 1
+Scaling Benchmarks
+.LP
+There are a number of issues associated with converting
+single-process benchmarks with a single process to 
+scalable benchmarks with several independent processes,
+in addition to the various issues addressed by
+the timing harness.
+Many of the benchmarks consume or utilize system
+resources, such as memory or network bandwidth,
+and a careful assessment of the likely resource
+contention issues is necessary to ensure that the
+benchmarks measure important aspects of system performance
+and not artifacts of artificial resource contention.
+.LP
+For example, the Linux 2.2 kernel uses a single lock to
+control access to the kernel data structures for a file.
+This means that multiple processes accessing that file
+will have their operations serialized by that lock.
 .NH 2
 File System
 .LP
@@ -1222,6 +1345,11 @@ The design and methodology for measuring context
 switching and scheduler overhead need to be revisited
 so that it can more accurately measure performance
 for multi-processor machines.
+.NH 1
+New Benchmarks
+.LP
+\*[lmbench] version 3 also includes a number of
+new benchmarks.
 .NH 2
 Stream
 .LP
@@ -1236,11 +1364,12 @@ can easily measure memory system scalability.
 .TS
 center box tab (|);
 c s s s s
+c | c | c s | c
 l | l | l | l | l .
 Stream
 _
-Kernel|Code|Bytes|Bytes|FLOPS
-||read|write|
+Kernel|Code|Bytes|FL
+||rd|wr|OPS
 _
 COPY|$a[i]=b[i]$|8(+8)|8|0
 SCALE|$a[i]=q times b[i]$|8(+8)|8|1
@@ -1250,11 +1379,12 @@ TRIAD|$a[i]=b[i]+q times c[i]$|16(+8)|8|2
 .TS
 center box tab (|);
 c s s s s
+c | c | c s | c
 l | l | l | l | l .
 Stream2
 _
-Kernel|Code|Bytes|Bytes|FLOPS
-||read|write|
+Kernel|Code|Bytes|FL
+||rd|wr|OPS
 _
 FILL|$a[i]=q$|0(+8)|8|0
 COPY|$a[i]=b[i]$|8(+8)|8|0
@@ -1375,7 +1505,7 @@ and lower bits to overlap.  This means that
 on most 32bit machines, the measured latency
 would appear to be a non-integral multiple of
 the basic clock cycle.  For example, in the
-$mul$ statement, the system could first add
+$add$ statement, the system could first add
 the two lower words.  Then, in parallel it
 could both add the two upper words (along with
 the carry from the lower words), and compute
@@ -1393,8 +1523,8 @@ Operand&Op&HPPA2.0&PIII&AMD
 &&400MHz&667MHz&1.3GHz
 _
 mhz&&2.50&1.50&0.75
-int&$bit$&2.53&1.16&0.75
-&$add$&2.50&2.36&0.75
+int&$bit$&2.53&1.50&0.75
+&$add$&2.50&1.51&0.75
 &$mul$&14.52&6.07&3.03
 &$div$&109.40&58.52&30.86
 &$mod$&75.14&65.01&32.59
@@ -1528,7 +1658,7 @@ l & l & r & r & r .
 Operand&Op&HPPA2.0&PIII&AMD
 &&400MHz&667MHz&1.3GHz
 _
-int&$bit$&1.99&1.00&1.87
+int&$bit$&1.99&1.70&1.87
 &$add$&1.99&1.61&1.90
 &$mul$&6.64&3.81&2.00
 &$div$&2.81&1.20&1.00
@@ -1544,6 +1674,14 @@ double&$add$&5.68&1.08&2.49
 .TE
 .TEND "par_ops results"
 .LP
+.NH 1
+Results
+.LP
+Some sample results
+.LP
+bw_mem_rd performance vs. scaling on an SMP machine
+.LP
+
 .NH 1
 Unscalable benchmarks
 .LP
