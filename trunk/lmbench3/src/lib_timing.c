@@ -1565,15 +1565,19 @@ morefds(void)
 #endif
 }
 
-/* analogous to bzero, bcopy, etc. */
+/* analogous to bzero, bcopy, etc., except that it just reads
+ * data into the processor
+ */
 long
-bread(char* buf, long nbytes)
+bread(void* buf, long nbytes)
 {
 	long sum = 0;
-	register long *p, *next, *end;
+	register long *p, *next;
+	register char *end;
 
-	end = buf + nbytes;
-	for (p = buf, next = p + 128; next <= end; p = next, next += 128) {
+	p = (long*)buf;
+	end = (char*)buf + nbytes;
+	for (next = p + 128; (void*)next <= (void*)end; p = next, next += 128) {
 		sum +=
 			p[0]+p[1]+p[2]+p[3]+p[4]+p[5]+p[6]+p[7]+
 			p[8]+p[9]+p[10]+p[11]+p[12]+p[13]+p[14]+
@@ -1595,7 +1599,13 @@ bread(char* buf, long nbytes)
 			p[117]+p[118]+p[119]+p[120]+p[121]+p[122]+
 			p[123]+p[124]+p[125]+p[126]+p[127];
 	}
-	for (next = p + 1; next <= end; p = next, next++) {
+	for (next = p + 16; (void*)next <= (void*)end; p = next, next += 16) {
+		sum +=
+			p[0]+p[1]+p[2]+p[3]+p[4]+p[5]+p[6]+p[7]+
+			p[8]+p[9]+p[10]+p[11]+p[12]+p[13]+p[14]+
+			p[15];
+	}
+	for (next = p + 1; (void*)next <= (void*)end; p = next, next++) {
 		sum += *p;
 	}
 	return sum;
