@@ -19,6 +19,7 @@ void writer(int w, int r);
 
 typedef struct _state {
 	int	num;
+	int	max;
 	fd_set  set;
 } state_t;
 
@@ -59,16 +60,16 @@ int main(int ac, char **av)
 void doit(uint64 iterations, void * cookie)
 {
 	state_t * 	state = (state_t *)cookie;
-	register int 	n = state->num;
-	fd_set	nosave = state->set;
-	static	struct timeval tv;
+	fd_set		nosave;
+	static struct timeval tv;
 	static count = 0;
 	
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
 
-	if (!(count++ % 100))
-		printf("doit with iterations %d\n", (int) iterations);
 	while (iterations-- > 0) {
-		select(n, 0, &nosave, 0, &tv);
+		nosave = state->set;
+		select(state->num, 0, &nosave, 0, &tv);
 	}
 }
 
@@ -80,20 +81,27 @@ void initialize(void *cookie)
 	int	i, last = 0 /* lint */;
 	int	N = state->num, fd;
 
+	state->max = 0;
 	FD_ZERO(&(state->set));
-	for (i = 3; i < 50; ++i) close(i);
 	for (fd = 0; fd < N; fd++) {
 		i = dup(0);
 		if (i == -1) break;
-		last = i;
+		if (i > state->max)
+			state->max = i;
 		FD_SET(i, &(state->set));
 	}
 }
 
 void cleanup(void *cookie)
 {
-	char	c;
+	int	i;
 	state_t * state = (state_t *)cookie;
+
+	for (i = 0; i <= state->max; ++i) {
+		if (FD_ISSET(i, &(state->set)))
+			close(i);
+	}
+	FD_ZERO(&(state->set));
 }
 
 	     
