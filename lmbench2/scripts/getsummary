@@ -235,22 +235,19 @@ foreach $file (@ARGV) {
 		if (/^"stride=128/) {
 			$save = -1;
 			while (<FD>) {
-				if (/^0.00098\s/) {
-					@_ = split;
-					push(@lat_l1, $_[1]);
-				} elsif (/^0.12500\s/) {
-					@_ = split;
-					push(@lat_l2, $_[1]);
-				} elsif (/^[45678].00000\s/) {
-					@_ = split;
-					$size = $_[0];
-					$save = $_[1];
-					last if /^8.00000\s/;
-				} elsif (/^\s*$/) {
+				if (/^\s*$/) {
 					last;
 				}
+				@_ = split;
+				$size = $_[0];
+				$save = $_[1];
+				if ($size == 0.00098) {
+					push(@lat_l1, $_[1]);
+				} elsif ($size == 0.12500) {
+					push(@lat_l2, $_[1]);
+				}
 			}
-			if (!/^8/) {
+			if ($size < 8.0) {
 				warn "$file: No 8MB memory latency, using $size\n";
 			}
 			push(@lat_mem, $save);
