@@ -1,10 +1,13 @@
 /*
  * bw_unix.c - simple Unix stream socket bandwidth test
  *
- * Usage: bw_unix [-P <parallelism>] [-W <warmup>] [-N <repetitions>]
+ * Usage: bw_unix [-m <message size>] [-M <total bytes>] \
+ *		[-P <parallelism>] [-W <warmup>] [-N <repetitions>]
  *
- * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
- * additional restriction that results may published only if
+ * Copyright (c) 1994 Larry McVoy.  
+ * Copyright (c) 2002 Carl Staelin.
+ * Distributed under the FSF GPL with additional restriction that results 
+ * may published only if:
  * (1) the benchmark is unmodified, and
  * (2) the version in the sccsid below is included in the report.
  * Support for this development by Sun Microsystems is gratefully acknowledged.
@@ -14,13 +17,14 @@ char	*id = "$Id$\n";
 #include "bench.h"
 
 void	reader(iter_t iterations, void * cookie);
-void	writer(int control[2], int pipes[2], char* buf);
+void	writer(int controlfd, int writefd, char* buf, void* cookie);
 
-int	XFER	= 10*1024*1024;
+size_t	XFER	= 10*1024*1024;
 
 struct _state {
 	int	pid;
-	int	bytes;	/* bytes to read/write in one iteration */
+	size_t	xfer;	/* bytes to read/write per "packet" */
+	size_t	bytes;	/* bytes to read/write in one iteration */
 	char	*buf;	/* buffer memory space */
 	int	pipes[2];
 	int	control[2];
@@ -58,7 +62,7 @@ initialize(void *cookie)
 	}
 	switch (state->pid = fork()) {
 	    case 0:
-		writer(state->control, state->pipes, state->buf);
+		writer(state->control[0], state->pipes[1], state->buf, state);
 		return;
 		/*NOTREACHED*/
 	    
@@ -78,6 +82,8 @@ cleanup(void * cookie)
 	struct _state* state = (struct _state*)cookie;
 
 	signal(SIGCHLD,SIG_IGN);
+	close(state->control[1]);
+	close(state->pipes[0]);
 	kill(state->pid, SIGKILL);
 	state->pid = 0;
 }
@@ -86,33 +92,36 @@ void
 reader(iter_t iterations, void * cookie)
 {
 	struct _state* state = (struct _state*)cookie;
-	int	done, n;
-	int	todo = state->bytes;
+	size_t	done, n;
+	size_t	todo = state->bytes;
 
 	while (iterations-- > 0) {
 		write(state->control[1], &todo, sizeof(todo));
 		for (done = 0; done < todo; done += n) {
-			if ((n = read(state->pipes[0], state->buf, XFERSIZE)) <= 0) {
+			if ((n = read(state->pipes[0], state->buf, state->xfer)) <= 0) {
 				/* error! */
-				break;
+				exit(1);
 			}
 		}
 	}
 }
 
 void
-writer(int control[2], int pipes[2], char* buf)
+writer(int controlfd, int writefd, char* buf, void* cookie)
 {
-	int	todo, n;
+	size_t	todo, n, done;
+	struct _state* state = (struct _state*)cookie;
 
 	for ( ;; ) {
-		read(control[0], &todo, sizeof(todo));
-		while (todo > 0) {
+		read(controlfd, &todo, sizeof(todo));
+		for (done = 0; done < todo; done += n) {
 #ifdef TOUCH
 			touch(buf, XFERSIZE);
 #endif
-			n = write(pipes[1], buf, XFERSIZE);
-			todo -= n;
+			if ((n = write(writefd, buf, state->xfer)) < 0) {
+				/* error! */
+				exit(1);
+			}
 		}
 	}
 }
@@ -125,12 +134,19 @@ main(int argc, char *argv[])
 	int warmup = 0;
 	int repetitions = TRIES;
 	int c;
-	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] [size]\n";
+	char* usage = "[-m <message size>] [-M <total bytes>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
 
-	state.bytes = XFER;
+	state.xfer = XFERSIZE;	/* per-packet size */
+	state.bytes = XFER;	/* total bytes per call */
 
-	while (( c = getopt(argc,argv,"P:W:N:")) != EOF) {
+	while (( c = getopt(argc,argv,"m:M:P:W:N:")) != EOF) {
 		switch(c) {
+		case 'm':
+			state.xfer = bytes(optarg);
+			break;
+		case 'M':
+			state.bytes = bytes(optarg);
+			break;
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(argc, argv, usage);
@@ -155,6 +171,11 @@ main(int argc, char *argv[])
 	state.pid = 0;
 	pGlobalState = &state;
 	signal(SIGTERM, sigterm_handler);
+
+	/* round up total byte count to a multiple of xfer */
+	if (state.bytes % state.xfer) {
+		state.bytes += state.bytes - state.bytes % state.xfer;
+	}
 
 	benchmp(initialize, reader, cleanup, MEDIUM, parallel, 
 		warmup, repetitions, &state);

@@ -29,16 +29,16 @@ struct mem_state {
 	char*	p[MAX_MEM_PARALLELISM];
 	int	initialized;
 	int	width;
-	int	len;
-	int	maxlen;
-	int	line;
-	int	pagesize;
-	int	nlines;
-	int	npages;
-	int	nwords;
-	int*	pages;
-	int*	lines;
-	int*	words;
+	size_t	len;
+	size_t	maxlen;
+	size_t	line;
+	size_t	pagesize;
+	size_t	nlines;
+	size_t	npages;
+	size_t	nwords;
+	size_t*	pages;
+	size_t*	lines;
+	size_t*	words;
 };
 
 void mem_initialize(void* cookie);
@@ -50,9 +50,9 @@ void tlb_cleanup(void* cookie);
 REPEAT_15(MEM_BENCHMARK_DECL)
 extern bench_f mem_benchmarks[];
 
-int	line_find(int l, int warmup, int repetitions, struct mem_state* state);
-double	line_test(int l, int warmup, int repetitions, struct mem_state* state);
-double	par_mem(int l, int warmup, int repetitions, struct mem_state* state);
+size_t	line_find(size_t l, int warmup, int repetitions, struct mem_state* state);
+double	line_test(size_t l, int warmup, int repetitions, struct mem_state* state);
+double	par_mem(size_t l, int warmup, int repetitions, struct mem_state* state);
 
 #endif /* LMBENCH_MEM_H */
 

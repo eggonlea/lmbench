@@ -65,7 +65,7 @@ MEM_BENCHMARK_DEF(14, REPEAT_14, DEREF)
 MEM_BENCHMARK_DEF(15, REPEAT_15, DEREF)
 
 
-int*	words_initialize(int max, int scale);
+size_t*	words_initialize(size_t max, int scale);
 
 
 void
@@ -99,7 +99,7 @@ mem_cleanup(void* cookie)
 void
 tlb_cleanup(void* cookie)
 {
-	int i;
+	size_t i;
 	struct mem_state* state = (struct mem_state*)cookie;
 	char **addr = (char**)state->addr;
 
@@ -392,13 +392,13 @@ tlb_initialize(void* cookie)
  * as to maximize the number of potential cache misses, and to
  * minimize the possibility of re-using a cache line.
  */
-int*
-words_initialize(int max, int scale)
+size_t*
+words_initialize(size_t max, int scale)
 {
-	int	i, j, nbits;
-	int*	words = (int*)malloc(max * sizeof(int));
+	size_t	i, j, nbits;
+	size_t*	words = (int*)malloc(max * sizeof(size_t));
 
-	if (words) bzero(words, max * sizeof(int));
+	if (words) bzero(words, max * sizeof(size_t));
 	else return NULL;
 
 	for (i = max>>1, nbits = 0; i != 0; i >>= 1, nbits++)
@@ -416,11 +416,11 @@ words_initialize(int max, int scale)
 }
 
 
-int
-line_find(int len, int warmup, int repetitions, struct mem_state* state)
+size_t
+line_find(size_t len, int warmup, int repetitions, struct mem_state* state)
 {
-	int 	i, j, big_jump, line;
-	int	maxline = getpagesize() / 16;
+	size_t 	i, j, big_jump, line;
+	size_t	maxline = getpagesize() / 16;
 	double	baseline, t;
 
 	big_jump = 0;
@@ -462,11 +462,11 @@ line_find(int len, int warmup, int repetitions, struct mem_state* state)
 }
 
 double
-line_test(int line, int warmup, int repetitions, struct mem_state* state)
+line_test(size_t line, int warmup, int repetitions, struct mem_state* state)
 {
-	int	i;
-	int	npages = state->npages;
-	int	nlines = state->pagesize / line;
+	size_t	i;
+	size_t	npages = state->npages;
+	size_t	nlines = state->pagesize / line;
 	double	t;
 	char*	p = state->base;
 	char*	first = p + state->pages[0] + state->lines[0];
@@ -529,7 +529,7 @@ line_test(int line, int warmup, int repetitions, struct mem_state* state)
 }
 
 double
-par_mem(int len, int warmup, int repetitions, struct mem_state* state)
+par_mem(size_t len, int warmup, int repetitions, struct mem_state* state)
 {
 	int	i, j, k, n, __n;
 	double	baseline, max_par, par;
@@ -548,12 +548,12 @@ par_mem(int len, int warmup, int repetitions, struct mem_state* state)
 	for (i = 0; i < MAX_MEM_PARALLELISM; ++i) {
 		n = len / state->line;
 		for (j = 0; j <= i; j++) {
-			int nlines = len / state->line;
-			int lines_per_chunk = nlines / (i + 1);
-			int lines_per_page = state->pagesize / state->line;
-			int words_per_chunk = state->nwords / (i + 1);
-			int line = j * lines_per_chunk;
-			int word = (j * state->nwords) / (i + 1);
+			size_t nlines = len / state->line;
+			size_t lines_per_chunk = nlines / (i + 1);
+			size_t lines_per_page = state->pagesize / state->line;
+			size_t words_per_chunk = state->nwords / (i + 1);
+			size_t line = j * lines_per_chunk;
+			size_t word = (j * state->nwords) / (i + 1);
 
 			/*
 			if (state->len == 32768 && i == 7) {
