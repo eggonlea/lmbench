@@ -53,13 +53,6 @@ LOOP_O=`../bin/$OS/loop_o`
 export LOOP_O
 echo "OK, it looks like your benchmark loop costs $LOOP_O usecs."
 echo ""
-echo "Hang on, we are calculating your cache line size."
-../bin/$OS/msleep 250
-LINE_SIZE=`../bin/$OS/line`
-export LINE_SIZE
-echo "OK, it looks like your cache line is $LINE_SIZE bytes."
-echo ""
-
 ############################################################################
 # Multiple copies
 ############################################################################
@@ -139,6 +132,13 @@ then	echo Warning: you have only ${AVAILMEM}MB available memory.
 	echo Some benchmark results will be less meaningful. 
 fi
 MB=`expr $AVAILMEM / 2`
+
+echo "Hang on, we are calculating your cache line size."
+../bin/$OS/msleep 250
+LINE_SIZE=`../bin/$OS/line -M ${MB}M`
+export LINE_SIZE
+echo "OK, it looks like your cache line is $LINE_SIZE bytes."
+echo ""
 
 ############################################################################
 # Benchmarking subsets
