@@ -406,9 +406,9 @@ print<<EOF;
 
 Processor, Processes - times in microseconds - smaller is better
 ----------------------------------------------------------------
-Host                 OS  Mhz null null      open selct sig  sig  fork exec sh  
-                             call  I/O stat clos       inst hndl proc proc proc
---------- ------------- ---- ---- ---- ---- ---- ----- ---- ---- ---- ---- ----
+Host                 OS  Mhz null null      open slct sig  sig  fork exec sh  
+                             call  I/O stat clos      inst hndl proc proc proc
+--------- ------------- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
 EOF
 
 @fs_delete_4k = @lat_ctx0_8 = @bw_file = @lat_ctx0_16 = @fs_delete_1k =
@@ -423,15 +423,15 @@ for ($i = 0; $i <= $#uname; $i++) {
 		$tmp = ($lat_read[$i] + $lat_write[$i]) / 2;
 	}
         printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-            printf "%4.0f %4.4s  %3.3s  %3.3s  %3.3s %5.5s %4.4s %4.4s %3.3sK %3.3sK %3.3sK\n",
+            printf "%4.0f %4.4s %4.4s %4.4s %4.4s %4.4s %4.4s %4.4s %3.3sK %3.3sK %3.3sK\n",
             $misc_mhz[$i],
-            &num($lat_syscall[$i], "%3.2f"),
-            &num($tmp, "%3.2f"),
-            &num($lat_stat[$i], "%3.2d"),
-            &num($lat_openclose[$i], "%3d"),
-            &num($lat_select[$i], "%5.0f"),
-            &num($lat_siginstall[$i], "%4.2f"),
-            &num($lat_sigcatch[$i], "%3.2d"),
+            &num($lat_syscall[$i], "%4.2f"),
+            &num($tmp, "%4.1f"),
+            &num($lat_stat[$i], "%4.1f"),
+            &num($lat_openclose[$i], "%4.1f"),
+            &num($lat_select[$i], "%4.0f"),
+            &num($lat_siginstall[$i], "%4.1f"),
+            &num($lat_sigcatch[$i], "%4.1f"),
             &num($lat_nullproc[$i]/1000., "%4.2f"),
             &num($lat_simpleproc[$i]/1000., "%4.2f"),
             &num($lat_shproc[$i]/1000., "%4.2f"),
