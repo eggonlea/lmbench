@@ -18,7 +18,8 @@
  * timeslice (e.g., a resolution of 20 milli-seconds, with all
  * values rounded up).
  *
- * usage: lat_usleep [-u | -i] [-W <warmup>] [-N <repetitions>] usecs
+ * usage: lat_usleep [-u | -i] [-P <parallelism>] [-W <warmup>] \
+ *		[-N <repetitions>] usecs
  *
  * Copyright (c) 2002 Carl Staelin.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -161,6 +162,7 @@ int
 main(int ac, char **av)
 {
     int             realtime = 0;
+    int		    parallel = 1;
     int             warmup = 0;
     int             repetitions = TRIES;
     int             c;
@@ -169,7 +171,7 @@ main(int ac, char **av)
     state_t         state;
     char           *scheduler = "";
     char           *mechanism = "usleep";
-    char           *usage = "[-r] [-u <method>] [-W <warmup>] [-N <repetitions>] usecs\nmethod=usleep|nanosleep|select|pselect|itimer\n";
+    char           *usage = "[-r] [-u <method>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] usecs\nmethod=usleep|nanosleep|select|pselect|itimer\n";
 
     realtime = 0;
 
@@ -200,6 +202,10 @@ main(int ac, char **av)
 		lmbench_usage(ac, av, usage);
 	    }
 	    break;
+	case 'P':
+	    parallel = atoi(optarg);
+	    if (parallel <= 0) lmbench_usage(ac, av, usage);
+	    break;
 	case 'W':
 	    warmup = atoi(optarg);
 	    break;
@@ -221,25 +227,25 @@ main(int ac, char **av)
     switch (what) {
     case USLEEP:
 	benchmp(NULL, bench_usleep, NULL, 
-		0, 1, warmup, repetitions, &state);
+		0, parallel, warmup, repetitions, &state);
 	break;
     case NANOSLEEP:
 	benchmp(NULL, bench_nanosleep, NULL, 
-		0, 1, warmup, repetitions, &state);
+		0, parallel, warmup, repetitions, &state);
 	break;
     case SELECT:
 	benchmp(NULL, bench_select, NULL, 
-		0, 1, warmup, repetitions, &state);
+		0, parallel, warmup, repetitions, &state);
 	break;
 #ifdef _POSIX_SELECT
     case PSELECT:
 	benchmp(NULL, bench_pselect, NULL, 
-		0, 1, warmup, repetitions, &state);
+		0, parallel, warmup, repetitions, &state);
 	break;
 #endif /* _POSIX_SELECT */
     case ITIMER:
 	benchmp(initialize, bench_itimer, NULL, 
-		0, 1, warmup, repetitions, &state);
+		0, parallel, warmup, repetitions, &state);
 	break;
     default:
 	lmbench_usage(ac, av, usage);
