@@ -32,7 +32,7 @@ main(int ac, char **av)
 
 	if (ac == 2) {
 		unsigned long t;
-		sscanf(av[1], "%llu", &t);
+		sscanf(av[1], "%lu", &t);
 		max = size = t * 1024 * 1024;
 	} else {
 		max = size = 1024 * 1024 * 1024;
