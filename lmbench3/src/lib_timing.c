@@ -321,7 +321,6 @@ benchmp_interval(void* _state)
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 0;
 	FD_ZERO(&fds);
-	iterations = state->iterations;
 
 	switch (state->state) {
 	case warmup:
@@ -342,6 +341,7 @@ benchmp_interval(void* _state)
 		}
 		break;
 	case timing_interval:
+		iterations = state->iterations;
 		if (state->parallel > 1 || result > 0.95 * state->enough) {
 			if (gettime() > 0)
 				insertsort(gettime(), get_n(), get_results());
@@ -358,18 +358,18 @@ benchmp_interval(void* _state)
 				tmp *= 1.1 * state->enough;
 				iterations = (uint64)(tmp + 1);
 			} else {
-				if (iterations > (uint64)1<<40) {
-					result = 0.;
+				iterations <<= 3;
+				if (iterations > (uint64)1<<27) {
 					state->state = cooldown;
 				}
-				iterations <<= 3;
 			}
-			state->iterations = iterations;
 		}
 		if (state->state == cooldown) {
 			/* send results and 'done' */
 			write(state->response, (void*)get_results(), state->r_size);
+			iterations = state->iterations_batch;
 		} else {
+			state->iterations = iterations;
 			break;
 		}
 	case cooldown:
@@ -1124,14 +1124,14 @@ save_median()
 static long *
 one_op(register long *p)
 {
-	BENCH_INNER(p = (long *)*p, 0);
+	BENCH_INNER(p = (long *)*p;, 0);
 	return (p);
 }
 
 static long *
-two_op(register long *p, register long *q)
+two_op(register long *p)
 {
-	BENCH_INNER(p = (long *)*q; q = (long*)*p, 0);
+	BENCH_INNER(p = (long *)*p; p = (long*)*p;, 0);
 	return (p);
 }
 
@@ -1161,7 +1161,7 @@ l_overhead(void)
 			use_pointer((void*)one_op(p));
 			if (gettime() > 0 && gettime() > t_overhead())
 				insertsort(gettime() - t_overhead(), get_n(), &one);
-			use_pointer((void *)two_op(p, q));
+			use_pointer((void *)two_op(p));
 			if (gettime() > 0 && gettime() > t_overhead())
 				insertsort(gettime() - t_overhead(), get_n(), &two);
 		}
