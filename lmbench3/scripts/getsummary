@@ -423,13 +423,13 @@ for ($i = 0; $i <= $#uname; $i++) {
 		$tmp = ($lat_read[$i] + $lat_write[$i]) / 2;
 	}
         printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-            printf "%4.0f %4.4s  %3.3s  %3.3s  %3.3s %4.4sK %4.4s %4.4s %3.3sK %3.3sK %3.3sK\n",
+            printf "%4.0f %4.4s  %3.3s  %3.3s  %3.3s %5.5s %4.4s %4.4s %3.3sK %3.3sK %3.3sK\n",
             $misc_mhz[$i],
             &num($lat_syscall[$i], "%3.2f"),
             &num($tmp, "%3.2f"),
             &num($lat_stat[$i], "%3.2d"),
             &num($lat_openclose[$i], "%3d"),
-            &num($lat_select[$i]/1000, "%3.2f"),
+            &num($lat_select[$i], "%5.0f"),
             &num($lat_siginstall[$i], "%4.2f"),
             &num($lat_sigcatch[$i], "%3.2d"),
             &num($lat_nullproc[$i]/1000., "%4.2f"),
@@ -442,19 +442,19 @@ print<<EOF;
 
 Basic integer operations - times in nanoseconds - smaller is better
 -------------------------------------------------------------
-Host                 OS intgr intgr  intgr  intgr  intgr  
-                         bit   add    mul    div    mod   
---------- ------------- ----- ------ ------ ------ ------ 
+Host                 OS  intgr intgr  intgr  intgr  intgr  
+                          bit   add    mul    div    mod   
+--------- ------------- ------ ------ ------ ------ ------ 
 EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
         printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-            printf " %4.4s   %4.4s   %4.4s   %4.4s   %4.4s\n",
-            &num($integer_bit[$i], "%4.2f"),
-            &num($integer_add[$i], "%4.2f"),
-            &num($integer_mul[$i], "%4.2f"),
-            &num($integer_div[$i], "%4.2f"),
-            &num($integer_mod[$i], "%4.2f"),
+            printf " %5.5s  %5.5s  %5.5s %6.6s %6.6s\n",
+            &num($integer_bit[$i], "%5.2f"),
+            &num($integer_add[$i], "%5.2f"),
+            &num($integer_mul[$i], "%5.1f"),
+            &num($integer_div[$i], "%5.1f"),
+            &num($integer_mod[$i], "%5.1f"),
 	    0;
 }
 
@@ -469,12 +469,12 @@ EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
         printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-            printf "  %4.4s   %4.4s   %4.4s   %4.4s   %4.4s\n",
-            &num($uint64_bit[$i], "%4.2f"),
-            &num($uint64_add[$i], "%4.2f"),
-            &num($uint64_mul[$i], "%4.2f"),
-            &num($uint64_div[$i], "%4.2f"),
-            &num($uint64_mod[$i], "%4.2f"),
+            printf " %5.5s %6.6s %6.6s %6.6s %6.6s\n",
+            &num($uint64_bit[$i], "%5.2f"),
+            &num($uint64_add[$i], "%5.2f"),
+            &num($uint64_mul[$i], "%5.1f"),
+            &num($uint64_div[$i], "%5.1f"),
+            &num($uint64_mod[$i], "%5.1f"),
 	    0;
 }
 
@@ -482,18 +482,18 @@ print<<EOF;
 
 Basic float operations - times in nanoseconds - smaller is better
 -------------------------------------------------------------
-Host                 OS float  float  float  float
+Host                 OS  float  float  float  float
                          add    mul    div    bogo
---------- ------------- -----  ------ ------ ------ 
+--------- ------------- ------ ------ ------ ------ 
 EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
         printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-            printf " %4.4s    %4.4s   %4.4s   %4.4s\n",
-            &num($float_add[$i], "%4.2f"),
-            &num($float_mul[$i], "%4.2f"),
-            &num($float_div[$i], "%4.2f"),
-            &num($float_bogomflops[$i], "%4.2f"),
+            printf "%6.6s %6.6s %6.6s %6.6s\n",
+            &num($float_add[$i], "%6.2f"),
+            &num($float_mul[$i], "%6.1f"),
+            &num($float_div[$i], "%6.1f"),
+            &num($float_bogomflops[$i], "%6.1f"),
 	    0;
 }
 
@@ -501,18 +501,18 @@ print<<EOF;
 
 Basic double operations - times in nanoseconds - smaller is better
 -------------------------------------------------------------
-Host                 OS double double double double
+Host                 OS  double double double double
                          add    mul    div    bogo
---------- ------------- -----  ------ ------ ------ 
+--------- ------------- ------  ------ ------ ------ 
 EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
         printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-            printf " %4.4s    %4.4s   %4.4s   %4.4s\n",
-            &num($double_add[$i], "%4.2f"),
-            &num($double_mul[$i], "%4.2f"),
-            &num($double_div[$i], "%4.2f"),
-            &num($double_bogomflops[$i], "%4.2f"),
+            printf "%6.6s %6.6s %6.6s %6.6s\n",
+            &num($double_add[$i], "%6.2f"),
+            &num($double_mul[$i], "%6.1f"),
+            &num($double_div[$i], "%6.1f"),
+            &num($double_bogomflops[$i], "%6.1f"),
 	    0;
 }
 
