@@ -91,23 +91,13 @@ void benchmp_sigalrm(int signo)
 	benchmp_sigalrm_timeout = 1;
 }
 
-double bench(bench_f benchmark,
-	     uint64 iterations,
-	     int repetitions,
-	     int enough,
-	     void *cookie
-	     );
-double measure(bench_f benchmark, 
-	       uint64 iterations, 
-	       void *cookie
-	       );
-
 void 
 benchmp_child(support_f initialize, 
 	      bench_f benchmark,
 	      support_f cleanup,
 	      int response, 
 	      int start_signal, 
+	      int result_signal, 
 	      int exit_signal,
 	      int parallel, 
 	      uint64 iterations,
@@ -118,6 +108,7 @@ benchmp_child(support_f initialize,
 void
 benchmp_parent(int response, 
 	       int start_signal, 
+	       int result_signal, 
 	       int exit_signal, 
 	       int parallel, 
 	       uint64 iterations,
@@ -146,6 +137,7 @@ void benchmp(support_f initialize,
 	pid_t		*pids = NULL;
 	int		response[2];
 	int		start_signal[2];
+	int		result_signal[2];
 	int		exit_signal[2];
 	int		need_warmup;
 	fd_set		fds;
@@ -163,11 +155,20 @@ void benchmp(support_f initialize,
 	if (parallel > 1) {
 		/* Compute the baseline performance */
 		benchmp(initialize, benchmark, cleanup, enough, 1, warmup, repetitions, cookie);
+
+		/* calculate iterations for 1sec runtime */
+		iterations = get_n();
+		if (enough < SHORT) {
+			double tmp = (double)SHORT * (double)get_n();
+			tmp /= (double)gettime();
+			iterations = (uint64)tmp + 1;
+		}
 	}
 
 	/* Create the necessary pipes for control */
 	if (pipe(response) < 0
 	    || pipe(start_signal) < 0
+	    || pipe(result_signal) < 0
 	    || pipe(exit_signal) < 0) {
 #ifdef _DEBUG
 		fprintf(stderr, "BENCHMP: Could not create control pipes\n");
@@ -205,12 +206,14 @@ void benchmp(support_f initialize,
 			/* If child */
 			close(response[0]);
 			close(start_signal[1]);
+			close(result_signal[1]);
 			close(exit_signal[1]);
 			benchmp_child(initialize, 
 				      benchmark, 
 				      cleanup, 
 				      response[1], 
 				      start_signal[0], 
+				      result_signal[0], 
 				      exit_signal[0],
 				      enough,
 				      iterations,
@@ -226,9 +229,11 @@ void benchmp(support_f initialize,
 	}
 	close(response[1]);
 	close(start_signal[0]);
+	close(result_signal[0]);
 	close(exit_signal[0]);
 	benchmp_parent(response[0], 
 		       start_signal[1], 
+		       result_signal[1], 
 		       exit_signal[1], 
 		       parallel, 
 		       iterations,
@@ -283,6 +288,7 @@ typedef struct {
 	support_f	cleanup;
 	int		response;
 	int		start_signal;
+	int		result_signal;
 	int		exit_signal;
 	int		enough;
         uint64		iterations;
@@ -307,6 +313,7 @@ benchmp_getstate()
 uint64
 benchmp_interval(void* _state)
 {
+	char		c;
 	uint64		iterations;
 	double		result;
 	fd_set		fds;
@@ -328,15 +335,14 @@ benchmp_interval(void* _state)
 		if (state->need_warmup) {
 			state->need_warmup = 0;
 			/* send 'ready' */
-			write(state->response, &state->i, sizeof(int));
+			write(state->response, &c, sizeof(char));
 		}
 		FD_SET(state->start_signal, &fds);
 		select(state->start_signal+1, &fds, NULL,
 		       NULL, &timeout);
 		if (FD_ISSET(state->start_signal, &fds)) {
 			state->state = timing_interval;
-			/* find out how much work to do */
-			read(state->start_signal, &state->iterations, sizeof(uint64));
+			read(state->start_signal, &c, sizeof(char));
 			iterations = state->iterations;
 		}
 		break;
@@ -359,30 +365,38 @@ benchmp_interval(void* _state)
 				iterations = (uint64)(tmp + 1);
 			} else {
 				iterations <<= 3;
-				if (iterations > (uint64)1<<27) {
+				if (iterations > 1<<27
+				    || result < 0. && iterations > 1<<20) {
 					state->state = cooldown;
 				}
 			}
 		}
-		if (state->state == cooldown) {
-			/* send results and 'done' */
-			write(state->response, (void*)get_results(), state->r_size);
-			iterations = state->iterations_batch;
-		} else {
+		if (state->state != cooldown) {
 			state->iterations = iterations;
-			break;
+		} else {
+			/* send 'done' */
+			write(state->response, (void*)&c, sizeof(char));
+			iterations = state->iterations_batch;
 		}
+		break;
 	case cooldown:
 		iterations = state->iterations_batch;
-		FD_SET(state->exit_signal, &fds);
-		select(state->exit_signal+1, &fds, NULL, NULL, &timeout);
-		if (FD_ISSET(state->exit_signal, &fds)) {
-			/* exit */
-			close(state->response);
-			close(state->start_signal);
-			/* close(exit_signal); */
+		FD_SET(state->result_signal, &fds);
+		select(state->result_signal+1, &fds, NULL, NULL, &timeout);
+		if (FD_ISSET(state->result_signal, &fds)) {
+			/* 
+			 * At this point all children have stopped their
+			 * measurement loops, so we can block waiting for
+			 * the parent to tell us to send our results back.
+			 * From this point on, we will do no more "work".
+			 */
+			read(state->result_signal, (void*)&c, sizeof(char));
+			write(state->response, (void*)get_results(), state->r_size);
 			if (state->cleanup)
 				(*state->cleanup)(state->cookie);
+
+			/* Now wait for signal to exit */
+			read(state->exit_signal, (void*)&c, sizeof(char));
 			exit(0);
 		}
 	};
@@ -396,6 +410,7 @@ benchmp_child(support_f initialize,
 		support_f cleanup,
 		int response, 
 		int start_signal, 
+		int result_signal, 
 		int exit_signal,
 		int enough,
 	        uint64 iterations,
@@ -418,6 +433,7 @@ benchmp_child(support_f initialize,
 	_benchmp_child_state.cleanup = cleanup;
 	_benchmp_child_state.response = response;
 	_benchmp_child_state.start_signal = start_signal;
+	_benchmp_child_state.result_signal = result_signal;
 	_benchmp_child_state.exit_signal = exit_signal;
 	_benchmp_child_state.enough = enough;
 	_benchmp_child_state.iterations = iterations;
@@ -454,6 +470,7 @@ benchmp_child(support_f initialize,
 void
 benchmp_parent(	int response, 
 		int start_signal, 
+		int result_signal, 
 		int exit_signal, 
 		int parallel, 
 	        uint64 iterations,
@@ -483,9 +500,10 @@ benchmp_parent(	int response,
 
 	merged_results = (result_t*)malloc(sizeof_result(parallel * repetitions));
 	bzero(merged_results, sizeof_result(parallel * repetitions));
+	insertinit(merged_results);
 
 	/* Collect 'ready' signals */
-	for (i = 0; i < parallel * sizeof(int); i += bytes_read) {
+	for (i = 0; i < parallel * sizeof(char); i += bytes_read) {
 		bytes_read = 0;
 		FD_SET(response, &fds_read);
 		FD_SET(response, &fds_error);
@@ -498,7 +516,7 @@ benchmp_parent(	int response,
 			continue;
 		}
 
-		bytes_read = read(response, results, parallel * sizeof(int) - i);
+		bytes_read = read(response, results, parallel * sizeof(char) - i);
 		if (bytes_read < 0) {
 			goto error_exit;
 		}
@@ -513,24 +531,11 @@ benchmp_parent(	int response,
 		select(0, NULL, NULL, NULL, &timeout);
 	}
 
-	/* calculate iterations for 1sec runtime */
-	iterations = get_n();
-	if (enough < SHORT && parallel > 1) {
-		double tmp = (double)SHORT * (double)get_n();
-		tmp /= (double)gettime();
-		iterations = (uint64)tmp + 1;
-	}
-
 	/* send 'start' signal */
-	for (i = 0; i < parallel; ++i) {
-		((uint64*)results)[i] = iterations;
-	}
-	write(start_signal, results, parallel * sizeof(uint64));
+	write(start_signal, results, parallel * sizeof(char));
 
-	/* Collect results and 'done' signals */
-	for (i = 0, buf = (unsigned char*)results; 
-	     i < parallel * sizeof(result_t); 
-	     i += bytes_read, buf += bytes_read) {
+	/* Collect 'done' signals */
+	for (i = 0; i < parallel * sizeof(char); i += bytes_read) {
 		bytes_read = 0;
 		FD_SET(response, &fds_read);
 		FD_SET(response, &fds_error);
@@ -543,13 +548,37 @@ benchmp_parent(	int response,
 			continue;
 		}
 
-		bytes_read = read(response, buf, parallel * sizeof_result(repetitions) - i);
+		bytes_read = read(response, results, parallel * sizeof(char) - i);
 		if (bytes_read < 0) {
-#ifdef _DEBUG
-			fprintf(stderr, "Only read %d/%d bytes of results!\n", i, parallel * sizeof(result_t));
-#endif /* _DEBUG */
 			goto error_exit;
+		}
+	}
 
+	/* collect results */
+	for (i = 0; i < parallel; ++i) {
+		int n = sizeof_result(repetitions);
+		buf = (unsigned char*)results + i * n;
+
+		/* tell one child to report its results */
+		write(result_signal, buf, sizeof(char));
+
+		for (; n > 0; n -= bytes_read, buf += bytes_read) {
+			bytes_read = 0;
+			FD_SET(response, &fds_read);
+			FD_SET(response, &fds_error);
+
+			select(response+1, &fds_read, NULL, &fds_error, &timeout);
+			if (benchmp_child_died || FD_ISSET(response, &fds_error)) {
+				goto error_exit;
+			}
+			if (!FD_ISSET(response, &fds_read)) {
+				continue;
+			}
+
+			bytes_read = read(response, buf, n);
+			if (bytes_read < 0) {
+				goto error_exit;
+			}
 		}
 	}
 
@@ -557,10 +586,9 @@ benchmp_parent(	int response,
 	signal(SIGCHLD, SIG_IGN);
 	
 	/* send 'exit' signals */
-	write(exit_signal, results, sizeof(int));
+	write(exit_signal, results, parallel * sizeof(char));
 
 	/* Compute median time; iterations is constant! */
-	insertinit(merged_results);
 	for (i = 0; i < parallel; ++i) {
 		result_t* r = (result_t*)((char*)results + i * sizeof_result(repetitions));
 #ifdef _DEBUG
@@ -596,6 +624,7 @@ error_exit:
 cleanup_exit:
 	close(response);
 	close(start_signal);
+	close(result_signal);
 	close(exit_signal);
 
 	free(results);
