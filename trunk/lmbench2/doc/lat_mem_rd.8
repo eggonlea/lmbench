@@ -11,14 +11,14 @@ lat_mem_rd \- memory read latency benchmark
 measures memory read latency for varying memory sizes and strides.  The
 results are reported in nanoseconds per load and have been verified
 accurate to within a few nanoseconds on an SGI Indy.
-.LP
+.PP
 The
 entire memory hierarchy is measured, including onboard cache latency
 and size, external cache latency and size, main memory latency, and TLB
 miss latency.
-.LP
+.PP
 Only data accesses are measured; the instruction cache is not measured.
-.LP
+.PP
 The benchmark runs as two nested loops.  The outer loop is the stride size.
 The inner loop is the array size.  For each array size, the benchmark
 creates a ring of pointers that point forward one stride.  Traversing the
@@ -30,7 +30,7 @@ array is done by
 .sp
 in a for loop (the over head of the for loop is not significant; the loop is 
 an unrolled loop 1000 loads long).  The loop stops after doing a million loads.
-.LP
+.PP
 The size of the array varies from 512 bytes to (typically) eight megabytes.
 For the small sizes, the cache will have an effect, and the loads will be
 much faster.  This becomes much more apparent when the data is plotted.
@@ -47,7 +47,7 @@ array size on the X axis and the latency on the Y axis.  Each stride
 is then plotted as a curve.  The plateaus that appear correspond to 
 the onboard cache (if present), external cache (if present), main
 memory latency, and TLB miss latency.
-.LP
+.PP
 As a rough guide, you may be able to extract the latencies of the
 various parts as follows, but you should really look at the graphs,
 since these rules of thumb do not always work (some systems do not

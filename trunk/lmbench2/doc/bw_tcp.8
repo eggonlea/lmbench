@@ -15,11 +15,11 @@ bw_tcp \- time data movement through TCP/IP sockets
 .B bw_tcp
 is a client/server program that moves data over a TCP/IP socket.  Nothing is
 done with the data on either side; the data is moved in 64KB chunks.
-.LP
+.PP
 .B bw_tcp
 has three forms of usage: as a server (-s), as a client (bw_tcp localhost), and
 as a shutdown (bw_tcp -localhost).
-.LP
+.PP
 The default amount of data is 3MB.  The client form may specify a different
 amount of data.  Specifications may end with ``k'' or ``m'' to mean
 kilobytes (* 1024) or megabytes (* 1024 * 1024).
