@@ -88,6 +88,11 @@ done
 ############################################################################
 # Figure out memory size.
 ############################################################################
+if [ -r /proc/cpuinfo ]
+then
+	PROCESSORS=`grep processor /proc/cpuinfo | wc -l`
+fi
+
 if [ -r /proc/meminfo ]
 then	TMP=`grep 'Mem:' /proc/meminfo | awk '{print $2}'`
 	if [ X$TMP != X ]
@@ -103,10 +108,11 @@ then	TMP=`grep 'Mem:' /proc/meminfo | awk '{print $2}'`
 	fi
 fi
 if [ X$TMP != X ]
-then	MB=$TMP
+then	TOTAL_MEM=$TMP
 else	$ECHON "Probing system for available memory: $ECHOC"
-	MB=`../bin/$OS/memsize 1024`
+	TOTAL_MEM=`../bin/$OS/memsize 1024`
 fi
+MB = $TOTAL_MEM
 
 echo $L
 cat<<EOF;
@@ -122,7 +128,7 @@ EOF
 echo $ECHON "MB [default $MB] $ECHOC"
 read TMP
 if [ X$TMP != X ]
-then	MB=$TMP
+then	TOTAL_MEM=$TMP
 fi
 # Certain machines tend to barf when you try and bcopy 8MB.
 # Figure out how much we can use.
@@ -139,6 +145,12 @@ then	echo Warning: you have only ${AVAILMEM}MB available memory.
 	echo Some benchmark results will be less meaningful. 
 fi
 MB=`expr $AVAILMEM / 2`
+
+if [ `expr $SYNC_MAX \* $MB` -gt `expr $TOTAL_MEM  / 2` ]
+then
+	MB=`expr $TOTAL_MEM / $SYNC_MAX`
+	MB=`expr $MB / 2`
+fi
 
 echo "Hang on, we are calculating your cache line size."
 ../bin/$OS/msleep 250
@@ -670,6 +682,7 @@ echo INFO=$INFO >> $C
 echo LINE_SIZE=$LINE_SIZE >> $C
 echo LOOP_O=$LOOP_O >> $C
 echo MAIL=$MAIL >> $C
+echo TOTAL_MEM=$TOTAL_MEM >> $C
 echo MB=$MB >> $C
 echo MHZ=\"$MHZ\" >> $C
 echo MOTHERBOARD=\"$MOTHERBOARD\" >> $C
