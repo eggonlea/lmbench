@@ -1557,6 +1557,8 @@ permutation(int max, int scale)
 	static unsigned int r = 0;
 	int*	result = (int*)malloc(max * sizeof(int));
 
+	if (result == NULL) return NULL;
+
 	for (i = 0; i < max; ++i) {
 		result[i] = i * scale;
 	}
