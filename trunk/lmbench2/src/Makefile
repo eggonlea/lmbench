@@ -48,35 +48,39 @@ COMPILE=$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 INCS =	bench.h lib_tcp.h lib_udp.h stats.h timing.h
 
-SRCS =  bench.h bw_file_rd.c bw_mmap_rd.c 				\
-	bw_pipe.c bw_tcp.c hello.c lat_connect.c lat_ctx.c		\
+SRCS =  bench.h bw_file_rd.c bw_mmap_rd.c				\
+	bw_pipe.c bw_tcp.c clock.c hello.c lat_connect.c lat_ctx.c	\
 	lat_fs.c lat_mem_rd.c lat_mmap.c lat_pagefault.c lat_pipe.c	\
 	lat_proc.c lat_rpc.c lat_syscall.c lat_tcp.c lat_udp.c		\
 	lib_tcp.c lib_udp.c mhz.c lib_timing.c lat_sig.c 		\
 	memsize.c bw_unix.c lat_unix.c lmdd.c loop_o.c timing_o.c	\
 	timing.h stats.h lib_tcp.h lib_udp.h  enough.c lat_select.c	\
-	msleep.c bw_mem.c lat_fifo.c lmhttp.c lat_http.c	\
+	msleep.c bw_mem.c lat_fifo.c lmhttp.c lat_http.c		\
 	disk.c flushdisk.c lat_unix_connect.c lib_unix.c lib_stats.c \
 	lib_unix.h names.h version.h
 
-EXES =	$O/bw_file_rd $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp $O/hello	\
+EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
 	$O/lat_select $O/lat_pipe $O/lat_rpc $O/lat_syscall $O/lat_tcp	\
-	$O/lat_udp $O/lat_mmap $O/mhz $O/lat_proc $O/lat_pagefault	\
+	$O/lat_udp $O/lat_mmap $O/lat_proc $O/lat_pagefault $O/mhz	\
 	$O/lat_connect $O/lat_fs $O/lat_sig $O/lat_mem_rd $O/lat_ctx	\
 	$O/memsize $O/lat_unix $O/bw_unix $O/lmdd $O/timing_o $O/enough	\
-	$O/msleep $O/loop_o $O/bw_mem $O/lat_fifo $O/lmhttp $O/lat_http	\
-	$O/disk $O/lat_unix_connect $O/flushdisk
+	$O/msleep $O/loop_o $O/lat_fifo $O/lmhttp $O/lat_http		\
+	$O/lat_unix_connect $O/lat_fcntl				\
+	$O/disk $O/flushdisk $O/clock $O/hello
 
 MAN1 =	lmdd.1 $D/bargraph.1 $D/graph.1 $D/pgraph.1 $D/rccs.1
 
 MAN3 =	$D/lmbench.3 $D/reporting.3 $D/results.3 $D/timing.3
 
-MAN8 =	$D/bw_file_rd.8 $D/bw_mem_cp.8 $D/bw_mem_rd.8 $D/bw_mem_wr.8	\
-	$D/bw_mmap_rd.8 $D/bw_pipe.8 $D/bw_tcp.8 $D/lat_connect.8	\
-	$D/lat_ctx.8 $D/lat_fs.8 $D/lat_mem_rd.8 $D/lat_mmap.8		\
+MAN8 =	$D/bw_file_rd.8 $D/bw_mem.8 $D/bw_pipe.8 $D/bw_pipe.8		\
+	$D/bw_tcp.8 $D/bw_unix.8					\
+	$D/lat_connect.8 $D/lat_ctx.8 $D/lat_fcntl.8 $D/lat_fifo.8	\
+	$D/lat_fs.8 $D/lat_http.8 $D/lat_mem_rd.8 $D/lat_mmap.8		\
 	$D/lat_pagefault.8 $D/lat_pipe.8 $D/lat_proc.8 $D/lat_rpc.8 	\
-	$D/lat_syscall.8 $D/lat_tcp.8 $D/lat_udp.8 $D/lmbench.8 	\
-	$D/lmdd.8 $D/mhz.8 
+	$D/lat_select.8 $D/lat_sig.8 $D/lat_syscall.8 $D/lat_tcp.8 	\
+	$D/lat_udp.8 $D/lat_unix.8 $D/lat_unix_connect.8		\
+	$D/lmbench.8 $D/disk.8 $D/lmdd.8 $D/mhz.8 
+	$D/clock.8 $D/enough.8 $D/loop_o.8 $D/timing_o.8
 
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o $O/lib_stats.o
 
@@ -212,7 +216,7 @@ $O/bw_unix:  bw_unix.c timing.h stats.h bench.h $O/lmbench.a
 $O/disk:  disk.c flushdisk.c bench.h timing.h stats.h lib_tcp.h $O/lmbench.a
 	$(COMPILE) -o $O/disk disk.c flushdisk.c $O/lmbench.a $(LDLIBS)
 
-$O/clock:  clock.c timing.h stats.h bench.h $O/lmbench.a
+$O/clock:  clock.c timing.h stats.h bench.h version.h $O/lmbench.a
 	$(COMPILE) -o $O/clock clock.c $O/lmbench.a $(LDLIBS)
 
 $O/hello:  hello.c $O/lmbench.a
@@ -226,6 +230,9 @@ $O/lat_connect:  lat_connect.c lib_tcp.c bench.h lib_tcp.h timing.h stats.h $O/l
 
 $O/lat_unix_connect:  lat_unix_connect.c lib_tcp.c bench.h lib_tcp.h timing.h stats.h $O/lmbench.a
 	$(COMPILE) -o $O/lat_unix_connect lat_unix_connect.c $O/lmbench.a $(LDLIBS)
+
+$O/lat_fcntl:  lat_fcntl.c timing.h stats.h bench.h $O/lmbench.a
+	$(COMPILE) -o $O/lat_fcntl lat_fcntl.c $O/lmbench.a $(LDLIBS)
 
 $O/lat_fs:  lat_fs.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/lat_fs lat_fs.c $O/lmbench.a $(LDLIBS)
