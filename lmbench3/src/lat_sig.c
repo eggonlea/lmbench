@@ -72,7 +72,7 @@ void
 prot() {
 	if (++caught == n) {
 		caught = 0;
-		longjmp(prot_env, 1);
+		n = benchmp_interval(benchmp_getstate());
 	}
 }
 
@@ -105,9 +105,8 @@ do_prot(uint64 iterations, void* cookie)
 	n = iterations;
 	caught = 0;
 
-	if (setjmp(prot_env)) {
-		return;
-	}
+	/* start the first timing interval */
+	start(0);
 
 	/* trigger the page fault, causing us to jump to prot() */
 	*state->where = 1;
