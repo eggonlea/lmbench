@@ -24,17 +24,6 @@ typedef struct _state {
 	int	p2[2];
 } state_t;
 
-state_t* pGlobalState;
-
-void
-sigterm_handler(int n)
-{
-	if (pGlobalState->pid) {
-		kill(SIGKILL, pGlobalState->pid);
-	}
-	exit(0);
-}
-
 int 
 main(int ac, char **av)
 {
@@ -67,12 +56,11 @@ main(int ac, char **av)
 	}
 
 	state.pid = 0;
-	pGlobalState = &state;
-	signal(SIGTERM, sigterm_handler);
 
 	benchmp(initialize, doit, cleanup, SHORT, parallel, 
 		warmup, repetitions, &state);
 	micro("Pipe latency", get_n());
+	return (0);
 }
 
 void 
@@ -91,6 +79,7 @@ initialize(void *cookie)
 	}
 	switch (state->pid = fork()) {
 	    case 0:
+		signal(SIGTERM, exit);
 		writer(state->p2[1], state->p1[0]);
 		return;
 
@@ -116,9 +105,10 @@ cleanup(void * cookie)
 {
 	state_t * state = (state_t *)cookie;
 
-	kill(state->pid, 15);
-	signal(SIGCHLD,SIG_IGN);
-	kill(state->pid, 9);
+	signal(SIGCHLD, SIG_IGN);
+	if (state->pid) {
+		kill(state->pid, SIGKILL);
+	}
 }
 
 void 

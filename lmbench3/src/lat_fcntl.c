@@ -44,17 +44,6 @@ void initialize(void* cookie);
 void benchmark(iter_t iterations, void* cookie);
 void cleanup(void* cookie);
 
-struct _state* pGlobalState;
-
-void
-sigterm_handler(int n)
-{
-	if (pGlobalState->pid) {
-		kill(SIGKILL, pGlobalState->pid);
-	}
-	exit(0);
-}
-
 void
 procA(struct _state *state)
 {
@@ -108,7 +97,6 @@ procB(struct _state *state)
 void 
 initialize(void* cookie)
 {
-	int	pid;
 	char	buf[10000];
 	struct _state* state = (struct _state*)cookie;
 
@@ -141,8 +129,7 @@ initialize(void* cookie)
 		perror("lock2");
 		exit(1);
 	}
-	state->pid = getpid();
-	switch (pid = fork()) {
+	switch (state->pid = fork()) {
 	case -1:
 		perror("fork");
 		exit(1);
@@ -152,7 +139,6 @@ initialize(void* cookie)
 		}
 		exit(0);
 	default:
-		state->pid = pid;
 		break;
 	}
 }
@@ -167,7 +153,8 @@ benchmark(iter_t iterations, void* cookie)
 	}
 }
 
-void cleanup(void* cookie)
+void
+cleanup(void* cookie)
 {
 	int i;
 	struct _state* state = (struct _state*)cookie;
@@ -178,7 +165,7 @@ void cleanup(void* cookie)
 	unlink(state->filename1);
 	unlink(state->filename2);
 
-	kill(state->pid, SIGKILL);
+	if (state->pid) kill(state->pid, SIGKILL);
 	state->pid = 0;
 }
 
@@ -215,8 +202,6 @@ main(int ac, char **av)
 	}
 
 	state.pid = 0;
-	pGlobalState = &state;
-	signal(SIGTERM, sigterm_handler);
 
 	benchmp(initialize, benchmark, cleanup, 0, parallel, 
 		warmup, repetitions, &state);

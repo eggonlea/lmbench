@@ -46,20 +46,6 @@ struct _state {
 	int*	data;
 };
 
-struct _state* pGlobalState;
-static int sigterm_cleanup = 0;
-static int sigterm_received = 0;
-
-void
-sigterm_handler(int n)
-{
-	sigterm_received = 1;
-	if (sigterm_cleanup) {
-		cleanup(pGlobalState);
-		exit(0);
-	}
-}
-
 int
 main(int ac, char **av)
 {
@@ -116,8 +102,6 @@ main(int ac, char **av)
 	sysmp(MP_MUSTRUN, 0);
 #endif
 
-	pGlobalState = &state;
-
 	/* compute pipe + sumit overhead */
 	maxprocs = atoi(av[optind]);
 	for (i = optind; i < ac; ++i) {
@@ -161,7 +145,6 @@ initialize_overhead(void* cookie)
 	struct _state* pState = (struct _state*)cookie;
 
 	pState->pids = NULL;
-	signal(SIGTERM, sigterm_handler);
 	pState->p = (int**)malloc(pState->procs * (sizeof(int*) + 2 * sizeof(int)));
 	p = (int*)&pState->p[pState->procs];
 	for (i = 0; i < pState->procs; ++i) {
@@ -234,15 +217,14 @@ initialize(void* cookie)
 	bzero((void*)pState->pids, pState->procs * sizeof(pid_t));
 	procs = create_daemons(pState->p, pState->pids, 
 			       pState->procs, pState->process_size);
-	sigterm_cleanup = 1;
-	if (sigterm_received || procs < pState->procs) {
-		pState->procs = procs;
+	if (procs < pState->procs) {
 		cleanup(cookie);
 		exit(1);
 	}
 }
 
-void cleanup(void* cookie)
+void
+cleanup(void* cookie)
 {
 	int i;
 	struct _state* pState = (struct _state*)cookie;
@@ -337,14 +319,13 @@ create_daemons(int **p, int pids[], int procs, int process_size)
 #if	defined(sgi) && defined(PIN)
 			sysmp(MP_MUSTRUN, i % ncpus);
 #endif
+			signal(SIGTERM, exit);
 			doit(p, i-1, i, process_size);
 			/* NOTREACHED */
 
 		    default:	/* parent */
 			;
 	    	}
-		if (sigterm_received)
-			return i + 1;
 	}
 
 	/*

@@ -67,22 +67,32 @@ lmbench_usage(int argc, char *argv[], char* usage)
 	exit(-1);
 }
 
+static int	benchmp_sigterm_received;
+static int	benchmp_sigchld_received;
 static pid_t	benchmp_sigalrm_pid;
 static int	benchmp_sigalrm_timeout;
-static int	benchmp_child_died;
+void (*benchmp_sigterm_handler)(int);
 void (*benchmp_sigchld_handler)(int);
 void (*benchmp_sigalrm_handler)(int);
 
-void benchmp_sigchld(int signo)
+void
+benchmp_sigterm(int signo)
 {
-	signal(SIGCHLD, SIG_IGN);
-	benchmp_child_died = 1;
+	benchmp_sigterm_received = 1;
 }
 
-void benchmp_sigalrm(int signo)
+void
+benchmp_sigchld(int signo)
+{
+	signal(SIGCHLD, SIG_IGN);
+	benchmp_sigchld_received = 1;
+}
+
+void
+benchmp_sigalrm(int signo)
 {
 	signal(SIGALRM, SIG_IGN);
-	kill(benchmp_sigalrm_pid, SIGKILL);
+	kill(benchmp_sigalrm_pid, SIGTERM);
 	/* 
 	 * Since we already waited a full timeout period for the child
 	 * to die, we only need to wait a little longer for subsequent
@@ -186,27 +196,25 @@ benchmp(support_f initialize,
 	}
 
 	/* fork the necessary children */
-	benchmp_child_died = 0;
-	signal(SIGTERM, SIG_IGN);
-	benchmp_sigchld_handler = signal(SIGCHLD, benchmp_sigchld);
+	benchmp_sigchld_received = 0;
+	benchmp_sigterm_received = 0;
+	benchmp_sigterm_handler = signal(SIGTERM, benchmp_sigterm);
+	benchmp_sigterm_handler = signal(SIGCHLD, benchmp_sigchld);
 	pids = (pid_t*)malloc(parallel * sizeof(pid_t));
 	bzero((void*)pids, parallel * sizeof(pid_t));
 
 	for (i = 0; i < parallel; ++i) {
+		if (benchmp_sigterm_received)
+			goto error_exit;
 #ifdef _DEBUG
 		fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): creating child %d\n", (unsigned int)initialize, (unsigned int)benchmark, (unsigned int)cleanup, enough, parallel, (unsigned int)cookie, i);
 #endif
-		switch(pid = fork()) {
+		switch(pids[i] = fork()) {
 		case -1:
 			/* could not open enough children! */
 #ifdef _DEBUG
 			fprintf(stderr, "BENCHMP: fork() failed!\n");
 #endif /* _DEBUG */
-			/* give the children a chance to clean up gracefully */
-			signal(SIGCHLD, SIG_IGN);
-			for (j = 0; j < i; ++j) {
-				kill(pids[j], SIGTERM);
-			}
 			goto error_exit;
 		case 0:
 			/* If child */
@@ -229,7 +237,6 @@ benchmp(support_f initialize,
 				);
 			exit(0);
 		default:
-			pids[i] = pid;
 			break;
 		}
 	}
@@ -248,8 +255,16 @@ benchmp(support_f initialize,
 		       repetitions,
 		       enough
 		);
+	goto cleanup_exit;
 
 error_exit:
+	/* give the children a chance to clean up gracefully */
+	signal(SIGCHLD, SIG_IGN);
+	while (--i >= 0) {
+		kill(pids[i], SIGTERM);
+	}
+
+cleanup_exit:
 	/* 
 	 * Clean up and kill all children
 	 *
@@ -306,7 +321,10 @@ benchmp_parent(	int response,
 	fd_set		fds_read, fds_error;
 	struct timeval	timeout;
 
-	if (benchmp_child_died) {
+	if (benchmp_sigchld_received || benchmp_sigterm_received) {
+#ifdef _DEBUG
+		fprintf(stderr, "benchmp_parent: entering, benchmp_sigchld_received=%d\n", benchmp_sigchld_received);
+#endif
 		goto error_exit;
 	}
 
@@ -328,7 +346,13 @@ benchmp_parent(	int response,
 		FD_SET(response, &fds_error);
 
 		select(response+1, &fds_read, NULL, &fds_error, &timeout);
-		if (benchmp_child_died || FD_ISSET(response, &fds_error)) {
+		if (benchmp_sigchld_received 
+		    || benchmp_sigterm_received
+		    || FD_ISSET(response, &fds_error)) 
+		{
+#ifdef _DEBUG
+			fprintf(stderr, "benchmp_parent: ready, benchmp_sigchld_received=%d\n", benchmp_sigchld_received);
+#endif
 			goto error_exit;
 		}
 		if (!FD_ISSET(response, &fds_read)) {
@@ -337,6 +361,9 @@ benchmp_parent(	int response,
 
 		bytes_read = read(response, results, parallel * sizeof(char) - i);
 		if (bytes_read < 0) {
+#ifdef _DEBUG
+			fprintf(stderr, "benchmp_parent: ready, bytes_read=%d, %s\n", bytes_read, strerror(errno));
+#endif
 			goto error_exit;
 		}
 	}
@@ -360,7 +387,13 @@ benchmp_parent(	int response,
 		FD_SET(response, &fds_error);
 
 		select(response+1, &fds_read, NULL, &fds_error, &timeout);
-		if (benchmp_child_died || FD_ISSET(response, &fds_error)) {
+		if (benchmp_sigchld_received 
+		    || benchmp_sigterm_received
+		    || FD_ISSET(response, &fds_error)) 
+		{
+#ifdef _DEBUG
+			fprintf(stderr, "benchmp_parent: done, benchmp_child_diied=%d\n", benchmp_sigchld_received);
+#endif
 			goto error_exit;
 		}
 		if (!FD_ISSET(response, &fds_read)) {
@@ -369,6 +402,9 @@ benchmp_parent(	int response,
 
 		bytes_read = read(response, results, parallel * sizeof(char) - i);
 		if (bytes_read < 0) {
+#ifdef _DEBUG
+			fprintf(stderr, "benchmp_parent: done, bytes_read=%d, %s\n", bytes_read, strerror(errno));
+#endif
 			goto error_exit;
 		}
 	}
@@ -387,7 +423,13 @@ benchmp_parent(	int response,
 			FD_SET(response, &fds_error);
 
 			select(response+1, &fds_read, NULL, &fds_error, &timeout);
-			if (benchmp_child_died || FD_ISSET(response, &fds_error)) {
+			if (benchmp_sigchld_received 
+			    || benchmp_sigterm_received
+			    || FD_ISSET(response, &fds_error)) 
+			{
+#ifdef _DEBUG
+				fprintf(stderr, "benchmp_parent: results, benchmp_sigchld_received=%d\n", benchmp_sigchld_received);
+#endif
 				goto error_exit;
 			}
 			if (!FD_ISSET(response, &fds_read)) {
@@ -396,6 +438,9 @@ benchmp_parent(	int response,
 
 			bytes_read = read(response, buf, n);
 			if (bytes_read < 0) {
+#ifdef _DEBUG
+				fprintf(stderr, "benchmp_parent: results, bytes_read=%d, %s\n", bytes_read, strerror(errno));
+#endif
 				goto error_exit;
 			}
 		}
@@ -439,6 +484,9 @@ benchmp_parent(	int response,
 #endif
 	goto cleanup_exit;
 error_exit:
+#ifdef _DEBUG
+	fprintf(stderr, "benchmp_parent: error_exit!\n");
+#endif
 	signal(SIGCHLD, SIG_IGN);
 	for (i = 0; i < parallel; ++i) {
 		kill(pids[i], SIGTERM);
@@ -478,6 +526,15 @@ typedef struct {
 } benchmp_child_state;
 
 static benchmp_child_state _benchmp_child_state;
+
+void
+benchmp_child_sigterm(int signo)
+{
+	signal(SIGTERM, SIG_IGN);
+	if (_benchmp_child_state.cleanup)
+		(*_benchmp_child_state.cleanup)(&_benchmp_child_state);
+	exit(0);
+}
 
 void*
 benchmp_getstate()
@@ -534,10 +591,16 @@ benchmp_child(support_f initialize,
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 0;
 
-	signal(SIGCHLD, SIG_DFL);
-
 	if (initialize)
 		(*initialize)(cookie);
+	
+	if (benchmp_sigterm_handler != SIG_DFL) {
+		signal(SIGTERM, benchmp_sigterm_handler);
+	} else {
+		signal(SIGTERM, benchmp_child_sigterm);
+	}
+	if (benchmp_sigterm_received)
+		benchmp_child_sigterm(SIGTERM);
 
 	/* start experiments, collecting results */
 	insertinit(_benchmp_child_state.r);
@@ -562,6 +625,12 @@ benchmp_interval(void* _state)
 	save_n(state->iterations);
 	result -= t_overhead() + get_n() * l_overhead();
 	settime(result >= 0. ? (uint64)result : 0.);
+
+	/* if the parent died, then give up */
+	if (getppid() == 1) {
+		(*state->cleanup)(state->cookie);
+		exit(0);
+	}
 
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 0;
