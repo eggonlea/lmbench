@@ -43,6 +43,10 @@ foreach $file (@ARGV) {
 			@_ = split;
 			push(@lat_select, $_[4]);
 		}
+		if (/^Select on 100 tcp fd/) {
+			@_ = split;
+			push(@lat_tcp_select, $_[5]);
+		}
 		if (/^Simple syscall:/) {
 			@_ = split;
 			push(@lat_syscall, $_[2]);
@@ -264,7 +268,8 @@ foreach $file (@ARGV) {
 		'lat_l2', 'lat_mappings', 'lat_mem', 'lat_nullproc',
 		'lat_openclose', 'lat_pagefault', 'lat_pipe',
 		'lat_protfault', 'lat_read', 'lat_rpc_tcp_local',
-		'lat_rpc_udp_local', 'lat_select', 'lat_shproc', 'lat_sigcatch',
+		'lat_rpc_udp_local', 'lat_select', 'lat_tcp_select',
+		'lat_shproc', 'lat_sigcatch',
 		'lat_siginstall', 'lat_simpleproc', 'lat_stat',
 		'lat_syscall', 'lat_tcp_connect_local', 'lat_tcp_local',
 		'lat_udp_local', 'lat_unix', 'lat_write', 'misc_mhz',
@@ -307,7 +312,7 @@ print<<EOF;
 Processor, Processes - times in microseconds - smaller is better
 ----------------------------------------------------------------
 Host                 OS  Mhz null null      open selct sig  sig  fork exec sh  
-                             call  I/O stat clos       inst hndl proc proc proc
+                             call  I/O stat clos TCP   inst hndl proc proc proc
 --------- ------------- ---- ---- ---- ---- ---- ----- ---- ---- ---- ---- ----
 EOF
 
@@ -329,7 +334,7 @@ for ($i = 0; $i <= $#uname; $i++) {
             &num($tmp, "%3.1f"),
             &num($lat_stat[$i], "%3.1f"),
             &num($lat_openclose[$i], "%3.1f"),
-            &num($lat_select[$i], "%4d"),
+            &num($lat_tcp_select[$i], "%4d"),
             &num($lat_siginstall[$i], "%3.1f"),
             &num($lat_sigcatch[$i], "%3.1f"),
             &num($lat_nullproc[$i]/1000., "%3.1f"),
