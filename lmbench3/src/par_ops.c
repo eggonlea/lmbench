@@ -19,8 +19,8 @@ struct _state {
 	double*	double_data;
 };
 
-void	initialize(void* cookie);
-void	cleanup(void* cookie);
+void	initialize(iter_t iterations, void* cookie);
+void	cleanup(iter_t iterations, void* cookie);
 
 #define	FIVE(m)		m m m m m
 #define	TEN(m)		FIVE(m) FIVE(m)
@@ -30,7 +30,7 @@ void	cleanup(void* cookie);
 #define MAX_LOAD_PARALLELISM 16
 
 double
-max_parallelism(bench_f* benchmarks, 
+max_parallelism(benchmp_f* benchmarks, 
 		int warmup, int repetitions, void* cookie)
 {
 	int		i, j, k, __n;
@@ -40,7 +40,7 @@ max_parallelism(bench_f* benchmarks,
 	__n = 1;
 	max_load_parallelism = 1.;
 
-	initialize(cookie);
+	initialize(0, cookie);
 	for (i = 0; i < MAX_LOAD_PARALLELISM; ++i) {
 		BENCH((*benchmarks[i])(__n, cookie); __n = 1;, 0);
 		save_minimum();
@@ -59,7 +59,7 @@ max_parallelism(bench_f* benchmarks,
 			}
 		}
 	}
-	cleanup(cookie);
+	cleanup(0, cookie);
 	return max_load_parallelism;
 }
 
@@ -114,7 +114,7 @@ void benchmark##_##N(iter_t iterations, void *cookie) 			\
 	BENCHMARK(benchmark, 14, REPEAT_14)				\
 	BENCHMARK(benchmark, 15, REPEAT_15)				\
 									\
-	bench_f benchmark##_benchmarks[] = {				\
+	benchmp_f benchmark##_benchmarks[] = {				\
 		benchmark##_0,						\
 		benchmark##_1,						\
 		benchmark##_2,						\
@@ -327,10 +327,12 @@ PARALLEL_BENCHMARKS(double_div)
 
 
 void
-initialize(void* cookie)
+initialize(iter_t iterations, void* cookie)
 {
 	struct _state *state = (struct _state*)cookie;
 	register int i;
+
+	if (iterations) return;
 
 	state->int_data = (int*)malloc(MAX_LOAD_PARALLELISM * sizeof(int));
 	state->double_data = (double*)malloc(MAX_LOAD_PARALLELISM * sizeof(double));
@@ -342,9 +344,11 @@ initialize(void* cookie)
 }
 
 void
-cleanup(void* cookie)
+cleanup(iter_t iterations, void* cookie)
 {
 	struct _state *state = (struct _state*)cookie;
+
+	if (iterations) return;
 
 	free(state->int_data);
 	free(state->double_data);

@@ -142,25 +142,25 @@ compute_times(int pages, int warmup, int repetitions,
 
 	state->len = pages * state->pagesize;
 	state->maxlen = pages * state->pagesize;
-	tlb_initialize(state);
+	tlb_initialize(0, state);
 	if (state->initialized) {
 		for (i = 0; i < TRIES; ++i) {
 			BENCH1(mem_benchmark_0(__n, state); __n = 1;, 0);
 			insertsort(gettime(), get_n(), &tlb_results);
 		}
 	}
-	tlb_cleanup(state);
+	tlb_cleanup(0, state);
 	
 	state->len = pages * state->line;
 	state->maxlen = pages * state->line;
-	mem_initialize(state);
+	mem_initialize(0, state);
 	if (state->initialized) {
 		for (i = 0; i < TRIES; ++i) {
 			BENCH1(mem_benchmark_0(__n, state); __n = 1;, 0);
 			insertsort(gettime(), get_n(), &cache_results);
 		}
 	}
-	mem_cleanup(state);
+	mem_cleanup(0, state);
 
 	/* We want nanoseconds / load. */
 	set_results(&tlb_results);

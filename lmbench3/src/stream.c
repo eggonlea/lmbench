@@ -22,8 +22,8 @@ struct _state {
 	int	len;
 };
 
-void initialize(void* cookie);
-void cleanup(void* cookie);
+void initialize(iter_t iterations, void* cookie);
+void cleanup(iter_t iterations, void* cookie);
 
 /* These are from STREAM version 1 */
 void copy(iter_t iterations, void* cookie);
@@ -175,11 +175,13 @@ main(int ac, char **av)
 }
 
 void
-initialize(void* cookie)
+initialize(iter_t iterations, void* cookie)
 {
 	int i;
 	struct _state* state = (struct _state*)cookie;
 	
+	if (iterations) return;
+
 	state->a = (double*)malloc(sizeof(double) * state->len);
 	state->b = (double*)malloc(sizeof(double) * state->len);
 	state->c = (double*)malloc(sizeof(double) * state->len);
@@ -213,7 +215,8 @@ initialize(void* cookie)
 	}								\
 }
 
-void copy(iter_t iterations, void *cookie)
+void
+copy(iter_t iterations, void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 
@@ -222,7 +225,8 @@ void copy(iter_t iterations, void *cookie)
 	}
 }
 
-void scale(iter_t iterations, void *cookie)
+void
+scale(iter_t iterations, void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 
@@ -231,7 +235,8 @@ void scale(iter_t iterations, void *cookie)
 	}
 }
 
-void sum(iter_t iterations, void *cookie)
+void
+sum(iter_t iterations, void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 
@@ -240,7 +245,8 @@ void sum(iter_t iterations, void *cookie)
 	}
 }
 
-void triad(iter_t iterations, void *cookie)
+void
+triad(iter_t iterations, void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 
@@ -254,7 +260,8 @@ void triad(iter_t iterations, void *cookie)
  *
  * NOTE: copy is the same as version 1's benchmark
  */
-void fill(iter_t iterations, void *cookie)
+void
+fill(iter_t iterations, void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 
@@ -263,7 +270,8 @@ void fill(iter_t iterations, void *cookie)
 	}
 }
 
-void daxpy(iter_t iterations, void *cookie)
+void
+daxpy(iter_t iterations, void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 
@@ -272,7 +280,8 @@ void daxpy(iter_t iterations, void *cookie)
 	}
 }
 
-void cumsum(iter_t iterations, void *cookie)
+void
+cumsum(iter_t iterations, void *cookie)
 {
 	register double	sum;
 	struct _state* state = (struct _state*)cookie;
@@ -284,9 +293,13 @@ void cumsum(iter_t iterations, void *cookie)
 	use_int((int)sum);
 }
 
-void cleanup(void* cookie)
+void
+cleanup(iter_t iterations, void* cookie)
 {
 	struct _state* state = (struct _state*)cookie;
+
+	if (iterations) return;
+
 	free(state->a);
 	free(state->b);
 	free(state->c);

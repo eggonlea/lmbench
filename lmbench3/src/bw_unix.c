@@ -43,9 +43,11 @@ sigterm_handler(int n)
 }
 
 void 
-initialize(void *cookie)
+initialize(iter_t iterations, void* cookie)
 {
 	struct _state* state = (struct _state*)cookie;
+
+	if (iterations) return;
 
 	state->buf = valloc(XFERSIZE);
 	touch(state->buf, XFERSIZE);
@@ -77,9 +79,11 @@ initialize(void *cookie)
 	}
 }
 void 
-cleanup(void * cookie)
+cleanup(iter_t iterations, void*  cookie)
 {
 	struct _state* state = (struct _state*)cookie;
+
+	if (iterations) return;
 
 	signal(SIGCHLD,SIG_IGN);
 	close(state->control[1]);
@@ -89,7 +93,7 @@ cleanup(void * cookie)
 }
 
 void 
-reader(iter_t iterations, void * cookie)
+reader(iter_t iterations, void* cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 	size_t	done, n;

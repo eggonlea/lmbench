@@ -12,8 +12,8 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-void initialize(void *cookie);
-void cleanup(void *cookie);
+void initialize(iter_t iterations, void *cookie);
+void cleanup(iter_t iterations, void *cookie);
 void doit(iter_t iterations, void *cookie);
 void writer(int w, int r);
 void server(void* cookie);
@@ -33,7 +33,8 @@ typedef struct _state {
 	fd_set  set;
 } state_t;
 
-int main(int ac, char **av)
+int
+main(int ac, char **av)
 {
 	state_t state;
 	int parallel = 1;
@@ -149,7 +150,8 @@ open_socket(void* cookie)
 	return tcp_connect("localhost", TCP_SELECT, SOCKOPT_NONE);
 }
 
-int open_file(void* cookie)
+int
+open_file(void* cookie)
 {
 	state_t* state = (state_t*)cookie;
 
@@ -174,13 +176,14 @@ doit(iter_t iterations, void * cookie)
 }
 
 void
-initialize(void *cookie)
+initialize(iter_t iterations, void *cookie)
 {
 	char	c;
 	state_t * state = (state_t *)cookie;
-
 	int	n, last = 0 /* lint */;
 	int	N = state->num, fid, fd;
+
+	if (iterations) return;
 
 	fid = (*state->fid_f)(cookie);
 	if (fid <= 0) {
@@ -203,10 +206,12 @@ initialize(void *cookie)
 }
 
 void
-cleanup(void *cookie)
+cleanup(iter_t iterations, void *cookie)
 {
 	int	i;
 	state_t * state = (state_t *)cookie;
+
+	if (iterations) return;
 
 	for (i = 0; i <= state->max; ++i) {
 		if (FD_ISSET(i, &(state->set)))

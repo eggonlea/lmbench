@@ -283,7 +283,7 @@ collect_data(int start, int line, int maxlen,
 
 	/* make sure we have enough memory for the scratch data */
 	while (state.addr == NULL) {
-		mem_initialize(&state);
+		mem_initialize(0, &state);
 		if (state.addr == NULL) {
 			maxlen /= 2;
 			state.len = state.maxlen = maxlen;
@@ -326,7 +326,7 @@ collect_data(int start, int line, int maxlen,
 			p[idx].mline);
 	}
 	/**/
-	mem_cleanup(&state);
+	mem_cleanup(0, &state);
 
 	return samples;
 }

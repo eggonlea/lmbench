@@ -14,11 +14,9 @@ lmbench \- benchmarking toolbox
 .LP
 .B "typedef u_long	iter_t"
 .LP
-.B "typedef (*bench_f)(iter_t iterations, void* cookie)"
+.B "typedef (*benchmp_f)(iter_t iterations, void* cookie)"
 .LP
-.B "typedef (*support_f)(iter_t iterations, void* cookie)"
-.LP
-.B "void	benchmp(support_f initialize, bench_f benchmark, support_f cleanup, int enough, int parallel, int warmup, int repetitions, void* cookie)"
+.B "void	benchmp(benchmp_f initialize, benchmp_f benchmark, benchmp_f cleanup, int enough, int parallel, int warmup, int repetitions, void* cookie)"
 .LP
 .B "uint64	get_n()"
 .LP
@@ -71,14 +69,33 @@ in parallel.  This allows lmbench to measure the system's ability to
 scale as the number of client processes increases.  Each sub-process
 executes
 .I initialize
-before starting the benchmarking cycle.  It will call
-.I benchmark
+before starting the benchmarking cycle with 
+.I iterations
+set to 0.  It will call
+.I initialize ,
+.I benchmark ,
+and
+.I cleanup
+with 
+.I iterations 
+set to the number of iterations in the timing loop 
 several times in order to collect
 .I repetitions
-results.  After all the benchmark results have been collected, 
+results.  The calls to 
+.I benchmark
+are surrounded by 
+.I start
+and 
+.I stop
+call to time the amount of time it takes to do
+the benchmarked operation
+.I iterations
+times.
+After all the benchmark results have been collected, 
 .I cleanup
-is called to cleanup any resources which may have been allocated
-by 
+is called with
+.I iterations set to 0 to cleanup any resources which 
+may have been allocated by 
 .I initialize
 or 
 .IR benchmark .
@@ -190,12 +207,14 @@ Here is a simple benchmark that measures and reports the bandwidth of
 .br
 .B void
 .br
-.B initialize_bcopy(void* cookie)
+.B initialize_bcopy(iter_t iterations, void* cookie)
 .B "{"
 .br
 .B "	struct _state* state = (struct _state*)cookie;"
 .br
 
+.br
+.B "    if (!iterations) return;"
 .br
 .B "	state->a = malloc(state->size);"
 .br
@@ -234,6 +253,8 @@ Here is a simple benchmark that measures and reports the bandwidth of
 .B "	struct _state* state = (struct _state*)cookie;"
 .br
 
+.br
+.B "    if (!iterations) return;"
 .br
 .B "	free(state->a);"
 .br
@@ -297,7 +318,7 @@ like this:
 .br
 .B "			fprintf(stderr, \%d\\t%d\\t\", size, par);"
 .br
-.B "			mb(get_n() * state.size);"
+.B "			mb(par * get_n() * state.size);"
 .br
 .B "		}"
 .br

@@ -26,8 +26,8 @@ typedef struct _state {
 	int* pages;
 } state_t;
 
-void	initialize(void *cookie);
-void	cleanup(void *cookie);
+void	initialize(iter_t iterations, void *cookie);
+void	cleanup(iter_t iterations, void *cookie);
 void	benchmark(iter_t iterations, void * cookie);
 void	benchmark_mmap(iter_t iterations, void * cookie);
 
@@ -92,13 +92,15 @@ main(int ac, char **av)
 }
 
 void
-initialize(void* cookie)
+initialize(iter_t iterations, void* cookie)
 {
 	int 		i, npages, pagesize;
 	int		*p;
 	unsigned int	r;
 	struct stat 	sbuf;
 	state_t 	*state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	if (state->clone) {
 		char buf[128];
@@ -142,9 +144,11 @@ initialize(void* cookie)
 }
 
 void
-cleanup(void* cookie)
+cleanup(iter_t iterations, void* cookie)
 {	
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	munmap(state->where, state->size);
 	if (state->fd >= 0) close(state->fd);

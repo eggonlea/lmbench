@@ -17,7 +17,7 @@ char	*id = "$Id$\n";
 #include "bench.h"
 
 void	reader(iter_t iterations, void* cookie);
-void	writer(int controlfd, int writefd, char* buf, void* cookie);
+void	writer(int writefd, char* buf, size_t xfer);
 
 int	XFER	= 10*1024*1024;
 
@@ -26,30 +26,27 @@ struct _state {
 	size_t	xfer;	/* bytes to read/write per "packet" */
 	size_t	bytes;	/* bytes to read/write in one iteration */
 	char	*buf;	/* buffer memory space */
-	int	pipes[2];
-	int	control[2];
+	int	readfd;
 	int	initerr;
 };
 
-void initialize(void *cookie)
+void
+initialize(iter_t iterations, void *cookie)
 {
+	int	pipes[2];
 	struct _state* state = (struct _state*)cookie;
 
+	if (iterations) return;
+
 	state->initerr = 0;
-	if (pipe(state->pipes) == -1) {
+	if (pipe(pipes) == -1) {
 		perror("pipe");
 		state->initerr = 1;
 		return;
 	}
-	if (pipe(state->control) == -1) {
-		perror("pipe");
-		state->initerr = 2;
-		return;
-	}
 	switch (state->pid = fork()) {
 	    case 0:
-		close(state->control[1]);
-		close(state->pipes[0]);
+		close(pipes[0]);
 		state->buf = valloc(state->xfer);
 		if (state->buf == NULL) {
 			perror("child: no memory");
@@ -57,7 +54,7 @@ void initialize(void *cookie)
 			return;
 		}
 		touch(state->buf, state->xfer);
-		writer(state->control[0], state->pipes[1], state->buf, state);
+		writer(pipes[1], state->buf, state->xfer);
 		return;
 		/*NOTREACHED*/
 	    
@@ -68,12 +65,10 @@ void initialize(void *cookie)
 		/*NOTREACHED*/
 
 	    default:
-		state->buf = (char*)valloc(state->xfer + 128) + 128;
-		touch(state->buf, state->xfer);
-		close(state->control[0]);
-		close(state->pipes[1]);
 		break;
 	}
+	close(pipes[1]);
+	state->readfd = pipes[0];
 	state->buf = valloc(state->xfer + getpagesize());
 	if (state->buf == NULL) {
 		perror("parent: no memory");
@@ -84,27 +79,28 @@ void initialize(void *cookie)
 	state->buf += 128; /* destroy page alignment */
 }
 
-void cleanup(void * cookie)
+void
+cleanup(iter_t iterations, void * cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 
+	if (iterations) return;
 	signal(SIGCHLD,SIG_IGN);
-	close(state->control[1]);
-	close(state->pipes[0]);
+	close(state->readfd);
 	kill(state->pid, 9);
 }
 
-void reader(iter_t iterations, void * cookie)
+void
+reader(iter_t iterations, void * cookie)
 {
+	size_t	done;
+	ssize_t	n;
 	struct _state* state = (struct _state*)cookie;
-	size_t	done, n;
-	size_t	todo = state->bytes;
 
 	while (iterations-- > 0) {
-		write(state->control[1], &todo, sizeof(todo));
-		for (done = 0; done < todo; done += n) {
-			if ((n = read(state->pipes[0], state->buf, state->xfer)) <= 0) {
-				/* error! */
+		for (done = 0; done < state->bytes; done += n) {
+			if ((n = read(state->readfd, state->buf, state->xfer)) < 0) {
+				perror("bw_pipe: reader: error in read");
 				exit(1);
 			}
 		}
@@ -112,20 +108,18 @@ void reader(iter_t iterations, void * cookie)
 }
 
 void
-writer(int controlfd, int writefd, char* buf, void* cookie)
+writer(int writefd, char* buf, size_t xfer)
 {
-	size_t	done, todo, n;
-	struct _state* state = (struct _state*)cookie;
+	size_t	done;
+	ssize_t	n;
 
 	for ( ;; ) {
-		read(controlfd, &todo, sizeof(todo));
-		for (done = 0; done < todo; done += n) {
 #ifdef TOUCH
-			touch(buf, state->xfer);
+		touch(buf, xfer);
 #endif
-			if ((n = write(writefd, buf, state->xfer)) < 0) {
-				/* error! */
-				exit(1);
+		for (done = 0; done < xfer; done += n) {
+			if ((n = write(writefd, buf, xfer - done)) < 0) {
+				exit(0);
 			}
 		}
 	}
@@ -171,7 +165,9 @@ main(int ac, char *av[])
 		lmbench_usage(ac, av, usage);
 	}
 	/* round up total byte count to a multiple of xfer */
-	if (state.bytes % state.xfer) {
+	if (state.bytes < state.xfer) {
+		state.bytes = state.xfer;
+	} else if (state.bytes % state.xfer) {
 		state.bytes += state.bytes - state.bytes % state.xfer;
 	}
 	benchmp(initialize, reader, cleanup, MEDIUM, parallel, 

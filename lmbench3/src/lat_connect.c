@@ -31,7 +31,8 @@ typedef struct _state {
 void	doclient(iter_t iterations, void * cookie);
 void	server_main();
 
-int main(int ac, char **av)
+int
+main(int ac, char **av)
 {
 	state_t state;
 	int	repetitions = TRIES;
@@ -76,7 +77,8 @@ int main(int ac, char **av)
 	exit(0);
 }
 
-void doclient(iter_t iterations, void *cookie)
+void
+doclient(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	register char	*server = state->server;

@@ -37,11 +37,12 @@ typedef struct _state {
 
 void time_no_open(iter_t iterations, void * cookie);
 void time_with_open(iter_t iterations, void * cookie);
-void initialize(void *cookie);
-void init_open(void *cookie);
-void cleanup(void *cookie);
+void initialize(iter_t iterations, void *cookie);
+void init_open(iter_t iterations, void *cookie);
+void cleanup(iter_t iterations, void *cookie);
 
-int main(int ac, char **av)
+int
+main(int ac, char **av)
 {
 	int	fd;
 	struct	stat sbuf;
@@ -105,9 +106,11 @@ int main(int ac, char **av)
 }
 
 void
-initialize(void* cookie)
+initialize(iter_t iterations, void* cookie)
 {
 	state_t	*state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	state->fd = -1;
 	state->buf = NULL;
@@ -130,26 +133,31 @@ initialize(void* cookie)
 }
 
 void
-init_open(void *cookie)
+init_open(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 
-	initialize(cookie);
+	if (iterations) return;
+
+	initialize(0, cookie);
 	CHK(state->fd = open(state->filename, 0));
 	CHK(state->buf = mmap(0, state->nbytes, PROT_READ,
 				     MMAP_FLAGS, state->fd, 0));
 }
 
 void
-cleanup(void *cookie)
+cleanup(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
 	if (state->buf) munmap(state->buf, state->nbytes);
 	if (state->fd >= 0) close(state->fd);
 	if (state->clone) unlink(state->filename);
 }
 
-void time_no_open(iter_t iterations, void * cookie)
+void
+time_no_open(iter_t iterations, void * cookie)
 {
 	state_t *state = (state_t *) cookie;
 
@@ -158,7 +166,8 @@ void time_no_open(iter_t iterations, void * cookie)
 	}
 }
 
-void time_with_open(iter_t iterations, void *cookie)
+void
+time_with_open(iter_t iterations, void *cookie)
 {
 	state_t *state    = (state_t *) cookie;
 	char 	*filename = state->filename;

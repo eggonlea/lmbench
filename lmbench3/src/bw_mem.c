@@ -38,9 +38,9 @@ void	frd(iter_t iterations, void *cookie);
 void	fcp(iter_t iterations, void *cookie);
 void	loop_bzero(iter_t iterations, void *cookie);
 void	loop_bcopy(iter_t iterations, void *cookie);
-void	init_overhead(void *cookie);
-void	init_loop(void *cookie);
-void	cleanup(void *cookie);
+void	init_overhead(iter_t iterations, void *cookie);
+void	init_loop(iter_t iterations, void *cookie);
+void	cleanup(iter_t iterations, void *cookie);
 
 typedef struct _state {
 	double	overhead;
@@ -56,7 +56,8 @@ typedef struct _state {
 
 void	adjusted_bandwidth(uint64 t, uint64 b, uint64 iter, double ovrhd);
 
-int main(int ac, char **av)
+int
+main(int ac, char **av)
 {
 	int	parallel = 1;
 	int	warmup = 0;
@@ -139,14 +140,18 @@ int main(int ac, char **av)
 	return(0);
 }
 
-void init_overhead(void *cookie)
+void
+init_overhead(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 }
 
-void init_loop(void *cookie)
+void
+init_loop(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
 
         state->buf = (TYPE *)valloc(state->nbytes);
 	state->buf2_orig = NULL;
@@ -178,9 +183,13 @@ void init_loop(void *cookie)
 	}
 }
 
-void cleanup(void *cookie)
+void
+cleanup(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
+
 	free(state->buf);
 	if (state->buf2_orig) free(state->buf2_orig);
 }

@@ -260,12 +260,11 @@ extern	char	*optarg;
 int	getopt(int ac, char **av, char *opts);
 
 typedef u_long iter_t;
-typedef void (*bench_f)(iter_t iterations, void* cookie);
-typedef void (*support_f)(void* cookie);
+typedef void (*benchmp_f)(iter_t iterations, void* cookie);
 
-extern void benchmp(support_f initialize, 
-		    bench_f benchmark,
-		    support_f cleanup,
+extern void benchmp(benchmp_f initialize, 
+		    benchmp_f benchmark,
+		    benchmp_f cleanup,
 		    int enough, 
 		    int parallel,
 		    int warmup,

@@ -32,14 +32,16 @@ void do_procedure(iter_t iterations, void* cookie);
 pid_t child_pid;
 
 void
-initialize(void* cookie)
+initialize(iter_t iterations, void* cookie)
 {
 /*	signal(SIGCHLD, SIG_IGN); */
 }
 
 void
-cleanup(void* cookie)
+cleanup(iter_t iterations, void* cookie)
 {
+	if (iterations) return;
+
 	if (child_pid)
 		kill(SIGKILL, child_pid);
 }

@@ -14,7 +14,7 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-void setup(void* cookie);
+void setup(iter_t iterations, void* cookie);
 void bench(iter_t iterations, void *cookie);
 void work(iter_t iterations, void *cookie);
 
@@ -73,9 +73,11 @@ main(int ac, char **av)
 }
 
 void
-setup(void* cookie)
+setup(iter_t iterations, void* cookie)
 {
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	state->x = (long*)malloc(sizeof(long*));
 	*(long**)state->x = state->x;

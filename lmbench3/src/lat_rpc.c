@@ -54,10 +54,12 @@ typedef struct state_ {
 } state_t;
 
 void
-initialize(void* _state)
+initialize(iter_t iterations, void* cookie)
 {
 	struct	timeval tv;
-	state_t *state = (state_t*)_state;
+	state_t *state = (state_t*)cookie;
+
+	if (iterations) return;
 
 	state->cl = clnt_create(state->server, XACT_PROG, XACT_VERS, 
 				state->protocol);

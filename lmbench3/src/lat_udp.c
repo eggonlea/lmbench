@@ -20,9 +20,9 @@ char	*id = "$Id$\n";
 void	client_main(int ac, char **av);
 void	server_main();
 void	timeout();
-void	init(void *cookie);
-void	cleanup(void *cookie);
-void    doit(iter_t iterations, void *cookie);
+void	init(iter_t iterations, void* cookie);
+void	cleanup(iter_t iterations, void* cookie);
+void    doit(iter_t iterations, void* cookie);
 
 typedef struct _state {
 	int	sock;
@@ -33,7 +33,8 @@ typedef struct _state {
 } state_t;
 
 
-int main(int ac, char **av)
+int
+main(int ac, char **av)
 {
 	state_t state;
 	int	c;
@@ -113,9 +114,11 @@ int main(int ac, char **av)
 }
 
 void
-init(void * cookie)
+init(iter_t iterations, void* cookie)
 {
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	state->sock = udp_connect(state->server, UDP_XACT, SOCKOPT_NONE);
 	state->seq = 0;
@@ -150,9 +153,11 @@ doit(iter_t iterations, void *cookie)
 }
 
 void
-cleanup(void * cookie)
+cleanup(iter_t iterations, void* cookie)
 {
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	close(state->sock);
 	free(state->buf);

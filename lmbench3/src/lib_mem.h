@@ -41,14 +41,14 @@ struct mem_state {
 	size_t*	words;
 };
 
-void mem_initialize(void* cookie);
-void line_initialize(void* cookie);
-void tlb_initialize(void* cookie);
-void mem_cleanup(void* cookie);
-void tlb_cleanup(void* cookie);
+void mem_initialize(iter_t iterations, void* cookie);
+void line_initialize(iter_t iterations, void* cookie);
+void tlb_initialize(iter_t iterations, void* cookie);
+void mem_cleanup(iter_t iterations, void* cookie);
+void tlb_cleanup(iter_t iterations, void* cookie);
 
 REPEAT_15(MEM_BENCHMARK_DECL)
-extern bench_f mem_benchmarks[];
+extern benchmp_f mem_benchmarks[];
 
 size_t	line_find(size_t l, int warmup, int repetitions, struct mem_state* state);
 double	line_test(size_t l, int warmup, int repetitions, struct mem_state* state);
