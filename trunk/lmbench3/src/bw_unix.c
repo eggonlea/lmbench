@@ -7,56 +7,84 @@
  * (2) the version in the sccsid below is included in the report.
  * Support for this development by Sun Microsystems is gratefully acknowledged.
  */
-char	*id = "$Id$\n";
+char	*id = "$Id: s.bw_unix.c 1.9 97/06/25 10:25:01-07:00 lm $\n";
 
 #include "bench.h"
 
-void	reader(int control[2], int pipes[2], int bytes);
-void	writer(int control[2], int pipes[2]);
+void	reader(uint64 iterations, void * cookie);
+void	writer(int control[2], int pipes[2], char* buf);
 
 int	XFER	= 10*1024*1024;
-int	pid;
-char	*buf;
 
-int
-main()
-{
+struct _state {
+	int	pid;
+	int	bytes;	/* bytes to read/write in one iteration */
+	char	*buf;	/* buffer memory space */
 	int	pipes[2];
 	int	control[2];
+	int	initerr;
+};
 
-	buf = valloc(XFERSIZE);
-	touch(buf, XFERSIZE);
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, pipes) == -1) {
+void initialize(void *cookie)
+{
+	struct _state* state = (struct _state*)cookie;
+
+	state->buf = valloc(XFERSIZE);
+	touch(state->buf, XFERSIZE);
+	state->initerr = 0;
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, state->pipes) == -1) {
 		perror("socketpair");
-		return (1);
+		state->initerr = 1;
+		return;
 	}
-	if (pipe(control) == -1) {
+	if (pipe(state->control) == -1) {
 		perror("pipe");
-		return(1);
+		state->initerr = 2;
+		return;
 	}
-	switch (pid = fork()) {
+	switch (state->pid = fork()) {
 	    case 0:
-		writer(control, pipes);
-		return(0);
+		writer(state->control, state->pipes, state->buf);
+		return;
 		/*NOTREACHED*/
 	    
 	    case -1:
 		perror("fork");
-		return(1);
+		state->initerr = 3;
+		return;
 		/*NOTREACHED*/
 
 	    default:
 		break;
 	}
-	BENCH(reader(control, pipes, XFER), MEDIUM);
-	fprintf(stderr, "AF_UNIX sock stream bandwidth: ");
-	mb(get_n() * XFER);
-	kill(pid, 15);
-	return(0);
+}
+void cleanup(void * cookie)
+{
+	struct _state* state = (struct _state*)cookie;
+
+	signal(SIGCHLD,SIG_IGN);
+	kill(state->pid, 9);
+}
+
+void reader(uint64 iterations, void * cookie)
+{
+	struct _state* state = (struct _state*)cookie;
+	int	done, n;
+	int	todo = state->bytes;
+
+	while (iterations-- > 0) {
+		write(state->control[1], &todo, sizeof(todo));
+		for (done = 0; done < todo; done += n) {
+			if ((n = read(state->pipes[0], state->buf, XFERSIZE)) <= 0) {
+				/* error! */
+				break;
+			}
+		}
+	}
 }
 
 void
-writer(int control[2], int pipes[2])
+writer(int control[2], int pipes[2], char* buf)
 {
 	int	todo, n;
 
@@ -72,13 +100,22 @@ writer(int control[2], int pipes[2])
 	}
 }
 
-void
-reader(int control[2], int pipes[2], int bytes)
+int
+main(int argc, char *argv[])
 {
-	int	todo = XFER, done = 0, n;
+	struct _state state;
+	int parallel = 1;
 
-	write(control[1], &bytes, sizeof(bytes));
-	while ((done < todo) && ((n = read(pipes[0], buf, XFERSIZE)) > 0)) {
-		done += n;
-	}
+	state.bytes = XFER;
+
+	if (argc == 2) parallel = atoi(argv[1]);
+	if (parallel <= 0) parallel = 1;
+
+	benchmp(initialize, reader, cleanup, MEDIUM, parallel, &state);
+
+	fprintf(stderr, "AF_UNIX sock stream bandwidth: ");
+	mb(get_n() * parallel * XFER);
+	return(0);
 }
+
+
