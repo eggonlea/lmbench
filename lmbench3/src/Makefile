@@ -177,7 +177,7 @@ dist: bk.ver
 		cd src; \
 		make bk.ver; \
 		cd /tmp; \
-		tar czf $${SRCDIR}/../$${DIR}-$${VERSION}.tgz 
+		tar czf $${SRCDIR}/../lmbench-$${VERSION}.tgz \
 			lmbench-$${VERSION}; \
 		rm -rf /tmp/lmbench-$${VERSION};
 
