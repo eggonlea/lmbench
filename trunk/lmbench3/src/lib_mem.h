@@ -24,19 +24,28 @@
 #define REPEAT_15(m)	REPEAT_14(m) m(15)
 
 struct mem_state {
-	char*	addr;
+	char*	addr;	/* raw pointer returned by malloc */
+	char*	base;	/* page-aligned pointer */
 	char*	p[MAX_MEM_PARALLELISM];
+	int	initialized;
 	int	width;
 	int	len;
 	int	maxlen;
 	int	line;
 	int	pagesize;
+	int	nlines;
+	int	npages;
+	int	nwords;
+	int*	pages;
+	int*	lines;
+	int*	words;
 };
 
 void mem_initialize(void* cookie);
 void line_initialize(void* cookie);
 void tlb_initialize(void* cookie);
 void mem_cleanup(void* cookie);
+void tlb_cleanup(void* cookie);
 
 REPEAT_15(MEM_BENCHMARK_DECL)
 extern bench_f mem_benchmarks[];
