@@ -104,6 +104,9 @@ initialize(iter_t iterations, void* cookie)
 
 	sprintf(state->filename1, "/tmp/lmbench-fcntl%d.1", getpid());
 	sprintf(state->filename2, "/tmp/lmbench-fcntl%d.2", getpid());
+	state->pid = 0;
+	state->fd1 = -1;
+	state->fd2 = -1;
 
 	unlink(state->filename1);
 	unlink(state->filename2);
@@ -145,7 +148,6 @@ initialize(iter_t iterations, void* cookie)
 	default:
 		break;
 	}
-	exit(0);
 }
 
 void
@@ -166,10 +168,15 @@ cleanup(iter_t iterations, void* cookie)
 
 	if (iterations) return;
 
-	close(state->fd1);
-	close(state->fd2);
+	if (state->fd1 >= 0) close(state->fd1);
+	if (state->fd2 >= 0) close(state->fd2);
+	state->fd1 = -1;
+	state->fd2 = -1;
 
-	if (state->pid) kill(state->pid, SIGKILL);
+	if (state->pid) {
+		kill(state->pid, SIGKILL);
+		waitpid(state->pid, NULL, 0);
+	}
 	state->pid = 0;
 }
 
