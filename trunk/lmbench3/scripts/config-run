@@ -530,10 +530,17 @@ Please specify a directory that has enough space and is a local file
 system.
 
 EOF
-	echo $ECHON "FSDIR [default /usr/tmp] $ECHOC"
+	DEFAULTFSDIR=/usr/tmp
+	for t in /usr/tmp /tmp /var/tmp; do
+		if [ -d $t -a -w $t ]
+		then	DEFAULTFSDIR=$t
+			break
+		fi
+	done
+	echo $ECHON "FSDIR [default $DEFAULTFSDIR] $ECHOC"
 	read FSDIR
 	if [ X$FSDIR = X ]
-	then	FSDIR=/usr/tmp
+	then	FSDIR=$DEFAULTFSDIR
 	else	mkdir -p $FSDIR 2>/dev/null
 	fi
 	if [ -d $FSDIR -a -w $FSDIR ]
