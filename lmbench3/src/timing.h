@@ -41,7 +41,7 @@ void	use_int(int result);
 void	use_pointer(void *result);
 uint64	usecs_spent(void);
 void	touch(char *buf, int size);
-int*	permutation(int max, int scale);
+size_t*	permutation(int max, int scale);
 int	cp(char* src, char* dst, mode_t mode);
 long	bread(void* src, long count);
 

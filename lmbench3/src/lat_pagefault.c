@@ -23,7 +23,7 @@ typedef struct _state {
 	int clone;
 	char* file;
 	char* where;
-	int* pages;
+	size_t* pages;
 } state_t;
 
 void	initialize(iter_t iterations, void *cookie);

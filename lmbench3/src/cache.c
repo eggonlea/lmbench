@@ -35,16 +35,16 @@ int	collect_sample(int repetitions, struct mem_state* state,
 			struct cache_results* p);
 double	measure(int size, int repetitions, 
 		double* variation, struct mem_state* state);
-double	remove_chunk(int i, int chunk, int npages, int* pages, 
+double	remove_chunk(int i, int chunk, int npages, size_t* pages, 
 		       int len, int repetitions, struct mem_state* state);
-int	test_chunk(int i, int chunk, int npages, int* pages, int len, 
+int	test_chunk(int i, int chunk, int npages, size_t* pages, int len, 
 		   double *baseline, double chunk_baseline,
 		   int repetitions, struct mem_state* state);
-int	fixup_chunk(int i, int chunk, int npages, int* pages, int len, 
+int	fixup_chunk(int i, int chunk, int npages, size_t* pages, int len, 
 		    double *baseline, double chunk_baseline,
 		    int repetitions, struct mem_state* state);
 void	check_memory(int size, struct mem_state* state);
-void	pagesort(int n, int* pages, double* latencies);
+void	pagesort(int n, size_t* pages, double* latencies);
 
 #ifdef ABS
 #undef ABS
@@ -364,7 +364,6 @@ collect_sample(int repetitions, struct mem_state* state,
 	       struct cache_results* p)
 {
 	int	i, modified, npages;
-	int	*pages;
 	double	baseline;
 
 	npages = (p->len + getpagesize() - 1) / getpagesize();
@@ -388,10 +387,10 @@ measure(int size, int repetitions,
 	double* variation, struct mem_state* state)
 {
 	int	i, j, npages, nlines;
-	int	*pages;
 	double	time, median;
-	result_t *r, *r_save;
 	char	*p;
+	result_t *r, *r_save;
+	size_t	*pages;
 
 	pages = state->pages;
 	npages = (size + getpagesize() - 1) / getpagesize();
@@ -461,7 +460,7 @@ measure(int size, int repetitions,
 
 
 double
-remove_chunk(int i, int chunk, int npages, int* pages, 
+remove_chunk(int i, int chunk, int npages, size_t* pages, 
 	       int len, int repetitions, struct mem_state* state)
 {
 	int	n, j;
@@ -487,7 +486,7 @@ remove_chunk(int i, int chunk, int npages, int* pages,
 }
 
 int
-test_chunk(int i, int chunk, int npages, int* pages, int len, 
+test_chunk(int i, int chunk, int npages, size_t* pages, int len, 
 	   double *baseline, double chunk_baseline,
 	   int repetitions, struct mem_state* state)
 {
@@ -546,7 +545,7 @@ test_chunk(int i, int chunk, int npages, int* pages, int len,
  * minimal cost.
  */
 int
-fixup_chunk(int i, int chunk, int npages, int* pages, int len, 
+fixup_chunk(int i, int chunk, int npages, size_t* pages, int len, 
 	    double *baseline, double chunk_baseline,
 	    int repetitions, struct mem_state* state)
 {
@@ -555,8 +554,8 @@ fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 	int	ntotalpages, nsparepages;
 	int	subset_len;
 	int	swapped = 0;
-	int	*pageset;
-	int	*saved_pages;
+	size_t	*pageset;
+	size_t	*saved_pages;
 	static int	available_index = 0;
 	double	t, tt, low, var, new_baseline;
 	double	latencies[20];
@@ -566,7 +565,7 @@ fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 	pageset = state->pages + npages;
 	new_baseline = *baseline;
 
-	saved_pages = (int*)malloc(sizeof(int) * ntotalpages);
+	saved_pages = (size_t*)malloc(sizeof(size_t) * ntotalpages);
 	bcopy(pages, saved_pages, sizeof(int) * ntotalpages);
 
 	/* move everything to the end of the page list */
@@ -733,7 +732,7 @@ check_memory(int size, struct mem_state* state)
 }
 
 void
-pagesort(int n, int* pages, double* latencies)
+pagesort(int n, size_t* pages, double* latencies)
 {
 	int	i, j;
 	double	t;

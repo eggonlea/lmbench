@@ -28,9 +28,9 @@ void
 base_initialize(iter_t iterations, void* cookie)
 {
 	int	nwords, nlines, nbytes, npages, nmpages;
-	int    *pages;
-	int    *lines;
-	int    *words;
+	size_t *pages;
+	size_t *lines;
+	size_t *words;
 	struct mem_state* state = (struct mem_state*)cookie;
 	register char *p = 0 /* lint */;
 
@@ -102,7 +102,7 @@ initialize_thrash(iter_t iterations, void* cookie)
 {
 	struct mem_state* state = (struct mem_state*)cookie;
 	int	npages = (state->len + state->pagesize - 1) / state->pagesize;
-	int    *pages;
+	size_t *pages;
 	size_t	i;
 	size_t	j;
 	size_t	cur;

@@ -146,9 +146,9 @@ mem_initialize(iter_t iterations, void* cookie)
 {
 	int i, j, k, l, np, nw, nwords, nlines, nbytes, npages, nmpages, npointers;
 	unsigned int r;
-	int    *pages;
-	int    *lines;
-	int    *words;
+	size_t    *pages;
+	size_t    *lines;
+	size_t    *words;
 	struct mem_state* state = (struct mem_state*)cookie;
 	register char *p = 0 /* lint */;
 
@@ -235,8 +235,8 @@ line_initialize(iter_t iterations, void* cookie)
 {
 	int i, j, k, line, nlines, npages;
 	unsigned int r;
-	int    *pages;
-	int    *lines;
+	size_t    *pages;
+	size_t    *lines;
 	struct mem_state* state = (struct mem_state*)cookie;
 	register char *p = 0 /* lint */;
 
@@ -323,7 +323,7 @@ tlb_initialize(iter_t iterations, void* cookie)
 	unsigned int r;
 	char **pages = NULL;
 	char **addr = NULL;
-	int    *lines = NULL;
+	size_t    *lines = NULL;
 	struct mem_state* state = (struct mem_state*)cookie;
 	register char *p = 0 /* lint */;
 
@@ -347,7 +347,7 @@ tlb_initialize(iter_t iterations, void* cookie)
 	state->npages = npages;
 	state->words = NULL;
 	state->lines = lines;
-	state->pages = (int*)pages;
+	state->pages = (size_t*)pages;
 	state->addr = (char*)addr;
 	if (addr) bzero(addr, npages * sizeof(char**));
 	if (pages) bzero(pages, npages * sizeof(char**));
@@ -407,11 +407,11 @@ size_t*
 words_initialize(size_t max, int scale)
 {
 	size_t	i, j, nbits;
-	size_t*	words = (int*)malloc(max * sizeof(size_t));
+	size_t*	words = (size_t*)malloc(max * sizeof(size_t));
 
-	if (words) bzero(words, max * sizeof(size_t));
-	else return NULL;
+	if (!words) return NULL;
 
+	bzero(words, max * sizeof(size_t));
 	for (i = max>>1, nbits = 0; i != 0; i >>= 1, nbits++)
 		;
 	for (i = 0; i < max; ++i) {
