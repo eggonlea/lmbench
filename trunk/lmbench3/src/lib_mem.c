@@ -432,28 +432,27 @@ line_find(int len, int warmup, int repetitions, struct mem_state* state)
 
 	state->width = 1;
 	state->line = sizeof(char*);
-	state->addr = NULL;
-	while (state->addr == NULL) {
+	for (state->addr = NULL; !state->addr && len; ) {
 		state->len = state->maxlen = len;
 		line_initialize(state);
 		if (state->addr == NULL) len >>= 1;
 	}
-	if (state->addr) {
-		for (i = sizeof(char*); i <= maxline; i<<=1) {
-			t = line_test(i, warmup, repetitions, state);
+	if (state->addr == NULL) return -1;
 
-			if (t == 0.) break;
+	for (i = sizeof(char*); i <= maxline; i<<=1) {
+		t = line_test(i, warmup, repetitions, state);
 
-			if (i > sizeof(char*)) {
-				if (t > 1.3 * baseline) {
-					big_jump = 1;
-				} else if (big_jump && t < 1.15 * baseline) {
-					line = (i>>1);
-					break;
-				}
+		if (t == 0.) break;
+
+		if (i > sizeof(char*)) {
+			if (t > 1.3 * baseline) {
+				big_jump = 1;
+			} else if (big_jump && t < 1.15 * baseline) {
+				line = (i>>1);
+				break;
 			}
-			baseline = t;
 		}
+		baseline = t;
 	}
 	mem_cleanup(state);
 	/*
@@ -536,12 +535,14 @@ par_mem(int len, int warmup, int repetitions, struct mem_state* state)
 	double	baseline, max_par, par;
 
 	state->width = 1;
-	state->len = len;
-	state->maxlen = len;
 	max_par = 1.;
 	__n = 1;
 
-	mem_initialize(state);
+	for (state->addr = NULL; !state->addr && len; ) {
+		state->len = state->maxlen = len;
+		mem_initialize(state);
+		if (state->addr == NULL) len >>= 1;
+	}
 	if (state->addr == NULL) return -1.;
 
 	for (i = 0; i < MAX_MEM_PARALLELISM; ++i) {

@@ -56,12 +56,7 @@ main(int ac, char **av)
 		}
 	}
 
-	while (maxlen > state.pagesize
-	       && !(l = line_find(maxlen, warmup, repetitions, &state))) {
-		maxlen >>= 1;
-	}
-
-	if (l) {
+	if ((l = line_find(maxlen, warmup, repetitions, &state)) > 0) {
 		if (verbose) {
 			printf("cache line size: %d bytes\n", l);
 		} else {
