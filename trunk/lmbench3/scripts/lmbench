@@ -21,7 +21,7 @@ else	echo Using defaults > ${OUTPUT}
 	LOOP_O=0
 	LINE_SIZE=512
 fi
-export ENOUGH TIMING_O LOOP_O SYNC_MAX SYNC_PID LINE_SIZE
+export ENOUGH TIMING_O LOOP_O SYNC_MAX LINE_SIZE
 
 if [ X$FILE = X ]
 then	FILE=/tmp/XXX
@@ -51,11 +51,7 @@ then	FSDIR=/usr/tmp/lat_fs
 fi
 MP=N
 if [ $SYNC_MAX -gt 1 ]
-then	if [ X$SYNC_PID = X ]
-	then	echo "Must set both SYNC_MAX and SYNC_PID"
-		exit 1
-	fi
-	if [ "X$DISKS" != X ]
+then	if [ "X$DISKS" != X ]
 	then	echo "MP and disks are mutually exclusive (sorry)"
 		exit 1
 	fi
@@ -69,6 +65,9 @@ fi
 # Figure out as much stuff as we can about this system.
 # Sure would be nice if everyone had SGI's "hinv".
 echo \[lmbench3.0 results for `uname -a`] 1>&2
+echo \[LMBENCH_VER: `cat ../../src/bk.ver`] 1>&2
+echo \[BENCHMARK_HARDWARE: ${BENCHMARK_HARDWARE}] 1>&2
+echo \[BENCHMARK_OS: ${BENCHMARK_OS}] 1>&2
 echo \[ALL: ${ALL}] 1>&2
 echo \[DISKS: ${DISKS}] 1>&2
 echo \[DISK_DESC: ${DISK_DESC}] 1>&2
@@ -90,7 +89,6 @@ echo \[REMOTE: ${REMOTE}] 1>&2
 echo \[SLOWFS: ${SLOWFS}] 1>&2
 echo \[OS: ${OS}] 1>&2
 echo \[SYNC_MAX: ${SYNC_MAX}] 1>&2
-echo \[SYNC_PID: ${SYNC_PID}] 1>&2
 echo \[TIMING_O: ${TIMING_O}] 1>&2
 echo \[LMBENCH VERSION: ${VERSION}] 1>&2
 echo \[USER: $USER] 1>&2
@@ -120,13 +118,7 @@ mount | while read i
 do	echo \[mount: "$i"] 1>&2
 done
 
-if [ $MP = Y ]
-then	SYNC=${FSDIR}/sync		# I want this to be global
-	FSDIR=${FSDIR}/lmbench_${SYNC_PID}
-	STAT=$FSDIR/lmbench.$SYNC_PID
-	FILE=${FILE}.$SYNC_PID
-else	STAT=$FSDIR/lmbench
-fi
+STAT=$FSDIR/lmbench
 mkdir $FSDIR 2>/dev/null
 touch $STAT 2>/dev/null
 if [ ! -f $STAT ]
@@ -145,83 +137,82 @@ fi
 
 date > ${OUTPUT}
 echo Latency measurements > ${OUTPUT}
-if [ $MP = Y ]
-then	if [ $SYNC_MAX != $SYNC_PID ]; then sleep 5; fi
-	synchronize $SYNC/lat_syscall
-fi
-lat_syscall null
-if [ $MP = Y ]; then synchronize $SYNC/lat_syscall2; fi
-lat_syscall read
-if [ $MP = Y ]; then synchronize $SYNC/lat_syscall3; fi
-lat_syscall write
-if [ $MP = Y ]; then synchronize $SYNC/lat_syscall4; fi
-lat_syscall stat $STAT
-if [ $MP = Y ]; then synchronize $SYNC/lat_syscall5; fi
-lat_syscall fstat $STAT
-if [ $MP = Y ]; then synchronize $SYNC/lat_syscall6; fi
-lat_syscall open $STAT
-for i in 10 100 250 500
-do	if [ $MP = Y ]; then synchronize $SYNC/lat_select$i ; fi
-	lat_select $i
-done
-if [ $MP = Y ]; then synchronize $SYNC/lat_sig; fi
-lat_sig install
-if [ $MP = Y ]; then synchronize $SYNC/lat_sig2; fi
-lat_sig catch
-lat_sig prot lat_sig
-if [ $MP = Y ]; then synchronize $SYNC/lat_pipe; fi
-lat_pipe
-if [ $MP = Y ]; then synchronize $SYNC/lat_ops; fi
-lat_ops
-if [ $MP = Y ]; then synchronize $SYNC/lat_unix; fi
-lat_unix
-if [ $MP = Y ]
-then	if [ $SYNC_MAX = $SYNC_PID ]; then cp hello /tmp/hello; fi
-	synchronize $SYNC/lat_proc
-else	cp hello /tmp/hello
-fi
-for i in fork exec shell
-do	if [ $MP = Y ]; then synchronize $SYNC/lat_proc$i ; fi
-	lat_proc $i
-done
-if [ $MP = Y ]
-then	synchronize $SYNC/lat_proc2
-	if [ $SYNC_MAX = $SYNC_PID ]; then rm -f /tmp/hello; fi
-else	rm /tmp/hello 
-fi
-rm -f $FILE
-if [ $MP = Y ]; then synchronize $SYNC/lmdd; fi
-lmdd label="File $FILE write bandwidth: " of=$FILE move=${MB}m fsync=1 print=3
-if [ $MP = Y ]; then synchronize $SYNC/lat_pagefault; fi
-lat_pagefault $FILE
-echo "" 1>&2
-echo \"mappings 1>&2
-for i in $ALL
-do	if [ $MP = Y ]; then synchronize $SYNC/lat_mmap$i ; fi
-	lat_mmap $i $FILE
-done
-echo "" 1>&2
-if [ X$SLOWFS != XYES ]
-then	date > ${OUTPUT}
-	if [ $MP = Y ]; then synchronize $SYNC/lat_fs; fi
-	echo Calculating file system latency > ${OUTPUT}
-	echo '"File system latency' 1>&2
-	lat_fs $FSDIR
-	echo "" 1>&2
-fi
-
-if [ X"$DISKS" != X ]
-then	for i in $DISKS
-	do	if [ -r $i ]
-		then	echo "Calculating disk zone bw & seek times" > ${OUTPUT}
-			disk $i
-			echo "" 1>&2
-		fi
+if [ X$BENCHMARK_OS = XYES ]; then
+	lat_syscall -P $SYNC_MAX null
+	lat_syscall -P $SYNC_MAX read
+	lat_syscall -P $SYNC_MAX write
+	lat_syscall -P $SYNC_MAX stat $STAT
+	lat_syscall -P $SYNC_MAX fstat $STAT
+	lat_syscall -P $SYNC_MAX open $STAT
+	for i in 10 100 250 500
+	do	lat_select -P $SYNC_MAX $i
 	done
+	lat_sig -P $SYNC_MAX install
+	lat_sig -P $SYNC_MAX catch
+	lat_sig -P $SYNC_MAX prot lat_sig
+	lat_pipe -P $SYNC_MAX 
+	lat_unix -P $SYNC_MAX 
+	cp hello /tmp/hello
+	for i in fork exec shell
+	do	lat_proc -P $SYNC_MAX $i
+	done
+	rm -f /tmp/hello 
+fi
+if [ X$BENCHMARK_HARDWARE = XYES ]; then
+	lat_ops 
 fi
 
-if [ $SYNC_PID = $SYNC_MAX ]
-then	date > ${OUTPUT}
+rm -f $FILE
+
+if [ X$BENCHMARK_OS = XYES ]; then
+	# choose one sample bandwidth from the middle of the pack
+	sample=`expr $SYNC_MAX / 2`
+	i=0
+	while [ $i -lt $SYNC_MAX ]; do
+		if [ $i -eq $sample ]; then 
+			lmdd label="File $FILE write bandwidth: " \
+				of=$FILE move=${MB}m fsync=1 print=3 &
+		else
+			lmdd label="File $FILE write bandwidth: " \
+				of=$FILE.$i move=${MB}m fsync=1 print=3 \
+				>/dev/null 2>&1 &
+		fi
+		i=`expr $i + 1`
+	done
+	wait
+	rm -f $FILE.*
+
+	lat_pagefault $FILE
+	echo "" 1>&2
+	echo \"mappings 1>&2
+	for i in $ALL
+	do	lat_mmap -P $SYNC_MAX $i $FILE
+	done
+	echo "" 1>&2
+	if [ X$SLOWFS != XYES ]
+	then	date > ${OUTPUT}
+		echo Calculating file system latency > ${OUTPUT}
+		echo '"File system latency' 1>&2
+		lat_fs -P $SYNC_MAX $FSDIR
+		echo "" 1>&2
+	fi
+fi
+
+if [ X$BENCHMARK_HARDWARE = XYES ]; then
+	if [ X"$DISKS" != X ]
+	then	for i in $DISKS
+		do	if [ -r $i ]
+			then	echo "Calculating disk zone bw & seek times" \
+					> ${OUTPUT}
+				disk $i
+				echo "" 1>&2
+			fi
+		done
+	fi
+fi
+
+if [ X$BENCHMARK_OS = XYES ]; then
+	date > ${OUTPUT}
 	echo Local networking > ${OUTPUT}
 	if [ ! -d ../../src/webpage-lm ]
 	then	(cd ../../src && tar xf webpage-lm.tar)
@@ -289,135 +280,122 @@ then	date > ${OUTPUT}
 		done
 		$RSH $remote rm $RM
 	done
-fi	# MP
+fi
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_unix; fi
 date > ${OUTPUT}
 echo Bandwidth measurements > ${OUTPUT}
-bw_unix
-if [ $MP = Y ]; then synchronize $SYNC/bw_pipe; fi
-bw_pipe
-echo "" 1>&2
-echo \"read bandwidth 1>&2
-for i in $ALL
-do	if [ $MP = Y ]; then synchronize $SYNC/bw_file_rd${i}1; fi
-	bw_file_rd $i io_only $FILE
-done
-echo "" 1>&2
-
-echo "" 1>&2
-echo \"read open2close bandwidth 1>&2
-for i in $ALL
-do	if [ $MP = Y ]; then synchronize $SYNC/bw_file_rd${i}2; fi
-	bw_file_rd $i open2close $FILE
-done
-echo "" 1>&2
-
-if [ $MP = Y ]; then synchronize $SYNC/bw_mmap_rd; fi
-echo \"Mmap read bandwidth 1>&2
-for i in $ALL
-do	if [ $MP = Y ]; then synchronize $SYNC/bw_mmap_rd${i}; fi
-	bw_mmap_rd $i mmap_only $FILE
-done
-echo "" 1>&2
-
-if [ $MP = Y ]; then synchronize $SYNC/bw_mmap_rd2; fi
-echo \"Mmap read open2close bandwidth 1>&2
-for i in $ALL
-do	if [ $MP = Y ]; then synchronize $SYNC/bw_mmap_rd${i}2; fi
-	bw_mmap_rd $i open2close $FILE
-done
-echo "" 1>&2
-rm -f $FILE
-
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem; fi
-echo \"libc bcopy unaligned 1>&2
-for i in $HALF; do bw_mem $i bcopy; done; echo "" 1>&2
-
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem2; fi
-echo \"libc bcopy aligned 1>&2
-for i in $HALF; do bw_mem $i bcopy conflict; done; echo "" 1>&2
-
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem3; fi
-echo \"unrolled bcopy unaligned 1>&2
-for i in $HALF; do bw_mem $i fcp; done; echo "" 1>&2
-
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem4; fi
-echo \"unrolled partial bcopy unaligned 1>&2
-for i in $HALF; do bw_mem $i cp; done; echo "" 1>&2
-
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem5; fi
-echo "Memory read bandwidth" 1>&2
-for i in $ALL; do bw_mem $i frd; done; echo "" 1>&2
-
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem6; fi
-echo "Memory partial read bandwidth" 1>&2
-for i in $ALL; do bw_mem $i rd; done; echo "" 1>&2
-
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem7; fi
-echo "Memory write bandwidth" 1>&2
-for i in $ALL; do bw_mem $i fwr; done; echo "" 1>&2
-
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem8; fi
-echo "Memory partial write bandwidth" 1>&2
-for i in $ALL; do bw_mem $i wr; done; echo "" 1>&2
-
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem9; fi
-echo "Memory partial read/write bandwidth" 1>&2
-for i in $ALL; do bw_mem $i rdwr; done; echo "" 1>&2
-
-if [ $MP = Y ]; then synchronize $SYNC/bw_mema; fi
-echo "Memory bzero bandwidth" 1>&2
-for i in $ALL; do bw_mem $i bzero; done; echo "" 1>&2
-
-date > ${OUTPUT}
-msleep 250
-if [ $MP = Y ]; then synchronize $SYNC/lat_ctx; fi
-echo Calculating context switch overhead > ${OUTPUT}
-if [ $MB -ge 8 ]
-then	CTX="0 4 8 16 32 64"
-	N="2 4 8 16 24 32 64 96"
-else
-	CTX="0 4 8 16 32"
-	N="2 4 8 16 24 32 64 96"
-fi
+if [ X$BENCHMARK_OS = XYES ]; then
+	bw_unix -P $SYNC_MAX 
+	bw_pipe -P $SYNC_MAX 
+	echo "" 1>&2
+	echo \"read bandwidth 1>&2
+	for i in $ALL
+	do	bw_file_rd -P $SYNC_MAX $i io_only $FILE
+	done
+	echo "" 1>&2
 	
-for size in $CTX
-do	if [ $MP = Y ]; then synchronize $SYNC/lat_ctx${size}_${N}; fi
-	lat_ctx -s $size $N
-done
+	echo "" 1>&2
+	echo \"read open2close bandwidth 1>&2
+	for i in $ALL
+	do	bw_file_rd -P $SYNC_MAX $i open2close $FILE
+	done
+	echo "" 1>&2
+	
+	echo \"Mmap read bandwidth 1>&2
+	for i in $ALL
+	do	bw_mmap_rd -P $SYNC_MAX $i mmap_only $FILE
+	done
+	echo "" 1>&2
 
-date > ${OUTPUT}
-echo Calculating effective TLB size > ${OUTPUT}
-msleep 250
-echo "" 1>&2
-if [ $MP = Y ]; then synchronize $SYNC/tlb; fi
-tlb -L $LINE_SIZE -M ${MB}M
-
-date > ${OUTPUT}
-echo Calculating memory load parallelism > ${OUTPUT}
-msleep 250
-echo "" 1>&2
-if [ $MP = Y ]; then synchronize $SYNC/loads; fi
-echo "Memory load parallelism" 1>&2
-loads -L $LINE_SIZE -M ${MB}M
-
-date > ${OUTPUT}
-echo Calculating cache parameters > ${OUTPUT}
-msleep 250
-echo "" 1>&2
-cache -L $LINE_SIZE -M ${MB}M
-
-date > ${OUTPUT}
-echo Calculating memory load latency > ${OUTPUT}
-msleep 250
-echo "" 1>&2
-if [ $MP = Y ]; then synchronize $SYNC/lat_mem_rd; fi
-echo "Memory load latency" 1>&2
-if [ X$FASTMEM = XYES ]
-then	lat_mem_rd $MB 128
-else	lat_mem_rd $MB 16 32 64 128 256 512 1024 
+	echo \"Mmap read open2close bandwidth 1>&2
+	for i in $ALL
+	do	bw_mmap_rd -P $SYNC_MAX $i open2close $FILE
+	done
+	echo "" 1>&2
+	rm -f $FILE
 fi
+
+if [ X$BENCHMARK_HARDWARE = XYES ]; then
+	echo \"libc bcopy unaligned 1>&2
+	for i in $HALF; do bw_mem -P $SYNC_MAX $i bcopy; done; echo "" 1>&2
+
+	echo \"libc bcopy aligned 1>&2
+	for i in $HALF; do bw_mem -P $SYNC_MAX $i bcopy conflict; done; echo "" 1>&2
+
+	echo \"unrolled bcopy unaligned 1>&2
+	for i in $HALF; do bw_mem -P $SYNC_MAX $i fcp; done; echo "" 1>&2
+
+	echo \"unrolled partial bcopy unaligned 1>&2
+	for i in $HALF; do bw_mem -P $SYNC_MAX $i cp; done; echo "" 1>&2
+
+	echo "Memory read bandwidth" 1>&2
+	for i in $ALL; do bw_mem -P $SYNC_MAX $i frd; done; echo "" 1>&2
+
+	echo "Memory partial read bandwidth" 1>&2
+	for i in $ALL; do bw_mem -P $SYNC_MAX $i rd; done; echo "" 1>&2
+
+	echo "Memory write bandwidth" 1>&2
+	for i in $ALL; do bw_mem -P $SYNC_MAX $i fwr; done; echo "" 1>&2
+
+	echo "Memory partial write bandwidth" 1>&2
+	for i in $ALL; do bw_mem -P $SYNC_MAX $i wr; done; echo "" 1>&2
+
+	echo "Memory partial read/write bandwidth" 1>&2
+	for i in $ALL; do bw_mem -P $SYNC_MAX $i rdwr; done; echo "" 1>&2
+
+	echo "Memory bzero bandwidth" 1>&2
+	for i in $ALL; do bw_mem -P $SYNC_MAX $i bzero; done; echo "" 1>&2
+fi
+
+if [ X$BENCHMARK_OS = XYES ]; then
+	date > ${OUTPUT}
+	msleep 250
+	echo Calculating context switch overhead > ${OUTPUT}
+	if [ $MB -ge 8 ]
+	then	CTX="0 4 8 16 32 64"
+		N="2 4 8 16 24 32 64 96"
+	else
+		CTX="0 4 8 16 32"
+		N="2 4 8 16 24 32 64 96"
+	fi
+	
+	for size in $CTX
+	do	
+		lat_ctx -P $SYNC_MAX -s $size $N
+	done
+fi
+
+if [ X$BENCHMARK_HARDWARE = XYES ]; then
+	date > ${OUTPUT}
+	echo Calculating effective TLB size > ${OUTPUT}
+	msleep 250
+	echo "" 1>&2
+	tlb -L $LINE_SIZE -M ${MB}M
+
+	date > ${OUTPUT}
+	echo Calculating memory load parallelism > ${OUTPUT}
+	msleep 250
+	echo "" 1>&2
+	echo "Memory load parallelism" 1>&2
+	loads -L $LINE_SIZE -M ${MB}M
+
+	date > ${OUTPUT}
+	echo Calculating cache parameters > ${OUTPUT}
+	msleep 250
+	echo "" 1>&2
+	cache -L $LINE_SIZE -M ${MB}M
+
+	date > ${OUTPUT}
+	echo Calculating memory load latency > ${OUTPUT}
+	msleep 250
+	echo "" 1>&2
+	echo "Memory load latency" 1>&2
+	if [ X$FASTMEM = XYES ]
+	then	lat_mem_rd -P $SYNC_MAX $MB 128
+	else	lat_mem_rd -P $SYNC_MAX $MB 16 32 64 128 256 512 1024 
+	fi
+fi
+
 date > ${OUTPUT}
 echo '' 1>&2
 echo \[`date`] 1>&2
