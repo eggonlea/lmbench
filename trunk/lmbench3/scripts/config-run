@@ -94,30 +94,30 @@ then
 fi
 
 if [ -r /proc/meminfo ]
-then	TMP=`grep 'Mem:' /proc/meminfo | awk '{print $2}'`
+then
+	TMP=`grep 'MemTotal:' /proc/meminfo | awk '{print $2}'`
 	if [ X$TMP != X ]
-	then	XTMP=`echo \(\( $TMP / 1048576 \) \* 7 \) / 10 | bc 2>/dev/null`
-	else
-		TMP=`grep 'MemTotal:' /proc/meminfo | awk '{print $2}'`
-		if [ X$TMP != X ]
-		then XTMP=`echo \(\( $TMP / 1024 \) \* 7 \) / 10 | bc 2>/dev/null`
+	then	MB=`echo \(\( $TMP / 1024 \) \* 7 \) / 10 | bc 2>/dev/null`
+		if [ X$MB = X ]
+		then	MB=`expr $TMP / 1024 2>/dev/null`
+			MB=`expr $MB \* 7`
+			MB=`expr $MB / 10`
 		fi
 	fi
-	if [ X$XTMP = X ]
-	then	XTMP=`expr $TMP / 1048576 2>/dev/null`
-		XTMP=`expr $XTMP \* 7`
-		XTMP=`expr $XTMP / 10`
-	fi
-	if [ X$XTMP != X -a $XTMP -gt 0 ]
-	then	TMP=$XTMP
+	TMP=`grep 'Mem:' /proc/meminfo | awk '{print $2}'`
+	if [ X$MB = X -a X$TMP != X ]
+	then	MB=`echo \(\( $TMP / 1048576 \) \* 7 \) / 10 | bc 2>/dev/null`
+		if [ X$MB = X ]
+		then	MB=`expr $TMP / 1048576 2>/dev/null`
+			MB=`expr $MB \* 7`
+			MB=`expr $MB / 10`
+		fi
 	fi
 fi
-if [ X$TMP != X ]
-then	TOTAL_MEM=$TMP
-else	$ECHON "Probing system for available memory: $ECHOC"
-	TOTAL_MEM=`../bin/$OS/memsize 1024`
+if [ X$MB = X ]
+then	$ECHON "Probing system for available memory: $ECHOC"
+	MB=`../bin/$OS/memsize 1024`
 fi
-MB=$TOTAL_MEM
 
 echo $L
 cat<<EOF;
@@ -133,14 +133,14 @@ EOF
 echo $ECHON "MB [default $MB] $ECHOC"
 read TMP
 if [ X$TMP != X ]
-then	TOTAL_MEM=$TMP
+then	MB=$TMP
 fi
 # Certain machines tend to barf when you try and bcopy 8MB.
 # Figure out how much we can use.
-echo "Checking to see if you have $TOTAL_MEM MB; please wait for a moment..."
-AVAILMEM=`../bin/$OS/memsize $TOTAL_MEM`
-AVAILMEM=`../bin/$OS/memsize $TOTAL_MEM`
-AVAILMEM=`../bin/$OS/memsize $TOTAL_MEM`
+echo "Checking to see if you have $MB MB; please wait for a moment..."
+AVAILMEM=`../bin/$OS/memsize $MB`
+AVAILMEM=`../bin/$OS/memsize $AVAILMEM`
+AVAILMEM=`../bin/$OS/memsize $AVAILMEM`
 if [ $AVAILMEM -lt 8 ]
 then    echo $0 aborted: Not enough memory, only ${AVAILMEM}MB available. 
 	exit 1
@@ -522,7 +522,10 @@ but I am frequently wrong.  If that is the wrong Mhz, type in your
 best guess as to your processor speed.  It doesn't have to be exact,
 but if you know it is around 800, say 800.  
 
-Type in just the Mhz part, like 3060 or 2800 for 3.06GHz or 2.8GHz P4s.
+Please note that some processors, such as the P4, have a core which
+is double-clocked, so on those processors the reported clock speed
+will be roughly double the advertised clock rate.  For example, a
+1.8GHz P4 may be reported as a 3592MHz processor.
 
 EOF
 echo $ECHON "Processor mhz [default $MHZ] $ECHOC"
