@@ -352,7 +352,7 @@ mmap_rdwr(int from, int to, int size)
 	int	done = 0, wrote;
 
 	buf = mmap(0, size, PROT_READ, MMAP_FLAGS, from, 0);
-	if ((int)buf == -1) {
+	if ((long)buf == -1) {
 		perror("mmap");
 		return (-1);
 	}

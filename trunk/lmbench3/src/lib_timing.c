@@ -1162,7 +1162,7 @@ void
 use_int(int result) { use_result_dummy += result; }
 
 void
-use_pointer(void *result) { use_result_dummy += (int)result; }
+use_pointer(void *result) { use_result_dummy += (long)result; }
 
 int
 sizeof_result(int repetitions)
@@ -1589,17 +1589,17 @@ touch(char *buf, int nbytes)
 	}
 }
 
-int*
+size_t*
 permutation(int max, int scale)
 {
-	int	i, v;
-	static unsigned int r = 0;
-	int*	result = (int*)malloc(max * sizeof(int));
+	size_t	i, v;
+	static size_t r = 0;
+	size_t*	result = (size_t*)malloc(max * sizeof(size_t));
 
 	if (result == NULL) return NULL;
 
 	for (i = 0; i < max; ++i) {
-		result[i] = i * scale;
+		result[i] = i * (size_t)scale;
 	}
 
 	if (r == 0)

@@ -155,7 +155,7 @@ domapping(iter_t iterations, void *cookie)
 #else
 		where = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 #endif
-		if ((int)where == -1) {
+		if ((long)where == -1) {
 			perror("mmap");
 			exit(1);
 		}

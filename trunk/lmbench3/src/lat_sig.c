@@ -87,7 +87,7 @@ initialize(iter_t iterations, void* cookie)
 
 	fd = open(state->fname, 0);
 	state->where = mmap(0, 4096, PROT_READ, MAP_SHARED, fd, 0);
-	if ((int)state->where == -1) {
+	if ((long)state->where == -1) {
 		perror("mmap");
 		exit(1);
 	}
