@@ -5,6 +5,8 @@
 # lmbench	[default] builds the benchmark suite for the current os/arch
 # results	builds, configures run parameters, and runs the benchmark
 # rerun		reruns the benchmark using the same parameters as last time
+# scaling	reruns the benchmark using same parameters as last time,
+#		except it asks what scaling value to use
 # hardware	reruns the hardware benchmarks using the same parameters
 # os		reruns the OS benchmarks using the same parameters
 # clean		cleans out sources and run configuration
@@ -96,6 +98,11 @@ results: lmbench
 
 rerun: lmbench
 	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; fi
+	@../scripts/results
+
+scaling: lmbench
+	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; \
+	 else ../scripts/config-scaling $(CONFIG); fi
 	@../scripts/results
 
 hardware: lmbench
