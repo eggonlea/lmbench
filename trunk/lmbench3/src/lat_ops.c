@@ -44,7 +44,7 @@ do_integer_add(iter_t iterations, void* cookie)
 			/* required because of an HP ANSI/C compiler bug */
 			HUNDRED(r=(r+i)^r;)
 #else
-			HUNDRED(r=r+r+i;)
+			TEN(r=r+r+i;)
 #endif
 		}
 	}
@@ -124,7 +124,7 @@ do_uint64_add(iter_t iterations, void* cookie)
 			/* required because of an HP ANSI/C compiler bug */
 			HUNDRED(r=(r+i)^r;)
 #else
-			HUNDRED(r=r+r+i;)
+			TEN(r=r+r+i;)
 #endif
 		}
 	}
@@ -390,7 +390,7 @@ main(int ac, char **av)
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("integer add", get_n() * 100000);
 #else
-	nano("integer add", get_n() * 100000 * 2);
+	nano("integer add", get_n() * 10000 * 2);
 #endif
 	
 	benchmp(NULL, do_integer_mul, NULL, 0, 1, 0, TRIES, &state);
@@ -415,7 +415,7 @@ main(int ac, char **av)
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("integer add", get_n() * 100000);
 #else
-	nano("uint64 add", get_n() * 100000 * 2);
+	nano("uint64 add", get_n() * 10000 * 2);
 #endif
 	
 	benchmp(NULL, do_uint64_mul, NULL, 0, 1, 0, TRIES, &state);
