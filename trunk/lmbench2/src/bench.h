@@ -37,6 +37,17 @@ typedef unsigned char bool_t;
 #define PORTMAP
 #include	<rpc/rpc.h>
 #endif
+
+#ifndef HAVE_uint
+typedef unsigned int uint;
+#endif
+
+#ifdef HAVE_uint64_t
+typedef uint64_t uint64;
+#else
+typedef unsigned long long uint64;
+#endif
+
 #define	NO_PORTMAPPER	/* needs to be up here, lib_*.h look at it */
 #include	"stats.h"
 #include	"timing.h"
