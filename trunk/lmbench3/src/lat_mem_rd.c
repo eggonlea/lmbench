@@ -82,74 +82,22 @@ main(int ac, char **av)
 #define	FIFTY	TEN TEN TEN TEN TEN
 #define	HUNDRED	FIFTY FIFTY
 
-struct _state {
-	char*	addr;
-	int	len;
-	int	range;
-	int	stride;
-};
-
-void
-initialize_loads(void* cookie)
-{
-	struct _state* state = (struct _state*)cookie;
-	register char **p = 0 /* lint */;
-        int     i;
-	int	tries = 0;
-	int	result = 0x7fffffff;
-
-        state->addr = (char *)malloc(state->len);
-
-     	if (state->stride & (sizeof(char *) - 1)) {
-		printf("lat_mem_rd: stride must be aligned.\n");
-		return;
-	}
-	
-	if (state->range < state->stride) {
-		return;
-	}
-
-	/*
-	 * First create a list of pointers.
-	 *
-	 * This used to go forwards, we want to go backwards to try and defeat
-	 * HP's fetch ahead.
-	 *
-	 * We really need to do a random pattern once we are doing one hit per 
-	 * page.
-	 */
-	for (i = state->range - state->stride; i >= 0; i -= state->stride) {
-		char	*next;
-
-		p = (char **)&(state->addr[i]);
-		if (i < state->stride) {
-			next = &(state->addr[state->range - state->stride]);
-		} else {
-			next = &(state->addr[i - state->stride]);
-		}
-		*p = next;
-	}
-}
 
 void
 benchmark_loads(iter_t iterations, void *cookie)
 {
-	struct _state* state = (struct _state*)cookie;
+	struct mem_state* state = (struct mem_state*)cookie;
 	register char **p = (char**)state->addr;
+	register int i;
+	register int count = state->len / (state->line * 100) + 1;
 
 	while (iterations-- > 0) {
-		HUNDRED;
+		for (i = 0; i < count; ++i) {
+			HUNDRED;
+		}
 	}
 
 	use_pointer((void *)p);
-}
-
-void
-cleanup_loads(void* cookie)
-{
-	struct _state* state = (struct _state*)cookie;
-	free(state->addr);
-	state->addr = NULL;
 }
 
 
@@ -157,21 +105,25 @@ void
 loads(int len, int range, int stride, int parallel, int warmup, int repetitions)
 {
 	double result;
-	struct _state state;
+	int count;
+	struct mem_state state;
 
-	state.len = len;
-	state.range = range;
-	state.stride = stride;
+	state.width = 1;
+	state.len = range;
+	state.maxlen = len;
+	state.line = stride;
+	state.pagesize = getpagesize();
+	count = 100 * (state.len / (state.line * 100) + 1);
 
 	/*
 	 * Now walk them and time it.
 	 */
-	benchmp(initialize_loads, benchmark_loads, NULL, 0, parallel, 
-		warmup, repetitions, &state);
+	benchmp(line_initialize, benchmark_loads, mem_cleanup, 
+		0, parallel, warmup, repetitions, &state);
 
 	/* We want to get to nanoseconds / load. */
-	result = (1000. * (double)gettime()) / (100. * (double)get_n());
-	fprintf(stderr, "%.5f %.3f\n", range / (1024. * 1024), result);
+	result = (1000. * (double)gettime()) / (double)(count * get_n());
+	fprintf(stderr, "%.5f %.3f\n", range / (1024. * 1024.), result);
 
 }
 
