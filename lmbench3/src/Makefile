@@ -78,14 +78,13 @@ SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
 	stats.h timing.h version.h
 
 ASMS =  $O/bw_file_rd.s $O/bw_mem.s $O/bw_mmap_rd.s $O/bw_pipe.s 	\
-	$O/bw_tcp.s $O/bw_udp.s $O/bw_unix.s $O/cache.s $O/clock.s	\
+	$O/bw_tcp.s $O/bw_udp.s $O/bw_unix.s $O/clock.s			\
 	$O/disk.s $O/enough.s $O/flushdisk.s $O/getopt.s $O/hello.s	\
 	$O/lat_connect.s $O/lat_ctx.s lat_fcntl.s $O/lat_fifo.s		\
 	$O/lat_fs.s $O/lat_mem_rd.s $O/lat_mmap.s $O/lat_ops.s		\
 	$O/lat_pagefault.s $O/lat_pipe.s $O/lat_proc.s $O/lat_rpc.s	\
 	$O/lat_select.s $O/lat_sig.s $O/lat_syscall.s $O/lat_tcp.s	\
 	$O/lat_udp.s $O/lat_unix.s $O/lat_unix_connect.s $O/lat_sem.s	\
-	$O/lat_usleep.s $O/lat_pmake.s $O/lat_cmd.s 			\
 	$O/lib_debug.s $O/lib_mem.s	\
 	$O/lib_stats.s $O/lib_tcp.s $O/lib_timing.s $O/lib_udp.s	\
 	$O/lib_unix.s $O/lib_sched.s					\
