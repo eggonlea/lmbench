@@ -61,6 +61,87 @@ echo "OK, it looks like your cache line is $LINE_SIZE bytes."
 echo ""
 
 ############################################################################
+# Hardware benchmarks?
+############################################################################
+echo $L
+cat<<EOF;
+
+lmbench can benchmark various aspects of hardware performance, such
+as memory latency and available parallelism in the memory load path.
+
+If you are using lmbench to assess operating system performance, or
+to evaluate operating system modifications, then you probably don't
+need to run the hardware benchmarks each time.
+
+If you are planning on sending in these results, please include the
+hardware benchmarks.
+
+EOF
+
+echo $ECHON "HARDWARE [default yes] $ECHOC"
+read fast
+case "$fast" in
+    [nN]*)  BENCHMARK_HARDWARE=NO;;
+    *)      BENCHMARK_HARDWARE=YES;;
+esac
+
+############################################################################
+# OS benchmarks?
+############################################################################
+echo $L
+cat<<EOF;
+
+lmbench can benchmark various aspects of operating system performance, 
+such as pipe bandwidth or select() latency.
+
+If you are using lmbench to assess hardware performance, then you 
+probably don't need to run the operating system benchmarks.
+
+If you are planning on sending in these results, please include the
+operating system benchmarks.
+
+EOF
+
+echo $ECHON "OS [default yes] $ECHOC"
+read fast
+case "$fast" in
+    [nN]*)  BENCHMARK_OS=NO;;
+    *)      BENCHMARK_OS=YES;;
+esac
+
+############################################################################
+# Multiple copies
+############################################################################
+echo $L
+cat<<EOF;
+
+If you are running on an MP machine and you want to try running
+multiple copies of lmbench in parallel, you can specify how many here.
+
+Using this option will make the benchmark run 100x slower (sorry).
+
+NOTE:  WARNING! This feature is experimental and many results are 
+	known to be incorrect or random!
+
+EOF
+AGAIN=Y
+while [ $AGAIN = Y ]
+do	echo $ECHON "MULTIPLE COPIES [default 1] $ECHOC"
+	read SYNC_MAX
+	if [ "X$SYNC_MAX" != X ]
+	then	case "$SYNC_MAX" in
+		[0-9]|[0-9][0-9]|[0-9][0-9][0-9])
+			AGAIN=N
+			;;
+		*)	echo "Please enter a number between 1 and 999"
+			;;
+		esac
+	else	AGAIN=N
+		SYNC_MAX=1
+	fi
+done
+
+############################################################################
 # Figure out memory size.
 ############################################################################
 if [ -r /proc/meminfo ]
@@ -111,8 +192,9 @@ MB=`expr $AVAILMEM / 2`
 ############################################################################
 # Memory strides for lat_mem
 ############################################################################
-echo $L
-cat<<EOF;
+if [ "$BENCHMARK_HARDWARE" = "YES" ]; then
+	echo $L
+	cat<<EOF;
 
 This benchmark measures, by default, memory latency for a number of
 different strides.  That can take a long time and is most useful if you
@@ -122,18 +204,17 @@ is greater than 128 bytes.
 If you are planning on sending in these results, please don't do a fast
 run.
 
-If you are measuring software only, you probably want to do a fast run,
-so answer yes below.  Answering yes means that we measure memory latency
-with a 128 byte stride.  
+Answering yes means that we measure memory latency with a 128 byte stride.  
 
 EOF
 
-echo $ECHON "FASTMEM [default no] $ECHOC"
-read fast
-case "$fast" in
-    [yY]*) FASTMEM=YES;;
-    *)	   FASTMEM=NO;;
-esac
+	echo $ECHON "FASTMEM [default no] $ECHOC"
+	read fast
+	case "$fast" in
+	    [yY]*) FASTMEM=YES;;
+	    *)	   FASTMEM=NO;;
+	esac
+fi
 
 ############################################################################
 # File system latency
@@ -163,8 +244,13 @@ esac
 ############################################################################
 # Disk bandwidth/seek times
 ############################################################################
-echo $L
-cat<<EOF;
+if [ $SYNC_MAX -gt 1 -o "${BENCHMARK_HARDWARE}" != "YES" ]; then
+	# parallel benchmarking is incompatible with disk tests
+	DISK_DESC=""
+	DISKS=""
+else
+	echo $L
+	cat<<EOF;
 
 This benchmark can measure disk zone bandwidths and seek times.  These can
 be turned into whizzy graphs that pretty much tell you everything you might
@@ -185,25 +271,109 @@ or
 
 EOF
 
-echo $ECHON "DISKS [default none] $ECHOC"
-read disks
-if [ X"$disks" != X ]
-then	
-	for i in $disks
-	do	if [ -r $i ]
-		then	../bin/$OS/flushdisk $i
-			if [ $? -eq 1 ]
-			then	echo "Must be root to run disk benchmarks."
-				echo "Root is needed to flush the buffer cache"
-				exit 1
+	echo $ECHON "DISKS [default none] $ECHOC"
+	read disks
+	if [ X"$disks" != X ]
+	then	
+		for i in $disks
+		do	if [ -r $i ]
+			then	../bin/$OS/flushdisk $i
+				if [ $? -eq 1 ]
+				then	echo "Must be root to run disk benchmarks."
+					echo "Root is needed to flush the buffer cache"
+					exit 1
+				fi
+				echo $ECHON "$i is a $ECHOC"
+				read x
+				DISK_DESC="$DISK_DESC[${i}:${x}] "
+				DISKS="$DISKS${i} "
+			else	echo "Can't read $i, skipping it."
 			fi
-			echo $ECHON "$i is a $ECHOC"
-			read x
-			DISK_DESC="$DISK_DESC[${i}:${x}] "
-			DISKS="$DISKS${i} "
-		else	echo "Can't read $i, skipping it."
+		done
+	fi
+fi
+
+############################################################################
+# Remote networking
+############################################################################
+if [ $SYNC_MAX -gt 1 ]; then
+	# remote networking is incompatible with parallel benchmarking
+	REMOTE=""
+else
+	echo $L
+
+	RSH=rsh
+	for p in `echo $PATH | sed 's/:/ /g'`
+	do	if [ -f $p/remsh ]
+		then	RSH=remsh
 		fi
 	done
+	RCP=rcp
+
+	cat<<EOF;
+
+If you are running on an idle network and there are other, identically
+configured systems, on the same wire (no gateway between you and them),
+and you have rsh access to them, then you should run the network part
+of the benchmarks to them.  Please specify any such systems as a space
+separated list such as: ether-host fddi-host hippi-host.
+
+EOF
+	echo $ECHON "REMOTE [default none] $ECHOC"
+	read REMOTE
+
+	if [ "X$REMOTE" != X ]
+	then	cat<<EOF;
+
+Thanks for doing remote testing, that is a hard thing to get.  In 
+order to run a server on the remote system, we need a remote shell 
+to be enabled (ideally without a password) from this host to $REMOTE.  
+The original remote shell is rsh, but the use of a secure remote shell 
+like ssh is increasingly common.  We need the name of BOTH the shell 
+itself and the associated copy tool (e.g. rcp vs scp) to be entered.
+
+EOF
+		echo $ECHON "RSH [default $RSH] $ECHOC"
+		read rsh
+		if [ -n "$rsh" ]
+		then	RSH=$rsh
+		fi
+		echo $ECHON "RCP [default $RCP] $ECHOC"
+		read rcp
+		if [ -n "$rsh" ]
+		then	RCP=$rcp
+		fi
+
+		cat<<EOF;
+
+Could you do me one more favor and tell me the networking you think 
+will be used to get to each of the remote hosts.  By networking I 
+mean one of the following (or whatever you use if you use something 
+else):
+
+ethernet		aka 10baseT, thinnet, thicknet, etc
+ethernet-100		aka 100baseT, 100VG
+fddi			aka cddi
+hippi
+others?
+
+Please type it just like the above if you can, it makes parsing easier.
+
+EOF
+
+
+		for r in $REMOTE
+		do	echo $ECHON "Network type for $r: $ECHOC"
+			read n
+			X=`$RSH $r echo foo`
+			if [ X$X = Xfoo ]
+			then	echo Remote access to $r worked, thanks.
+			else	echo Remote access to $r did not work, please check and retry,
+				exit 1
+			fi
+			NETWORKS="${NETWORKS}[ $r:$n ]"
+		done
+	fi
 fi
 
 ############################################################################
@@ -260,122 +430,6 @@ EOF
 	else	echo $FSDIR is not a directory or is not writable
 	fi
 done
-
-############################################################################
-# Remote networking
-############################################################################
-echo $L
-
-RSH=rsh
-for p in `echo $PATH | sed 's/:/ /g'`
-do	if [ -f $p/remsh ]
-	then	RSH=remsh
-	fi
-done
-RCP=rcp
-
-cat<<EOF;
-
-If you are running on an idle network and there are other, identically
-configured systems, on the same wire (no gateway between you and them),
-and you have rsh access to them, then you should run the network part
-of the benchmarks to them.  Please specify any such systems as a space
-separated list such as: ether-host fddi-host hippi-host.
-
-EOF
-echo $ECHON "REMOTE [default none] $ECHOC"
-read REMOTE
-
-if [ "X$REMOTE" != X ]
-then	cat<<EOF;
-
-Thanks for doing remote testing, that is a hard thing to get.  In 
-order to run a server on the remote system, we need a remote shell 
-to be enabled (ideally without a password) from this host to $REMOTE.  
-The original remote shell is rsh, but the use of a secure remote shell 
-like ssh is increasingly common.  We need the name of BOTH the shell 
-itself and the associated copy tool (e.g. rcp vs scp) to be entered.
-
-EOF
-	echo $ECHON "RSH [default $RSH] $ECHOC"
-	read rsh
-	if [ -n "$rsh" ]
-	then	RSH=$rsh
-	fi
-	echo $ECHON "RCP [default $RCP] $ECHOC"
-	read rcp
-	if [ -n "$rsh" ]
-	then	RCP=$rcp
-	fi
-
-	cat<<EOF;
-
-Could you do me one more favor and tell me the networking you think 
-will be used to get to each of the remote hosts.  By networking I 
-mean one of the following (or whatever you use if you use something 
-else):
-
-ethernet		aka 10baseT, thinnet, thicknet, etc
-ethernet-100		aka 100baseT, 100VG
-fddi			aka cddi
-hippi
-others?
-
-Please type it just like the above if you can, it makes parsing easier.
-
-EOF
-
-
-	for r in $REMOTE
-	do	echo $ECHON "Network type for $r: $ECHOC"
-		read n
-		X=`$RSH $r echo foo`
-		if [ X$X = Xfoo ]
-		then	echo Remote access to $r worked, thanks.
-		else	echo Remote access to $r did not work, please check and retry,
-			exit 1
-		fi
-		NETWORKS="${NETWORKS}[ $r:$n ]"
-	done
-fi
-
-############################################################################
-# Multiple copies
-############################################################################
-echo $L
-cat<<EOF;
-
-If you are running on an MP machine and you want to try running
-multiple copies of lmbench in parallel, you can specify how many here.
-
-Using this option will make the benchmark run 100x slower (sorry).
-
-This is experimental and results are undefined for the time being.
-
-EOF
-AGAIN=Y
-while [ $AGAIN = Y ]
-do	echo $ECHON "MULTIPLE COPIES [default 1] $ECHOC"
-	read SYNC_MAX
-	if [ "X$SYNC_MAX" != X ]
-	then	case "$SYNC_MAX" in
-		[0-9]|[0-9][0-9]|[0-9][0-9][0-9])
-			AGAIN=N
-			;;
-		*)	echo "Please enter a number between 1 and 999"
-			;;
-		esac
-	else	AGAIN=N
-		SYNC_MAX=1
-	fi
-done
-
-if [ $SYNC_MAX -gt 1 ]
-then	echo "Hang on, we are recalculating your timing granularity."
-	ENOUGH=`expr $SYNC_MAX \* 500001`
-	echo "OK, it looks like you can time stuff down to $ENOUGH usec resolution."
-	echo ""
-fi
 
 ############################################################################
 # Submit results?
@@ -467,7 +521,9 @@ EOF
 VERSION=`../scripts/version`
 
 C=../bin/$OS/`../scripts/config`
-echo DISKS=\"$DISKS\" > $C
+echo BENCHMARK_HARDWARE=\"$BENCHMARK_HARDWARE\" > $C
+echo BENCHMARK_OS=\"$BENCHMARK_OS\" >> $C
+echo DISKS=\"$DISKS\" >> $C
 echo DISK_DESC=\"$DISK_DESC\" >> $C
 echo ENOUGH=$ENOUGH >> $C
 echo FASTMEM=\"$FASTMEM\" >> $C
