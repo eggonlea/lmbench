@@ -49,17 +49,17 @@ COMPILE=$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 INCS =	bench.h lib_tcp.h lib_udp.h stats.h timing.h
 
-SRCS =  bench.h bw_file_rd.c bw_mmap_rd.c 				\
-	bw_pipe.c bw_tcp.c hello.c lat_connect.c lat_ctx.c		\
-	lat_fs.c lat_mem_rd.c lat_mmap.c lat_pagefault.c lat_pipe.c	\
-	lat_proc.c lat_rpc.c lat_syscall.c lat_tcp.c lat_udp.c		\
-	lib_tcp.c lib_udp.c mhz.c lib_timing.c lat_sig.c 		\
-	memsize.c bw_unix.c lat_unix.c lmdd.c loop_o.c timing_o.c	\
-	timing.h stats.h lib_tcp.h lib_udp.h  enough.c lat_select.c	\
-	msleep.c bw_mem.c lat_fifo.c lmhttp.c lat_http.c	\
-	disk.c flushdisk.c lat_unix_connect.c lat_fcntl.c \
-	line.c tlb.c cache.c \
-	lib_unix.c lib_stats.c lib_unix.h names.h version.h
+SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_unix.c	\
+	cache.c clock.c disk.c enough.c flushdisk.c getopt.c hello.c	\
+	lat_connect.c lat_ctx.c	lat_fcntl.c lat_fifo.c lat_fs.c 	\
+	lat_mem_rd.c lat_mmap.c lat_pagefault.c lat_pipe.c lat_proc.c	\
+	lat_rpc.c lat_select.c lat_sig.c lat_syscall.c lat_tcp.c	\
+	lat_udp.c lat_unix.c lat_unix_connect.c				\
+	lib_stats.c lib_tcp.c lib_timing.c lib_udp.c lib_unix.c		\
+	line.c lmdd.c lmhttp.c loads.c loop_o.c memsize.c mhz.c 	\
+	msleep.c rhttp.c seek.c timing_o.c tlb.c			\
+	bench.h lib_tcp.h lib_udp.h lib_unix.h names.h stats.h		\
+	timing.h version.h
 
 EXES =	$O/bw_file_rd $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp $O/hello	\
 	$O/lat_select $O/lat_pipe $O/lat_rpc $O/lat_syscall $O/lat_tcp	\
@@ -68,7 +68,7 @@ EXES =	$O/bw_file_rd $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp $O/hello	\
 	$O/memsize $O/lat_unix $O/bw_unix $O/lmdd $O/timing_o $O/enough	\
 	$O/msleep $O/loop_o $O/bw_mem $O/lat_fifo $O/lmhttp $O/lat_http	\
 	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk		\
-	$O/line $O/tlb $O/cache
+	$O/line $O/tlb $O/cache $O/loads
 
 MAN1 =	lmdd.1 $D/bargraph.1 $D/graph.1 $D/pgraph.1 $D/rccs.1
 
@@ -305,3 +305,6 @@ $O/tlb:  tlb.c timing.h stats.h bench.h $O/lmbench.a
 
 $O/cache:  cache.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/cache cache.c $O/lmbench.a $(LDLIBS)
+
+$O/loads:  loads.c timing.h stats.h bench.h $O/lmbench.a
+	$(COMPILE) -o $O/loads loads.c $O/lmbench.a $(LDLIBS)
