@@ -168,7 +168,10 @@ void	get_results(result_t *r);
 	}								\
 	for (__i = 0; __i < __r.N; ++__i) {				\
 		__oh = __overhead.u[__i] / (double)__overhead.n[__i];	\
-		__r.u[__i] -= (uint64)((double)__r.n[__i] * __oh);	\
+		if (__r.u[__i] > (uint64)((double)__r.n[__i] * __oh))	\
+			__r.u[__i] -= (uint64)((double)__r.n[__i] * __oh); \
+		else							\
+			__r.u[__i] = 0;					\
 	}								\
 	save_results(&__r);						\
 }
