@@ -64,7 +64,7 @@ int main(int ac, char **av)
 	int	nbytes;
 	state_t	state;
 	int	c;
-	char	*usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> what [conflict]\nwhat: rd wr rdwr cp fwr frd fcp bzero bcopy\n";
+	char	*usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> what [conflict]\nwhat: rd wr rdwr cp fwr frd fcp bzero bcopy\n<size> must be larger than 512";
 
 	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
@@ -94,7 +94,7 @@ int main(int ac, char **av)
 
 	nbytes = state.nbytes = bytes(av[optind]);
 	if (state.nbytes < 512) { /* this is the number of bytes in the loop */
-		exit(1);
+		lmbench_usage(ac, av, usage);
 	}
 
 	if (streq(av[optind+1], "cp") ||
