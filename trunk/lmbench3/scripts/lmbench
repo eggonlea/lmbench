@@ -434,7 +434,7 @@ if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_CTX = XYES ]; then
 fi
 
 if [ X$BENCHMARK_HARDWARE = XYES -o X$BENCHMARK_MEM = XYES ]; then
-	if [ $SYNC_MAX = 1]; then
+	if [ $SYNC_MAX = 1 ]; then
 	    date >> ${OUTPUT}
 	    echo Calculating effective TLB size >> ${OUTPUT}
 	    msleep 250
