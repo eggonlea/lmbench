@@ -16,21 +16,23 @@ char	*id = "$Id$\n";
 
 struct cache_results {
 	int	len;
-	int	line;
+	int	maxlen;
 	double	latency;
 	double	variation;
-	double	parallelism;
+	double	ratio;
 };
 
+int	find_cache(int start, int n, struct cache_results* p);
+int	collect_data(int start, int line, int maxlen, 
+		int warmup, int repetitions, struct cache_results** pdata);
+int	search(int left, int right, int line, 
+		int warmup, int repetitions, struct cache_results* p);
+int	collect_sample(int line, 
+		int warmup, int repetitions, struct cache_results* p);
+double	measure(int size, int line, int maxlen, 
+		int warmup, int repetitions, double* variation);
 
-int collect_data(int start, int line, int maxlen, 
-		 int warmup, int repetitions, struct cache_results** pdata);
-int find_cache(int start, int line, 
-	       int maxlen, int warmup, int repetitions, double* time);
-double measure(int size, int line, int maxlen, int warmup, 
-	       int repetitions, double* variation);
-
-#define THRESHOLD 2.5
+#define THRESHOLD 1.5
 
 /*
  * Assumptions:
@@ -42,15 +44,17 @@ double measure(int size, int line, int maxlen, int warmup,
 int
 main(int ac, char **av)
 {
-	int	line, l1_cache, l2_cache, l3_cache, c;
+	int	c;
+	int	i, n, start, level, prev;
+	int	line;
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	print_cost = 0;
 	int	maxlen = 32 * 1024 * 1024;
-	double	l1_time, l2_time, l3_time, mem_time, variation;
+	double	par;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
-	int	n;
 	struct cache_results* r;
+	struct mem_state state;
 
 	line = getpagesize() / 8;
 
@@ -79,49 +83,70 @@ main(int ac, char **av)
 		}
 	}
 
-#if 1
 	n = collect_data(512, line, maxlen, warmup, repetitions, &r);
-#else
-	l1_cache = find_cache(512, line, maxlen, warmup, repetitions, &l1_time);
-	l2_cache = maxlen;
-	l3_cache = maxlen;
 
-	if (l1_cache < maxlen) {
-		int	start;
-		for (start = 512; start < l1_cache; start<<=1)
+	for (start = 0, prev = -1, level = 1; 
+	     (i = find_cache(start, n, r)) >= 0; 
+	     ++level, start = i + 1, prev = i) 
+	{
+		/* 
+		 * performance is not greatly improved over main memory,
+		 * so it is likely not a cache boundary
+		 */
+		if (r[i].latency / r[n-1].latency > 0.5) break;
+
+		/* 
+		 * is cache boundary "legal"? (e.g. 2^N or 1.5*2^N) 
+		 * cache sizes are "never" 1.25*2^N or 1.75*2^N
+		 */
+		for (c = r[i].len; c > 0x7; c >>= 1)
 			;
-		l2_cache = find_cache(start, line, 
-				      maxlen, warmup, repetitions, &l2_time);
+		if (c == 5 || c == 7) {
+			i++;
+			if (i >= n) break;
+		}
+
+		/* Compute line size for cache */
+		state.width = 1;
+		state.len = r[i].len;
+		state.maxlen = r[i].len;
+		state.pagesize = getpagesize();
+		state.line = line_find(2*r[i].len, warmup, repetitions, &state);
+		if (state.line == 0) state.line = line;
+
+		/* Compute memory parallelism for cache */
+		par = par_mem(r[i].len/2, warmup, repetitions, &state);
+
+		if (prev >= 0) {
+			for (prev++; prev < i && r[prev].latency < 0.; prev++)
+				;
+		}
+
+		fprintf(stderr, 
+		    "L%d cache: %d bytes %.2f nanoseconds %d linesize %.2f parallelism\n",
+		    level, r[i].len, r[prev >= 0 ? prev : 0].latency, state.line, par);
 	}
+	fprintf(stderr, "Memory latency: %.2f nanoseconds\n", r[n-1].latency);
 
-	if (l2_cache < maxlen) {
-		int	start;
-		for (start = 512; start < l2_cache; start<<=1)
-			;
-		l3_cache = find_cache(start, line, 
-				      maxlen, warmup, repetitions, &l3_time);
+	exit(0);
+}
+
+int
+find_cache(int start, int n, struct cache_results* p)
+{
+	int	i, j;
+	double	max = -1.;
+
+	for (i = start; i < n; ++i) {
+		if (p[i].latency < 0.) continue;
+		if (p[i].ratio > max) {
+			j = i;
+			max = p[i].ratio;
+		} else if (max > THRESHOLD) {
+			return j;
+		}
 	}
-
-	mem_time = measure(maxlen, line, maxlen, warmup, repetitions, &variation);
-
-	if (l1_cache < maxlen) {
-		fprintf(stderr, "L1 cache: %d bytes %.2f nanoseconds\n", 
-			l1_cache, l1_time);
-	}
-
-	if (l2_cache < maxlen) {
-		fprintf(stderr, "L2 cache: %d bytes %.2f nanoseconds\n", 
-			l2_cache, l2_time);
-	}
-
-	if (l3_cache < maxlen) {
-		fprintf(stderr, "L3 cache: %d bytes %.2f nanoseconds\n", 
-			l3_cache, l3_time);
-	}
-
-	fprintf(stderr, "Memory latency: %.2f nanoseconds\n", mem_time);
-#endif
-	return(0);
+	return -1;
 }
 
 int
@@ -129,7 +154,8 @@ collect_data(int start, int line, int maxlen,
 	     int warmup, int repetitions, struct cache_results** pdata)
 {
 	int	i;
-	int	idx = 0;
+	int	samples;
+	int	idx;
 	int	len = start;
 	int	incr = start / 4;
 	double	latency;
@@ -137,100 +163,100 @@ collect_data(int start, int line, int maxlen,
 	struct mem_state state;
 	struct cache_results* p;
 
-	state.width = 1;
-	state.pagesize = getpagesize();
 
 	*pdata = (struct cache_results*)malloc(sizeof(struct cache_results));
 
-	for (len = start, incr = start / 4; len <= maxlen; incr<<=1) {
+	/* count the (maximum) number of samples to take */
+	for (len = start, incr = start / 4, samples = 0; len <= maxlen; incr<<=1) {
+		for (i = 0; i < 4 && len <= maxlen; ++i, len += incr)
+			samples++;
+	}
+	p = (struct cache_results*)
+		malloc(samples * sizeof(struct cache_results));
+	*pdata = p;
+	
+
+	/* initialize the data */
+	for (len = start, incr = start / 4, idx = 0; len <= maxlen; incr<<=1) {
 		for (i = 0; i < 4 && len <= maxlen; ++i, ++idx, len += incr) {
-			state.line = sizeof(char*);
-			state.len = len;
-			state.maxlen = len;
-
-			*pdata = (struct cache_results*)
-				realloc(*pdata, (idx+1) * sizeof(struct cache_results));
-			p = &((*pdata)[idx]);
-
-			p->len = len;
-			p->line = line_find(len, 
-					    warmup, repetitions, &state);
-
-			p->latency = measure(len, line, maxlen, warmup,
-					     repetitions, &p->variation);
-
-			p->parallelism = par_mem(len, 
-						 warmup, repetitions, &state);
-
-			/**/
-			fprintf(stderr, 
-				"%8.6f %4.4d %7.5f %7.5f %7.5f %7.5f\n", 
-				p->len / (1000. * 1000.), p->line, 
-				p->latency, p->variation, p->parallelism,
-				p->latency / (*pdata)[idx-(idx>1?1:0)].latency);
-			/**/
+			p[idx].len = len;
+			p[idx].maxlen = maxlen;
+			p[idx].latency = -1.;
+			p[idx].ratio = -1.;
 		}
 	}
-	return idx;
+
+	collect_sample(line, warmup, repetitions, &p[0]);
+	while (collect_sample(line, warmup, repetitions, &p[samples-1]) == 0) {
+		--samples;
+	}
+	search(0, samples - 1, line, warmup, repetitions, p);
+
+	/**/
+	fprintf(stderr, "%10.10s %10.10s %10.10s %10.10s\n", "mem size", "latency", "variation", "ratio");
+	for (idx = 0; idx < samples; ++idx) {
+		if (p[idx].latency < 0.) continue;
+		fprintf(stderr, 
+			"%10.6f %10.5f %10.5f %10.5f\n", 
+			p[idx].len / (1000. * 1000.), 
+			p[idx].latency, 
+			p[idx].variation, 
+			p[idx].ratio);
+	}
+	/**/
+
+	return samples;
 }
 
 int
-find_cache(int start, int line, 
-	   int maxlen, int warmup, int repetitions, double *time)
+search(int left, int right, 
+       int line, int warmup, int repetitions, struct cache_results* p)
 {
-	int	i, len, maxsize, incr;
-	double	baseline = -1.;
-	double	current;
-	double	max_variation, variation;
+	int	middle = left + (right - left) / 2;
 
-	/* get the baseline access time */
-	i = 2 * start;
-
-search:
-	for (; i <= maxlen; i<<=1) {
-		current = measure(i, line, (2*i) < maxlen ? (2*i) : maxlen, 
-				  warmup, repetitions, &max_variation);
-
-		if (baseline < 0.)
-			baseline = current;
-
-		/* we have crossed a cache boundary */
-		if (current / baseline > THRESHOLD) {
-			break;
-		}
-		len = i;
-	}
-	if (i >= maxlen)
-		return i;
-
-	incr = i>>3;
-	maxsize = i;
-	i = (i>>1) + incr;
-
-	/*
-	fprintf(stderr, "find_cache: baseline=%.2f, current=%.2f, ratio=%.2f, i=%d\n", baseline, current, current/baseline, i);
-	/**/
-
-	for (i; i <= maxsize; i+=incr) {
-		current = measure(i, line, (2*i) < maxlen ? (2*i) : maxlen, 
-				  warmup, repetitions, &variation);
-
-		/* we have crossed a cache boundary */
-		if (current / baseline > THRESHOLD)
-			break;
-
-		if (variation > max_variation) {
-			len = i;
-			max_variation = variation;
+	if (p[left].latency != 0.0) {
+		p[left].ratio = p[right].latency / p[left].latency;
+		/* we probably have a bad data point, so re-test it */
+fprintf(stderr, "search(%d, %d, ...): ratio[%d]=%f\n", p[left].len, p[right].len, p[left].len, p[left].ratio);
+		if (p[left].ratio < 0.98) {
+			fprintf(stderr, "search: retesting %d\n", p[left].len);
+			p[left].ratio = -1.;
+			collect_sample(line, warmup, repetitions, &p[left]);
+			if (p[left].latency != 0.0)
+				p[left].ratio = p[right].latency / p[left].latency;
 		}
 	}
-	if (len >= maxsize) {
-		i = len;
-		goto search;
+
+	if (middle == left || middle == right)
+		return 0;
+
+	if (p[left].ratio > 1.1 || p[left].ratio < 0.97) {
+		collect_sample(line, warmup, repetitions, &p[middle]);
+		search(middle, right, line, warmup, repetitions, p);
+		search(left, middle, line, warmup, repetitions, p);
 	}
-	
-	*time = baseline;
-	return len;
+}
+
+int
+collect_sample(int line, int warmup, int repetitions, struct cache_results* p)
+{
+	int	len, maxlen;
+	struct mem_state state;
+
+	len = p->len;
+	maxlen = p->maxlen;
+
+	state.width = 1;
+	state.pagesize = getpagesize();
+	state.line = line;
+	state.len = len;
+	state.maxlen = len;
+
+	p->latency = measure(len, line, maxlen, warmup,
+			     repetitions, &p->variation);
+
+	if (p->latency > 0) return 1;
+	return 0;
 }
 
 double
@@ -268,7 +294,10 @@ measure(int size, int line, int maxlen, int warmup,
 	time = (1000. * (double)gettime()) / (100. * (double)get_n());
 
 	/* Are the results stable, or do they vary? */
-	*variation = median / time;
+	if (time != 0.)
+		*variation = median / time;
+	else
+		*variation = -1.0;
 
 	set_results(r_save);
 	free(r);
