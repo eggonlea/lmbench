@@ -247,7 +247,11 @@ then	date > ${OUTPUT}
 		lat_rpc -S $i
 		lat_connect $i
 		lat_connect -S $i
-		bw_tcp $i
+		echo "Socket bandwidth using $i" 1>&2
+		for m in 1 64 128 256 512 1024 1500 10M; do
+			bw_tcp -m $m $i; 
+		done
+		echo "" 1>&2
 		bw_tcp -S $i
 		# I want a hot cache number
 		lat_http $i 8008 < ../../src/webpage-lm/URLS > /dev/null 2>&1
@@ -273,7 +277,11 @@ then	date > ${OUTPUT}
 		lat_rpc -S $remote; 
 		lat_connect $remote; 
 		lat_connect -S $remote;
-		bw_tcp $remote; 
+		echo "Socket bandwidth using $remote" 1>&2
+		for m in 1 64 128 256 512 1024 1500 10M; do
+			bw_tcp -m $m $remote; 
+		done
+		echo "" 1>&2
 		bw_tcp -S $remote 
 		# I want a hot cache number
 		lat_http $remote 8008 < ../../src/webpage-lm/URLS > /dev/null 2>&1
