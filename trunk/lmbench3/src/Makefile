@@ -13,9 +13,10 @@
 # clobber	clean and removes the bin directories
 # shar		obsolete, use cd .. && make shar
 # depend	builds make dependencies (needs gcc)
+# debug		builds all the benchmarks with '-g' debugging flag
+# assembler	builds the .s files for each benchmark
 #
-# This is largely self configuring.  Most stuff is pretty portable.  You
-# may have problems with the mhz program.  
+# This is largely self configuring.  Most stuff is pretty portable.  
 #
 
 # I finally know why Larry Wall's Makefile says "Grrrr".
@@ -63,6 +64,20 @@ SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
 	mhz.c msleep.c rhttp.c seek.c timing_o.c tlb.c stream.c		\
 	bench.h lib_debug.h lib_tcp.h lib_udp.h lib_unix.h names.h 	\
 	stats.h timing.h version.h
+
+ASMS =  $O/bw_file_rd.s $O/bw_mem.s $O/bw_mmap_rd.s $O/bw_pipe.s 	\
+	$O/bw_tcp.s $O/bw_udp.s $O/bw_unix.s $O/cache.s $O/clock.s	\
+	$O/disk.s $O/enough.s $O/flushdisk.s $O/getopt.s $O/hello.s	\
+	$O/lat_connect.s $O/lat_ctx.s lat_fcntl.s $O/lat_fifo.s		\
+	$O/lat_fs.s $O/lat_mem_rd.s $O/lat_mmap.s $O/lat_ops.s		\
+	$O/lat_pagefault.s $O/lat_pipe.s $O/lat_proc.s $O/lat_rpc.s	\
+	$O/lat_select.s $O/lat_sig.s $O/lat_syscall.s $O/lat_tcp.s	\
+	$O/lat_udp.s $O/lat_unix.s $O/lat_unix_connect.s $O/lat_sem.s	\
+	$O/lat_usleep.s $O/lat_pmake.s $O/lib_debug.s $O/lib_mem.s	\
+	$O/lib_stats.s $O/lib_tcp.s $O/lib_timing.s $O/lib_udp.s	\
+	$O/lib_unix.s $O/line.s $O/lmdd.s $O/lmhttp.s $O/par_mem.s	\
+	$O/par_ops.s $O/loop_o.s $O/memsize.s $O/mhz.s $O/msleep.s	\
+	$O/rhttp.s $O/timing_o.s $O/tlb.s $O/stream.s
 
 EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
 	$O/bw_unix $O/hello						\
@@ -122,12 +137,18 @@ install-target:
 # No special handling for all these
 all: $(EXES) $O/lmbench
 opt: $(OPT_EXES)
+asm: $(ASMS)
+$(ASMS):
+	$(CC) -S $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ `basename $@ .s`.c
 
 Wall:
 	@env CFLAGS="-Wall -ansi" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
 
 debug:
 	@env CFLAGS=-g MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
+
+assembler:
+	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build asm
 
 bk.ver: ../SCCS/s.ChangeSet
 	rm -f bk.ver
@@ -171,7 +192,8 @@ edit get-e:
 	get -e -s $(SRCS)
 
 clean:
-	/bin/rm -f ../bin/*/CONFIG ../bin/*/*.[oa]
+	/bin/rm -f ../bin/*/CONFIG ../bin/*/*.[oas]
+	/bin/rm -f *.[oas]
 	-bk clean
 
 clobber:
