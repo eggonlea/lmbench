@@ -597,10 +597,10 @@ for ($i = 0; $i <= $#uname; $i++) {
 print<<EOF;
 
 File & VM system latencies in microseconds - smaller is better
---------------------------------------------------------------------------
-Host                 OS   0K File      10K File      Mmap    Prot    Page
-                        Create Delete Create Delete  Latency Fault   Fault 
---------- ------------- ------ ------ ------ ------  ------- -----   ----- 
+---------------------------------------------------------------------------
+Host                 OS   0K File      10K File      Mmap     Prot    Page
+                        Create Delete Create Delete  Latency  Fault   Fault 
+--------- ------------- ------ ------ ------ ------  -------  -----   ----- 
 EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
@@ -609,13 +609,13 @@ for ($i = 0; $i <= $#uname; $i++) {
 	$c10k = $fs_create_10k[$i] <= 0 ? -1 : 100000 / $fs_create_10k[$i];
 	$d0k = $fs_delete_0k[$i] <= 0 ? -1 : 100000 / $fs_delete_0k[$i];
 	$d10k = $fs_delete_10k[$i] <= 0 ? -1 : 100000 / $fs_delete_10k[$i];
-	printf "%6s %6s %6s %6s %8d %5s %7s\n",
+	printf "%6s %6s %6s %6s %8d %6s %7s\n",
 	    &num($c0k, "%6d"),
 	    &num($d0k, "%6d"),
 	    &num($c10k, "%6d"),
 	    &num($d10k, "%6d"),
 	    $lat_mappings[$i],
-	    &num($lat_protfault[$i], "%5d"),
+	    &num($lat_protfault[$i], "%6.2f"),
 	    &num($lat_pagefault[$i]/1000, "%6.1fK");
 }
 
