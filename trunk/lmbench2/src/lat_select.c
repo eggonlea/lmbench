@@ -12,6 +12,9 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
+int	nfds;
+fd_set	set;
+
 void
 doit(int n, fd_set *set)
 {
@@ -20,12 +23,26 @@ doit(int n, fd_set *set)
 	select(n, 0, &nosave, 0, &tv);
 }
 
+void
+sigterm(int sig)
+{
+	int	fid;
+
+	for (fid = 0; fid < nfds; ++fid) {
+		if (FD_ISSET(fid, &set)) {
+			close(fid);
+		}
+	}
+	tcp_done(TCP_SELECT);
+	exit(0);
+}
+
 int
 main(int ac, char **av)
 {
-	int	n, N, last, fd, fid;
+	char	c;
+	int	n, N, fd, fid;
 	pid_t	pid, ppid;
-	fd_set	set;
 	char	buf[L_tmpnam+256];
 	char	fname[L_tmpnam];
 	char*	report_file = "Select on %d fd's";
@@ -37,6 +54,9 @@ main(int ac, char **av)
 	N = 200;
 	fname[0] = 0;
 	pid = 0;
+	c = 0;
+	nfds = 0;
+	FD_ZERO(&set);
 	report = report_file;
 
 	if (ac != 2 && ac != 3) {
@@ -48,7 +68,7 @@ main(int ac, char **av)
 		report = report_tcp;
 		
 		/* Create a socket for clients to connect to */
-		fd = tcp_server(TCP_CONNECT, SOCKOPT_NONE);
+		fd = tcp_server(TCP_SELECT, SOCKOPT_REUSE);
 		if (fd <= 0) {
 			perror("lat_select: Could not open tcp server socket");
 			exit(1);
@@ -59,13 +79,18 @@ main(int ac, char **av)
 		switch(pid = fork()) {
 		case 0:
 			/* child server process */
+			if (signal(SIGTERM, sigterm) == SIG_ERR) {
+				perror("signal(SIGTERM, sigterm) failed");
+				exit(1);
+			}
+			FD_SET(fd, &set);
 			while (ppid == getppid()) {
 				int newsock = tcp_accept(fd, SOCKOPT_NONE);
-				read(newsock, &fid, 1);
-				close(newsock);
+				if (newsock >= nfds) nfds = newsock + 1;
+				FD_SET(newsock, &set);
 			}
-			close(fd);
-			exit(0);
+			sigterm(SIGTERM);
+			/* NOTREACHED */
 		case -1:
 			/* error */
 			perror("lat_select::server(): fork() failed");
@@ -74,7 +99,7 @@ main(int ac, char **av)
 			break;
 		}
 		close(fd);
-		fd = tcp_connect("localhost", TCP_CONNECT, SOCKOPT_NONE);
+		fd = tcp_connect("localhost", TCP_SELECT, SOCKOPT_NONE);
 		if (fd <= 0) {
 			perror("lat_select: Could not open socket");
 			exit(1);
@@ -97,19 +122,24 @@ main(int ac, char **av)
 
 	if (ac == 3) N = atoi(av[2]);
 
-	FD_ZERO(&set);
-	last = 0;
 	for (n = 0; n < N; n++) {
 		fid = dup(fd);
 		if (fid == -1) break;
-		if (fid > last) last = fid;
+		if (fid >= nfds) nfds = fid + 1;
 		FD_SET(fid, &set);
 	}
-	last++;
-	BENCH(doit(last, &set), 0);
+	BENCH(doit(nfds, &set), 0);
 	sprintf(buf, report, n);
 	micro(buf, get_n());
-	if (pid) kill(SIGKILL, pid);
+
+	for (fid = 0; fid < nfds; fid++) {
+		if (FD_ISSET(fid, &set)) {
+			close(fid);
+		}
+	}
+	close(fd);
+	if (pid) kill(pid, SIGTERM);
 	if (fname[0]) unlink(fname);
+
 	exit(0);
 }
