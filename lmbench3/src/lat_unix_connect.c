@@ -33,7 +33,7 @@ int main(int ac, char **av)
 {
 	int parallel = 1;
 	char	*usage = "-s\n OR [-P <parallelism>]\n OR -q\n";
-	char	c;
+	int	c;
 
 	/* Start the server "-s" or Shut down the server "-q" */
 	if (ac == 2) {

@@ -51,7 +51,7 @@ int
 main(int ac, char **av)
 {
 	int	i;
-	char    c;
+	int	c;
 	int	parallel = 1;
 	struct _state state;
 	char *usage = "[-P <parallelism>] [-s kbytes] processes [processes ...]\n";

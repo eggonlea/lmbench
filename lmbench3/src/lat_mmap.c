@@ -23,62 +23,110 @@ char	*id = "$Id$\n";
 
 #define	CHK(x)	if ((x) == -1) { perror("x"); exit(1); }
 
+
+typedef struct _state {
+	int	size;
+	int	fd;
+	int	random;
+	char	*name;
+	char	myname[256];
+} state_t;
+
+void	init(void *cookie);
+void	cleanup(void *cookie);
+void	domapping(uint64 iterations, void * cookie);
+
+int main(int ac, char **av)
+{
+	state_t state;
+	int	parallel = 1;
+	char	buf[256];
+	char	c;
+	char	*usage = "[-r] [-P <parallelism>] size file\n";
+	
+
+	state.random = 0;
+	while (( c = getopt(ac, av, "rP:")) != EOF) {
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0)
+				lmbench_usage(ac, av, usage);
+			break;
+		case 'r':
+			state.random = 1;
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
+	}
+
+	if (optind + 2 != ac) {
+		lmbench_usage(ac, av, usage);
+	}
+
+	state.size = bytes(av[optind]);
+	if (state.size < MINSIZE)	
+		lmbench_usage(ac, av, usage);
+	state.name = av[optind+1];
+
+	benchmp(init, domapping, cleanup,
+		0, parallel, &state);
+	micromb(state.size, get_n());
+}
+
+void init(void * cookie)
+{
+	state_t *state = (state_t *) cookie;
+	
+	sprintf(state->myname,"%s.%d",state->name,getpid());
+	CHK(state->fd = open(state->myname, O_CREAT|O_RDWR, 0666));
+	CHK(ftruncate(state->fd, state->size));
+}
+
+void cleanup(void * cookie)
+{
+	state_t *state = (state_t *) cookie;
+	close(state->fd);
+	unlink(state->myname);
+}
+
 /*
  * This alg due to Linus.  The goal is to have both sparse and full
  * mappings reported.
  */
-void
-mapit(int fd, int size, int random)
+void domapping(uint64 iterations, void *cookie)
 {
-	char	*p, *where, *end;
-	char	c = size & 0xff;
+	state_t *state = (state_t *) cookie;
+	register int fd = state->fd;
+	register int size = state->size;
+	register int random = state->random;
+	register char	*p, *where, *end;
+	register char	c = size & 0xff;
+
+	while (iterations-- > 0) {
 
 #ifdef	MAP_FILE
-	where = mmap(0, size, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, fd, 0);
+		where = mmap(0, size, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, fd, 0);
 #else
-	where = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+		where = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 #endif
-	if ((int)where == -1) {
-		perror("mmap");
-		exit(1);
-	}
-	if (random) {
-		end = where + size;
-		for (p = where; p < end; p += STRIDE) {
-			*p = c;
+		if ((int)where == -1) {
+			perror("mmap");
+			exit(1);
 		}
-	} else {
-		end = where + (size / N);
-		for (p = where; p < end; p += PSIZE) {
-			*p = c;
+		if (random) {
+			end = where + size;
+			for (p = where; p < end; p += STRIDE) {
+				*p = c;
+			}
+		} else {
+			end = where + (size / N);
+			for (p = where; p < end; p += PSIZE) {
+				*p = c;
+			}
 		}
+		munmap(where, size);
 	}
-	munmap(where, size);
-}
-
-int
-main(int ac, char **av)
-{
-	int	fd;
-	int	size;
-	int	random = 0;
-	char	*prog = av[0];
-
-	if (ac != 3 && ac != 4) {
-		fprintf(stderr, "usage: %s [-r] size file\n", prog);
-		exit(1);
-	}
-	if (strcmp("-r", av[1]) == 0) {
-		random = 1;
-		ac--, av++;
-	}
-	size = bytes(av[1]);
-	if (size < MINSIZE) {	
-		return (1);
-	}
-	CHK(fd = open(av[2], O_CREAT|O_RDWR, 0666));
-	CHK(ftruncate(fd, size));
-	BENCH(mapit(fd, size, random), 0);
-	micromb(size, get_n());
-	return(0);
 }
