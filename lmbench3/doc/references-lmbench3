@@ -292,3 +292,29 @@
 %C Proceedings of the 1999 Workshop on Hot Topics in Operating Systems
 %c Rico, AZ
 %D 1999
+
+%z Article
+%K Tullsen96
+%A Dean Tullsen
+%A Susan Eggers
+%A Joel Emer
+%A Henry Levy
+%A Jack Lo
+%A Rebecca Stamm
+%T Exploiting choice: Instruction fetch and issue on an implementable simultaneous multithreading processor
+%C Proceedings of the 23rd Annual International Symposium on Computer Architecture
+%D May 1996
+%P 191-202
+%O http://www.cs.washington.edu/research/smt/papers/ISCA96.ps
+
+%z Article
+%K Tullsen99
+%A Dean Tullsen
+%A Jack Lo
+%A Susan Eggers
+%A Henry Levy
+%T Suppoerting fine-grain synchronization on a simultaneous multithreaded processor
+%C Proceedings of the 5th International Symposium on High Performance Computer Architecture
+%D January 1999
+%P 54-58
+%O http://www.cs.washington.edu/research/smt/papers/hpca.ps
