@@ -1,13 +1,20 @@
 #!/bin/sh
 
-CC=`../scripts/compiler`
-MAKE=`../scripts/make`
-OS=`../scripts/os`
-TARGET=`../scripts/target`
-BINDIR="../bin/${OS}"
-CONFIG="../bin/${OS}/`../scripts/config`"
+CC=${CC-`../scripts/compiler`}
+MAKE=${MAKE-`../scripts/make`}
+OS=${OS-`../scripts/os`}
+TARGET=${TARGET-`../scripts/target`}
+BINDIR=../bin/"${OS}"
+CONFIG=../bin/"${OS}"/`../scripts/config`
 NULL=/dev/null
+
 BASE=/tmp/dummy
+for t in /usr/tmp /var/tmp /tmp; do
+	if [ -d $t -a -w $t ]
+	then	BASE=${t}/dummy
+		break
+	fi
+done
 
 trap 'rm -f ${BASE}$$.s ${BASE}$$.c ${BASE}$$.o ${BASE}$$; exit 1' 1 2 15
 
@@ -96,6 +103,16 @@ if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
 else
        ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c -lrt 1>${NULL} 2>${NULL} \
                && LDLIBS="${LDLIBS} -lrt"
+fi
+rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
+
+# check for -lrpc (cygwin/Windows)
+echo "extern int pmap_set(); main() { pmap_set(); }" >${BASE}$$.c
+if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
+       true;
+else
+       ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c -lrpc 1>${NULL} 2>${NULL} \
+               && LDLIBS="${LDLIBS} -lrpc"
 fi
 rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
 
@@ -192,8 +209,7 @@ if [ ${HAVE_RANDOM} -eq 0 ]; then
 fi
 
 
-# echo Building for $(TARGET)
 if [ ! -d ${BINDIR} ]; then mkdir -p ${BINDIR}; fi
 
 # now go ahead and build everything!
-${MAKE} CC="${CC}" CFLAGS="${CFLAGS}" LDLIBS="${LDLIBS}" O="${BINDIR}" $*
+${MAKE} OS="${OS}" CC="${CC}" CFLAGS="${CFLAGS}" LDLIBS="${LDLIBS}" O="${BINDIR}" $*
