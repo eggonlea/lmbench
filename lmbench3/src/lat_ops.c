@@ -479,11 +479,11 @@ main(int ac, char **av)
 
 	benchmp(float_initialize, 
 		do_float_bogomflops, cleanup, 0, 1, warmup, repetitions, &state);
-	nano("float bogomflops", get_n() * state.N);
+	nano("float bogomflops", get_n() * state.M);
 
 	benchmp(double_initialize, 
 		do_double_bogomflops, cleanup, 0, 1, warmup, repetitions, &state);
-	nano("double bogomflops", get_n() * state.N);
+	nano("double bogomflops", get_n() * state.M);
 
 	return(0);
 }
