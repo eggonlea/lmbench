@@ -58,6 +58,7 @@ typedef long long int64;
 
 #include	"stats.h"
 #include	"timing.h"
+#include	"lib_debug.h"
 #include	"lib_tcp.h"
 #include	"lib_udp.h"
 #include	"lib_unix.h"
@@ -161,7 +162,6 @@ void	save_median();
 void	save_minimum();
 void	set_results(result_t *r);
 result_t* get_results();
-void	print_results();
 
 
 #define	BENCHO(loop_body, overhead_body, enough) { 			\
