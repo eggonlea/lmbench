@@ -48,28 +48,28 @@ COMPILE=$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
 INCS =	bench.h lib_mem.h lib_tcp.h lib_udp.h stats.h timing.h
 
 SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
-	bw_unix.c bw_shm.c\
+	bw_unix.c bw_shm.c						\
 	cache.c clock.c disk.c enough.c flushdisk.c getopt.c hello.c	\
 	lat_connect.c lat_ctx.c	lat_fcntl.c lat_fifo.c lat_fs.c 	\
 	lat_mem_rd.c lat_mmap.c lat_ops.c lat_pagefault.c lat_pipe.c 	\
 	lat_proc.c lat_rpc.c lat_select.c lat_sig.c lat_syscall.c	\
 	lat_tcp.c lat_udp.c lat_unix.c lat_unix_connect.c lat_sem.c	\
-	lat_usleep.c lat_itimer.c					\
+	lat_usleep.c 							\
 	lib_debug.c lib_mem.c lib_stats.c lib_tcp.c lib_timing.c 	\
-	lib_udp.c lib_unix.c		\
+	lib_udp.c lib_unix.c						\
 	line.c lmdd.c lmhttp.c par_mem.c par_ops.c loop_o.c memsize.c 	\
 	mhz.c msleep.c rhttp.c seek.c timing_o.c tlb.c stream.c		\
 	bench.h lib_debug.h lib_tcp.h lib_udp.h lib_unix.h names.h 	\
 	stats.h timing.h version.h
 
 EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
-	$O/bw_unix $O/hello	\
+	$O/bw_unix $O/hello						\
 	$O/lat_select $O/lat_pipe $O/lat_rpc $O/lat_syscall $O/lat_tcp	\
 	$O/lat_udp $O/lat_mmap $O/mhz $O/lat_proc $O/lat_pagefault	\
 	$O/lat_connect $O/lat_fs $O/lat_sig $O/lat_mem_rd $O/lat_ctx	\
-	$O/lat_sem $O/lat_usleep $O/lat_itimer				\
-	$O/memsize $O/lat_unix $O/lmdd $O/timing_o $O/enough	\
-	$O/msleep $O/loop_o $O/lat_fifo $O/lmhttp $O/lat_http	\
+	$O/lat_sem $O/lat_usleep					\
+	$O/memsize $O/lat_unix $O/lmdd $O/timing_o $O/enough		\
+	$O/msleep $O/loop_o $O/lat_fifo $O/lmhttp $O/lat_http		\
 	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk		\
 	$O/lat_ops $O/line $O/tlb $O/cache $O/par_mem $O/par_ops 	\
 	$O/stream $O/lat_dram_page $O/bw_shm
