@@ -286,6 +286,9 @@ collect_data(int start, int line, int maxlen,
 	}
 	for (i = 0; i < samples; ++i)
 		p[i].maxlen = maxlen;
+	/* in case the system has laid out the pages well, don't scramble */
+	for (i = 0; i < state.npages; ++i)
+		state.pages[i] = i * state.pagesize;
 
 	collect_sample(repetitions, &state, &p[0]);
 	while (collect_sample(repetitions, &state, &p[samples-1]) == 0) {
