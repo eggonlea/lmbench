@@ -160,11 +160,7 @@ benchmp, designed to measure performance at specific levels
 of parallel (simultaneous) load.  It also incorporates some
 new micro-benchmarks to measure basic system operations
 and scalability, such as arithmetic operations and the
-memory hierarchy.
-.\" .SP
-\*[lmbench]'s new capabilities for analyzing the memory 
-hierarchy are discussed in greater detail in another 
-paper.
+basic elements of the memory hierarchy.
 .\" .SP
 \*[lmbench] is a micro-benchmark suite designed to focus
 attention on the basic building blocks of many
@@ -301,6 +297,7 @@ then they predict application performance on
 a variety of systems by combining the measured
 resource requirements with the measured system
 performance.
+XXX I think someone else did this before Margo
 .LP
 Benchmarking I/O systems has proven particularly
 troublesome over the years, largely due to the
@@ -339,8 +336,12 @@ uniqueBytes, sizeMean, readFrac, seqFrac, and
 processNum.  The benchmark then explores the
 parameter space to measure file system performance
 in a scalable fashion.
+.LP
+The AIM benchmark... XXX
+.LP
+Prestor's memory analysis and Saavedra's work XXX
 .NH 1
-Computer architecture primer
+Computer Architecture Primer
 .LP
 A processor architecture is generally defined by its
 instruction set, but most computer architectures
@@ -348,42 +349,118 @@ incorporate a large number of common building blocks
 and concepts, such as registers, arithmetic logic
 units, and caches.
 .LP
+Of necessity, this primer over-simplifies the
+many details and variations of specific computer
+designs and architectures.  For more information,
+please see 
+.RN Hennessy96 .
+.TSTART 1
+.so lmbench3_arch.pic
+.FEND "Architecture diagram" 1
+.LP
+Figure \n[FIGURE] contains a greatly simplified block diagram
+of a computer.  Various important elements, such as
+the I/O bus and devices, have been left out.  The
+core of the processor are the registers (r0, ..., rn
+and f0, ..., fn) and the arithmetic units (ALU and FPU).
+In general, the arithmetic units can access data in
+registers ''instantly''.  Often data must be explicitly
+loaded from memory into a register before it can be
+manipulated by the arithmetic units.
+.LP
+The ALU handles integer arithmetic, such as bit
+operations (AND, OR, XOR, NOT, and SHIFT) as
+well as ADD, MUL, DIV, and MOD.  Sometimes there
+is specialized hardware to handle one or more
+operations, such as a barrel shifter for SHIFT
+or a multiplier, and sometimes there is no
+hardware support for certain operations, such
+as MUL, DIV, and MOD.  
+.LP
+The FPU handles floating point arithmetic.
+Sometimes there are separate FPUs for single
+and double precision floating point operations.
+.NH 2
+Memory Hierarchy
+.LP
+Nearly all modern processors use some form of virtual
+memory addressing, meaning that each process has its
+own virtual address space, or mapping of virtual 
+addresses to physical addresses.  The core of the
+system operates on virtual addresses, so addresses
+must be translated to physical addresses in order
+to actually read or write data to memory.  Most
+machines do the translation between the core and
+the top level cache using a ``translation look-aside
+buffer'' (TLB), which is really a cache of virtual
+to physical page mappings.
+.LP
+Nearly all machines use at least some form of
+data caching, and many machines have multiple
+levels of cache.  A rule of thumb is that moving
+down a level in hierarchy decreases the performance 
+by at least a factor of two while the size increases 
+by a factor of ten.
+.LP
+Caches store and replace data in fixed size units, 
+called ``lines''.  Cache lines are some multiple 
+of the basic word size.  
+.LP
+In most cases, a write
+to any location in a cache line which is not
+currently resident in the cache will cause the
+line to be read into the cache before the
+dirty portion is over-written.  
+.LP
+Cache replacement policies need to be fast, so
+systems usually use some form of set-associative
+replacement policy.  In this case, each word in
+memory can be place into any of a set of lines.
+If the set has a single member, then the cache
+is called ``direct mapped'' because each location
+in memory has a direct mapping to a single cache
+line.  Typically large caches might be direct-
+mapped, while smaller caches tend to have higher
+levels of associativity.
+.NH 2
+Some Recent Innovations
+.LP
 There are a number of modern extensions to computer
 architecture that attempt to increase the processor's
 ability to do several things at once.  Nearly all of
 these enhancements are intended to be invisible to
 programmers using higher-level languages such as
 C or JAVA.
-.IP "Superscalar processors"
+.IP "\fBSuperscalar processors\fR"
 Superscalar processors have multiple processing
 units which can operate simultaneously.  
-.IP "Dynamic instruction reordering"
+.IP "\fBDynamic instruction reordering\fR"
 Dynamic instruction reordering allows the processor
 to execute instructions whose operands are ready
 before instructions which are stalled waiting for
 memory or other instruction's completion.
-.IP "Memory parallelism"
+.IP "\fBMemory parallelism\fR"
 By allowing multiple outstanding memory requests,
 processors allow the memory subsystem to service
 multiple (independent) requests in parallel. 
 Since memory accesses are a common performance
 bottleneck, this can greatly improve performance.
-.IP "Vector processing"
+.IP "\fBVector processing\fR"
 Vector processing allows the processor to execute
 arithmetic operations on vector operands in 
 parallel, and in modern commodity processors goes
 by names such as MMX, SSE, and 3DNow.
-.IP "Simultaneous multi-threading (SMT)"
+.IP "\fBSimultaneous multi-threading (SMT)\fR"
 SMT allows superscalar processors to simulatenously
 execute instructions from several threads (contexts)
-.RN Tullset96 .
+.RN Tullsen96 .
 SMT may include extensions which allow for very
 lightweight inter-thread synchronization primitives
 that enable much finer-grained thread-level 
 parallelism than traditional synchronization
 methods
 .RN Tullsen99 .
-.IP "Explicitly parallel instruction computers (EPIC)"
+.IP "\fBExplicitly parallel instruction computers (EPIC)\fR"
 EPIC allows the compiler to explicitly issue $N$
 instructions in parallel at each instruction, which
 informs the hardware that these instructions are
@@ -392,7 +469,7 @@ independent and may be executed in parallel
 It moves much of the burden regarding dependency
 checking from the hardware to the compiler.
 .NH 1
-Timing harness
+Timing Harness
 .LP
 The first, and most crucial element in extending
 \*[lmbench2] so that it could measure scalable
@@ -401,6 +478,23 @@ that could accurately measure performance for
 any given load.
 Once this was done, then each benchmark would
 be migrated to the new timing harness.
+.LP
+The harness is designed to accomplish a number
+of goals:
+.IP 1.
+during any timing interval of any child it is
+guaranteed that all other child processes are
+also running the benchmark
+.IP 2.
+the timing intervals are long enough to average
+out most transient OS scheduler affects
+.IP 3.
+the timing intervals are long enough to ensure
+that error due to clock resolution is negligible
+.IP 4.
+timing measurements can be postponed to allow
+the OS scheduler to settle and adjust to the
+load
 .LP
 Developing an accurate timing harness with a
 valid experimental design is more difficult 
@@ -508,16 +602,6 @@ exit
 T}
 .TE
 .TEND "Timing harness sequencing"
-.LP
-This convoluted system is designed to accomplish a number
-of goals:
-.IP 1.
-during any timing interval of any child it is
-guaranteed that all other child processes are
-also running the benchmark
-.IP 2.
-the timing intervals are long enough to average
-out most transient OS scheduler affects
 .NH 2
 Accuracy
 .LP
@@ -626,6 +710,11 @@ master has received all of the timing results
 from a single child, it sends the next one-byte
 message on the \fIresult_signal\fR channel to
 gather the next set of timing results.
+.TSTART 1
+.so lmbench3_signals.pic
+.FEND "Control signals" 1
+.LP
+The design of the signals is shown in Figure \n[FIGURE].
 .NH 2
 Benchmark initialization
 .LP
@@ -832,6 +921,14 @@ as much memory as possible and then \*[bcopy] from one
 segment to another, changing segments within the allocated
 memory before each \*[bcopy] to defeat the caches.
 .NH 1
+Benchmarks
+.LP
+\*[lmbench] contains a large number of micro-benchmarks
+that measure various aspects of hardware and operating
+system performance.  The benchmarks generally measure
+latency or bandwidth, but some new benchmarks also
+measure parallelism.
+.NH 2
 File System
 .LP
 A number of the benchmarks measure aspects of file system
@@ -842,16 +939,17 @@ be extended to the parallel domain.  For example, it may
 be important to know how file system performance scales
 when multiple processes are reading the same file, or
 when multiple processes are reading different files.
-The first case might be important for large scientific
-calculations, while the second might be more important
-for a web server.
+The first case might be important for large, distributed 
+scientific calculations, while the second might be more 
+important for a web server.
 .LP
 However, for the operating system, the two cases are
 significantly different.  When multiple processes
 access the same file, access to the kernel data 
 structures for that file must be coordinated and
 so contention and locking of those structures can
-impact performance.
+impact performance, while this is less true when
+multiple processes access different files.
 .LP
 In addition, there are any number of issues associated
 with ensuring that the benchmarks are either measuring
@@ -873,8 +971,8 @@ each child process.  Then each process accesses its
 private file.  When measuring accesses to a single
 file, each child simply uses the designated file
 directly.
-.NH 1
-Context switching
+.NH 2
+Context Switching
 .LP
 Measuring context switching accurately is a difficult
 task.  \*[lmbench] versions 1 and 2 measured context
@@ -891,12 +989,12 @@ The design and methodology for measuring context
 switching and scheduler overhead need to be revisited
 so that it can more accurately measure performance
 for multi-processor machines.
-.NH 1
+.NH 2
 Stream
 .LP
 \*[lmbench3] includes a new micro-benchmark which
 measures the performance of John McCalpin's \*[stream]
-benchmark kernels for both versions 1 and 2.
+benchmark kernels for \*[stream] versions 1 and 2.
 This benchmark faithfully recreates each of the
 kernel operations from both \*[stream] benchmarks,
 and because of the powerful new timing harness it
@@ -945,7 +1043,7 @@ from memory and then modify the selected bytes.
 Sometimes vector instructions such as SSE
 and 3DNow can avoid this load by writing an 
 entire cache line at once.
-.NH 1
+.NH 2
 Basic operation latency
 .LP
 \*[lmbench3] includes a new micro-benchmark 
@@ -1043,15 +1141,48 @@ the $xor$ of the lower word.  Finally, it
 can overlap the $xor$ of the upper word
 with the addition of the two lower words from
 the next instantiation of the statement.
+.TSTART
+.TS
+center box tab (&);
+c c c c
+c c c c
+l & l & r & r .
+Operand&Operation&PA-RISC 2.0&PIII
+&&180MHz&667MHz
+_
+int&$bit$&&1.16ns
+&$add$&&2.36ns
+&$mul$&&6.07ns
+&$div$&&58.52ns
+&$mod$&&65.01ns
+_
+float&$add$&&4.58ns
+&$mul$&&7.50ns
+&$div$&&35.26ns
+_
+double&$add$&&4.53ns
+&$mul$&&7.71ns
+&$div$&&35.51ns
+.TE
+.TEND "lat_ops results"
 .LP
-The $bit$ statement is potentially problematic
-on systems without a barrel shifter that can
-conduct a shift of any magnitude in a single
-cycle.  
-.NH 1
+Table \n[TABLE] contains some sample results
+for two processors.  
+It does contain one result which is slightly
+surprising unless you are familiar with the
+PA-RISC architecture: floating point multiply
+and divide are faster than the corresponding
+integer operations!  This is because PA-RISC
+does not contain integer MUL, DIV, or MOD
+instructions and the optimizing compiler
+converts the integers into floating point,
+does the operations in the floating point
+unit, and then converts the result back
+into an integer.
+.NH 2
 Basic operation parallelism
 .LP
-Intra-processor parallelism in commodity processors
+Instruction-level parallelism in commodity processors
 has become commonplace in the last ten years.  
 Modern processors typically have more than one
 operational unit that can be active during a
@@ -1145,6 +1276,31 @@ could simply subtract $t sub xor$ from the
 baseline measurement.  The difficulty lies
 in determining whether the units overlap
 or not.
+.TSTART
+.TS
+center box tab (&);
+c c c c
+c c c c
+l & l & r & r .
+Operand&Operation&PA-RISC 2.0&PIII
+&&180MHz&667MHz
+_
+int&$bit$&&1.00
+&$add$&&1.61
+&$mul$&&3.81
+&$div$&&1.20
+&$mod$&&1.11
+_
+float&$add$&&1.00
+&$mul$&&1.14
+&$div$&&1.03
+_
+double&$add$&&1.08
+&$mul$&&1.00
+&$div$&&1.03
+.TE
+.TEND "par_ops results"
+.LP
 .NH 1
 Unscalable benchmarks
 .LP
