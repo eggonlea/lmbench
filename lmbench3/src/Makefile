@@ -80,8 +80,8 @@ MAN8 =	$D/bw_file_rd.8 $D/bw_mem_cp.8 $D/bw_mem_rd.8 $D/bw_mem_wr.8	\
 	$D/lat_pagefault.8 $D/lat_pipe.8 $D/lat_proc.8 $D/lat_rpc.8 	\
 	$D/lat_syscall.8 $D/lat_tcp.8 $D/lat_udp.8 $D/lmbench.8 	\
 	$D/lmdd.8 $D/mhz.8 
-
-LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o $O/lib_stats.o
+LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o 	\
+	$O/lib_stats.o $O/getopt.o
 
 lmbench: $(UTILS)
 	@echo Building for $(TARGET)
@@ -164,12 +164,13 @@ shar:
 depend: ../scripts/depend
 	../scripts/depend
 
-$O/lmbench.a: lib_timing.c lib_tcp.c lib_udp.c lib_unix.c lib_stats.c bench.h timing.h stats.h lib_tcp.h lib_udp.h names.h
+$O/lmbench.a: lib_timing.c lib_tcp.c lib_udp.c lib_unix.c lib_stats.c getopt.c bench.h timing.h stats.h lib_tcp.h lib_udp.h names.h
 	$(COMPILE) -c lib_timing.c -o $O/lib_timing.o
 	$(COMPILE) -c lib_tcp.c -o $O/lib_tcp.o
 	$(COMPILE) -c lib_udp.c -o $O/lib_udp.o
 	$(COMPILE) -c lib_unix.c -o $O/lib_unix.o
 	$(COMPILE) -c lib_stats.c -o $O/lib_stats.o
+	$(COMPILE) -c getopt.c -o $O/getopt.o
 	/bin/rm -f $O/lmbench.a
 	$(AR) $(ARCREATE) $O/lmbench.a $(LIBOBJS)
 	-ranlib $O/lmbench.a
