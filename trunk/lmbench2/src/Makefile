@@ -81,7 +81,7 @@ MAN8 =	$D/bw_file_rd.8 $D/bw_mem_cp.8 $D/bw_mem_rd.8 $D/bw_mem_wr.8	\
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o $O/lib_stats.o
 
 lmbench: $(UTILS)
-	@env CFLAGS=-O ../scripts/build
+	@env CFLAGS=-O ../scripts/build all
 
 results: lmbench
 	@../scripts/config-run
