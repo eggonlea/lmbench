@@ -49,6 +49,8 @@ int	fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 #endif
 #define ABS(a) ((a) < 0 ? -(a) : (a))
 
+#define SWAP(a,b) {int _tmp = (a); (a) = (b); (b) = _tmp;}
+
 #define THRESHOLD 1.5
 
 #define	FIVE(m)		m m m m m
@@ -346,7 +348,7 @@ search(int left, int right, int repetitions,
 		if (p[left].ratio < 0.98) {
 			p[left].latency = p[right].latency;
 			p[left].ratio = 1.;
-			p[left].slope = -1.;
+			p[left].slope = 0.;
 		}
 	}
 
@@ -386,6 +388,9 @@ collect_sample(int repetitions, struct mem_state* state,
 					      state->pages, p->len, 
 					      &baseline, baseline, 
 					      repetitions, state);
+			/**/
+			fprintf(stderr, "collect_sample(...): iter=%d: baseline=%G, len=%d\n", i, baseline, p->len);
+			/**/
 		}
 	}
 	p->latency = baseline;
@@ -502,8 +507,8 @@ test_chunk(int i, int chunk, int npages, int* pages, int len,
 	   int repetitions, struct mem_state* state)
 {
 	int	j, k, subchunk;
-	int	changed = 0;
 	int	modified = 0;
+	int	changed[20];
 	double	t, tt, nodiff_chunk_baseline;
 
 	if (chunk <= 20) {
@@ -513,9 +518,11 @@ test_chunk(int i, int chunk, int npages, int* pages, int len,
 
 	nodiff_chunk_baseline = *baseline;
 	subchunk = (chunk + 19) / 20;
-	for (j = i; j < i + chunk; j+=subchunk) {
+	bzero(&changed[0], 20 * sizeof(int));
+	for (j = i, k = 0; j < i + chunk; j+=subchunk, k++) {
+		if (changed[k]) continue;
+
 		if (j + subchunk > i + chunk) subchunk = i + chunk - j;
-		changed = 0;
 
 		t = remove_chunk(j, subchunk, npages, pages, 
 				 len, repetitions, state);
@@ -539,10 +546,10 @@ test_chunk(int i, int chunk, int npages, int* pages, int len,
 		fprintf(stderr, "test_chunk(...): faster chunk: baseline=%G, t=%G, len=%d, chunk=%d, i=%d\n", *baseline, t, len, subchunk, j);
 		/**/
 
-		changed = test_chunk(j, subchunk, npages, pages, len,
+		changed[k] = test_chunk(j, subchunk, npages, pages, len,
 				     baseline, t, repetitions, state);
 
-		if (changed) {
+		if (changed[k]) {
 			modified = 1;
 		} else {
 			nodiff_chunk_baseline = t;
@@ -565,7 +572,7 @@ fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 	    double *baseline, double chunk_baseline,
 	    int repetitions, struct mem_state* state)
 {
-	int	j, k;
+	int	j, k, l, m;
 	int	page, substitute, original;
 	int	ntotalpages, nsparepages;
 	int	subset_len;
@@ -574,6 +581,7 @@ fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 	int	*saved_pages;
 	static int	available_index = 0;
 	double	t, tt, low, var, new_baseline;
+	double	latencies[20];
 
 	/**/
 	fprintf(stderr, "fixup_chunk(%d, %d, %d, xxx, %d, %G, %G, ...): entering\n", i, chunk, npages, len, *baseline, chunk_baseline);
@@ -598,57 +606,110 @@ fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 
 	if (available_index >= nsparepages) available_index = 0;
 
-	for (j = 0; j < chunk; ++j) {
-		original = npages - chunk + j;
-		subset_len = (original + 1) * getpagesize();
-		page = pages[original];
+	/* 
+	 * first try to identify which pages we can definitely keep
+	 */
+	for (j = 0, k = chunk; j < k; ) {
 
-		tt = measure(subset_len, repetitions, &var, state);
+		t = measure((npages - chunk + j + 1) * getpagesize(), 
+			    repetitions, &var, state);
 
-		/**/
-		fprintf(stderr, 
-			"\ti = %d\tpage = %d\tbase = %G\ttt = %G\n", 
-			i + j, page, *baseline, tt);
-		/**/
-				
-		low = tt;
-		new_baseline = tt;
+		if (0.995 * t <= chunk_baseline) {	
+			++j;	/* keep this page */
+			new_baseline = t;
+		} else {	
+			--k;	/* this page is probably no good */
+			++swapped;
+			latencies[k] = t;
+			SWAP(pages[npages - chunk + j], pages[npages - chunk + k]);
+		}
+	}
+	/*
+	 * sort the "bad" pages by increasing latency
+	 */
+	fprintf(stderr, "\tbefore sort\n");
+	for (l = j; l < chunk; ++l) {
+		fprintf(stderr, "\t\tlatencies[%d] = %G\tpages[%d] = %d\n", l, latencies[l], i + l, pages[npages - chunk + l]);
+	}
 
-		if (0.995 * tt <= chunk_baseline) continue;
-
-		/* page is no good, find a substitute! */
-		for (k = 0; k < 2 * npages; ++k) {
-			substitute = nsparepages - 1;
-			substitute -= (k + available_index) % (nsparepages - 1);
-			pages[original] = pageset[substitute];
-
-			tt = measure(subset_len, repetitions, &var, state);
-			/**/
-			fprintf(stderr, 
-				"\t\tk = %d\tpage = %d\ttt = %G\tbase = %G\n", 
-				k, pageset[substitute], tt, new_baseline);
-			/**/
-
-			/* this is the minimum so far */
-			if (tt < new_baseline) {
-				new_baseline = tt;
-				/* p->variation = var; */
-				pageset[substitute] = page;
-				page = pages[original];
-				++swapped;
+	for (; k < chunk; ++k) {
+		for (l = k + 1; l < chunk; ++l) {
+			if (latencies[k] > latencies[l]) {
+				tt = latencies[k]; 
+				latencies[k] = latencies[l];
+				latencies[l] = tt;
+				SWAP(pages[npages - chunk + k], pages[npages - chunk + l]);
 			}
-
-			/* pageset[k] is OK */
-			if (0.995 * tt <= chunk_baseline) break;
 		}
+	}
+	fprintf(stderr, "\tafter sort\n");
+	for (l = j; l < chunk; ++l) {
+		fprintf(stderr, "\t\tlatencies[%d] = %G\tpages[%d] = %d\n", l, latencies[l], i + l, pages[npages - chunk + l]);
+	}
+
+
+	for (k = 0; j < chunk && k < 2 * npages; ++k) {
+		original = npages - chunk + j;
+		substitute = nsparepages - 1;
+		substitute -= (k + available_index) % (nsparepages - 1);
+		subset_len = (original + 1) * getpagesize();
+
+		SWAP(pages[original], pageset[substitute]);
+		t = measure(subset_len, repetitions, &var, state);
+		SWAP(pages[original], pageset[substitute]);
+
 		/**/
-		if ((k + available_index) % (nsparepages - 1) < available_index) {
-			fprintf(stderr, "\t\trolled available_index, nsparepages=%d, npages=%d\n", nsparepages, npages);
-		}
+		fprintf(stderr, "\tk = %d\tj = %d\tpage = %d\ttt = %G\tbase = %G\n", 
+			k, j, pageset[substitute], t, new_baseline);
 		/**/
 
-		available_index = (k + available_index) % (nsparepages - 1);
-		pages[original] = page;
+		/*
+		 * try to keep pages ordered by increasing latency
+		 */
+		for (l = j; l < chunk; ++l) {
+			if (latencies[l] > t) {
+				++swapped;
+				SWAP(pages[npages - 1], pageset[substitute]);
+				latencies[chunk - 1] = t;
+				for (m = chunk - 1; m > l; --m) {
+					SWAP(pages[npages - chunk + m], 
+					     pages[npages - chunk + m - 1]);
+					tt = latencies[m]; 
+					latencies[m] = latencies[m-1];
+					latencies[m-1] = tt;
+				}
+				fprintf(stderr, "\tafter insert of %G\n", t);
+				for (l = j; l < chunk; ++l) {
+					fprintf(stderr, "\t\tlatencies[%d] = %G\tpages[%d] = %d\n", l, latencies[l], i + l, pages[npages - chunk + l]);
+				}
+				/**/
+				fprintf(stderr, "\t\tj=%d, worst=%G\n", j, latencies[chunk - 1]);
+				/**/
+				if (0.995 * t <= chunk_baseline) {	
+					++j;	/* keep this page */
+					new_baseline = t;
+					/* XXX: should retest each page and 
+					 *      then sort pages again
+					 */
+				}
+				break;
+			}
+		}
+	}
+				
+	if ((k + available_index) % (nsparepages - 1) < available_index) {
+		fprintf(stderr, "\t\trolled available_index, nsparepages=%d, npages=%d\n", nsparepages, npages);
+	}
+	/**/
+
+	available_index = (k + available_index) % (nsparepages - 1);
+
+	/* measure new baseline, in case we didn't manage to optimally
+	 * replace every page
+	 */
+	if (j < chunk) {
+		new_baseline = measure(npages * getpagesize(), 
+				       repetitions, &var, state);
 	}
 
 	if (new_baseline >= 0.999 * *baseline) {
