@@ -174,14 +174,6 @@ cleanup(iter_t iterations, void* cookie)
 	(void)close(state->sock);
 }
 
-
-void
-child()
-{
-	wait(0);
-	signal(SIGCHLD, child);
-}
-
 void
 server_main()
 {
@@ -189,13 +181,13 @@ server_main()
 
 	GO_AWAY;
 
-	signal(SIGCHLD, child);
 	data = tcp_server(TCP_DATA, SOCKOPT_WRITE|SOCKOPT_REUSE);
 	if (data < 0) {
 		perror("server socket creation");
 		exit(1);
 	}
 
+	signal(SIGCHLD, sigchld_wait_handler);
 	for ( ;; ) {
 		newdata = tcp_accept(data, SOCKOPT_WRITE);
 		switch (fork()) {
