@@ -56,6 +56,7 @@ loads(char *addr, int range, int stride)
         int     i;
 	int	tries = 0;
 	int	result = 0x7fffffff;
+	double	time;
 
      	if (stride & (sizeof(char *) - 1)) {
 		printf("lat_mem_rd: stride must be aligned.\n");
@@ -135,9 +136,10 @@ loads(char *addr, int range, int stride)
 	 *
 	 * XXX - we do not account for loop overhead here.
 	 */
-	result *= 1000;			/* convert to nanoseconds */
-	result /= N;				/* nanosecs per load */
-	fprintf(stderr, "%.5f %d\n", range / (1024. * 1024), result);
+	time = (double)result;
+	time *= 1000.;				/* convert to nanoseconds */
+	time /= (double)N;			/* nanosecs per load */
+	fprintf(stderr, "%.5f %.3f\n", range / (1024. * 1024), time);
 }
 
 int
