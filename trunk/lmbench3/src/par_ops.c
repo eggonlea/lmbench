@@ -137,7 +137,7 @@ void benchmark##_##N(iter_t iterations, void *cookie) 			\
 #undef	INIT
 #undef	PREAMBLE
 #undef	SAVE
-#define BODY(N)		r##N ^= s##N; s##N ^= r##N;
+#define BODY(N)		r##N ^= s##N; s##N ^= r##N; s##N |= (N+1)<<8;
 #define DECLARE(N)	register int r##N, s##N;
 #define INIT(N)		r##N = state->int_data[N] + 1; s##N = (N+1) + r##N;
 #define PREAMBLE(N)	
@@ -197,7 +197,7 @@ PARALLEL_BENCHMARKS(integer_mod)
 #undef	INIT
 #undef	PREAMBLE
 #undef	SAVE
-#define BODY(N)		r##N ^= s##N; s##N ^= r##N;
+#define BODY(N)		r##N ^= s##N; s##N ^= r##N; s##N |= (N+1)<<8;
 #define DECLARE(N)	register int64 r##N, s##N;
 #define INIT(N)		r##N = (int64)state->int_data[N] + 1; s##N = (N+1) + r##N;
 #define PREAMBLE(N)	
