@@ -57,30 +57,29 @@ echo ""
 ############################################################################
 # Figure out memory size.
 ############################################################################
-TMP=
-XTMP=
 if [ -r /proc/meminfo ]
-then	TMP=`grep 'Mem:' /proc/meminfo | awk '{print $2}'`
+then
+	TMP=`grep 'MemTotal:' /proc/meminfo | awk '{print $2}'`
 	if [ X$TMP != X ]
-	then	XTMP=`echo \(\( $TMP / 1048576 \) \* 7 \) / 10 | bc 2>/dev/null`
-	else
-		TMP=`grep 'MemTotal:' /proc/meminfo | awk '{print $2}'`
-		if [ X$TMP != X ]
-		then XTMP=`echo \(\( $TMP / 1024 \) \* 7 \) / 10 | bc 2>/dev/null`
+	then	MB=`echo \(\( $TMP / 1024 \) \* 7 \) / 10 | bc 2>/dev/null`
+		if [ X$MB = X ]
+		then	MB=`expr $TMP / 1024 2>/dev/null`
+			MB=`expr $MB \* 7`
+			MB=`expr $MB / 10`
 		fi
 	fi
-	if [ X$XTMP = X ]
-	then	XTMP=`expr $TMP / 1048576 2>/dev/null`
-		XTMP=`expr $XTMP \* 7`
-		XTMP=`expr $XTMP / 10`
-	fi
-	if [ X$XTMP != X -a $XTMP -gt 0 ]
-	then	TMP=$XTMP
+	TMP=`grep 'Mem:' /proc/meminfo | awk '{print $2}'`
+	if [ X$MB = X -a X$TMP != X ]
+	then	MB=`echo \(\( $TMP / 1048576 \) \* 7 \) / 10 | bc 2>/dev/null`
+		if [ X$MB = X ]
+		then	MB=`expr $TMP / 1048576 2>/dev/null`
+			MB=`expr $MB \* 7`
+			MB=`expr $MB / 10`
+		fi
 	fi
 fi
-if [ X$TMP != X ]
-then	MB=$TMP
-else	$ECHON "Probing system for available memory: $ECHOC"
+if [ X$MB = X ]
+then	$ECHON "Probing system for available memory: $ECHOC"
 	MB=`../bin/$OS/memsize 1024`
 fi
 
@@ -104,8 +103,8 @@ fi
 # Figure out how much we can use.
 echo "Checking to see if you have $MB MB; please wait for a moment..."
 AVAILMEM=`../bin/$OS/memsize $MB`
-AVAILMEM=`../bin/$OS/memsize $MB`
-AVAILMEM=`../bin/$OS/memsize $MB`
+AVAILMEM=`../bin/$OS/memsize $AVAILMEM`
+AVAILMEM=`../bin/$OS/memsize $AVAILMEM`
 if [ $AVAILMEM -lt 8 ]
 then    echo $0 aborted: Not enough memory, only ${AVAILMEM}MB available. 
 	exit 1

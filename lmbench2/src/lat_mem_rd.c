@@ -17,7 +17,7 @@ char	*id = "$Id$\n";
 #define	MEMTRIES	4
 #define	LOWER	512
 void	loads(char *addr, size_t range, size_t stride);
-int	step(int k);
+size_t	step(size_t k);
 
 int
 main(int ac, char **av)
@@ -136,31 +136,19 @@ loads(char *addr, size_t range, size_t stride)
 	fprintf(stderr, "%.5f %.3f\n", range / (1024. * 1024), time);
 }
 
-int
-step(int k)
+size_t
+step(size_t k)
 {
 	if (k < 1024) {
 		k = k * 2;
         } else if (k < 4*1024) {
 		k += 1024;
-        } else if (k < 32*1024) {
-		k += 2048;
-        } else if (k < 64*1024) {
-		k += 4096;
-        } else if (k < 128*1024) {
-		k += 8192;
-        } else if (k < 256*1024) {
-		k += 16384;
-        } else if (k < 512*1024) {
-		k += 32*1024;
-	} else if (k < 4<<20) {
-		k += 512 * 1024;
-	} else if (k < 8<<20) {
-		k += 1<<20;
-	} else if (k < 20<<20) {
-		k += 2<<20;
 	} else {
-		k += 10<<20;
+		size_t s;
+
+		for (s = 32 * 1024; s <= k; s *= 2)
+			;
+		k += s / 16;
 	}
 	return (k);
 }
