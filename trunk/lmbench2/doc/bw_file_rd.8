@@ -11,16 +11,16 @@ bw_file_rd \- time the reading and summing of a file
 times the read of the specified file in 64KB blocks. Each block is summed
 up as a seried of 4 byte integers in an unrolled loop.
 Results are reported in megabytes read per second.
-.LP
+.PP
 The data is not accessed in the user program; the benchmark relies on
 the operating systems read interface to have actually moved the data.
 Systems that implement page flipping may fool this benchmark.
-.LP
+.PP
 The benchmark is intended to be used on a file 
 that is in memory, i.e., the benchmark is a reread benchmark.  Other
 file benchmarking can be done with 
 .BR lmdd (8).
-.LP
+.PP
 The size
 specification may end with ``k'' or ``m'' to mean
 kilobytes (* 1024) or megabytes (* 1024 * 1024).
