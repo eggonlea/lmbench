@@ -28,7 +28,7 @@
 %K Brown97
 %A Aaron Brown
 %A Margo Seltzer
-%T Operating system benchmarking in the wake of lmbench: A case study of the performance of NetBSD on the Intel x86 architecture
+%T Operating system benchmarking in the wake of lmbench: a case study of the performance of NetBSD on the Intel x86 architecture
 %B Proceedings of the 1997 ACM SIGMETRICS Conference on Measurement and Modeling of Computer Systems
 %C Seattle, WA
 %D June 1997
@@ -275,10 +275,10 @@
 %K Weicker84
 %A R.P. Weicker
 %T Dhrystone: A synthetic systems programming benchmark
-%J CACM
+%J Communications of the ACM
 %V 27
 %N 10
-%P 1013-1030
+%P 1013--1030
 %D 1984
 
 %z Article
@@ -295,7 +295,7 @@
 %V 6
 %N 1
 %D February 1988
-%P 51-81
+%P 51--81
 %k Andrew benchmark
 
 %z Article
@@ -306,6 +306,7 @@
 %B Proceedings USENIX Symposium on Internet Technologies and Systems
 %C Monterey, CA
 %D December 1997
+%P 61--71
 
 %z Article
 %K Banga98
@@ -315,6 +316,7 @@
 %B Proceedings of the 1998 USENIX Annual Technical Conference
 %C New Orleans, LA
 %D June 1998
+%P 69--83
 
 %z Article
 %K Mogul99
@@ -326,6 +328,15 @@
 %D March 1999
 
 %z Article
+%K Regehr2002
+%A John Regehr
+%T Inferring scheduling behavior with Hourglass
+%B Proceedings of the USENIX Annual Technical Conference FREENIX track
+%C Monterey, CA
+%D June 2002
+%P 143--156
+
+%z Article
 %K Seltzer99
 %A Margo Seltzer
 %A David Krinsky
@@ -335,6 +346,7 @@
 %B Proceedings of the 1999 Workshop on Hot Topics in Operating Systems
 %C Rico, AZ
 %D 1999
+%P 102--107
 
 %z Article
 %K Smith97
