@@ -25,6 +25,17 @@ void	initialize(void* cookie);
 void	benchmark(iter_t iterations, void* cookie);
 void	cleanup(void* cookie);
 
+struct _state* pGlobalState;
+
+void
+sigterm_handler(int n)
+{
+	if (pGlobalState->pid) {
+		kill(SIGKILL, pGlobalState->pid);
+	}
+	exit(0);
+}
+
 int
 main(int ac, char **av)
 {
@@ -36,6 +47,7 @@ main(int ac, char **av)
 	char* usage = "[-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
 
 	state.msize = 1;
+	state.pid = 0;
 
 	while (( c = getopt(ac, av, "m:P:W:N:")) != EOF) {
 		switch(c) {
@@ -60,6 +72,10 @@ main(int ac, char **av)
 	if (optind < ac) {
 		lmbench_usage(ac, av, usage);
 	}
+
+	pGlobalState = &state;
+	signal(SIGTERM, sigterm_handler);
+
 	benchmp(initialize, benchmark, cleanup, 0, parallel, 
 		warmup, repetitions, &state);
 

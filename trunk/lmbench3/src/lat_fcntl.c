@@ -1,7 +1,7 @@
 #include "bench.h"
 
 /*
- * lat_pipe.c - pipe transaction test
+ * lat_fcntl.c - file locking test
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -43,6 +43,17 @@ struct _state {
 void initialize(void* cookie);
 void benchmark(iter_t iterations, void* cookie);
 void cleanup(void* cookie);
+
+struct _state* pGlobalState;
+
+void
+sigterm_handler(int n)
+{
+	if (pGlobalState->pid) {
+		kill(SIGKILL, pGlobalState->pid);
+	}
+	exit(0);
+}
 
 void
 procA(struct _state *state)
@@ -167,7 +178,8 @@ void cleanup(void* cookie)
 	unlink(state->filename1);
 	unlink(state->filename2);
 
-	kill(state->pid, 9);
+	kill(state->pid, SIGKILL);
+	state->pid = 0;
 }
 
 int
@@ -201,6 +213,10 @@ main(int ac, char **av)
 			break;
 		}
 	}
+
+	state.pid = 0;
+	pGlobalState = &state;
+	signal(SIGTERM, sigterm_handler);
 
 	benchmp(initialize, benchmark, cleanup, 0, parallel, 
 		warmup, repetitions, &state);
