@@ -20,6 +20,7 @@ struct cache_results {
 	double	latency;
 	double	variation;
 	double	ratio;
+	double	slope;
 };
 
 int	find_cache(int start, int n, struct cache_results* p);
@@ -45,13 +46,13 @@ int
 main(int ac, char **av)
 {
 	int	c;
-	int	i, n, start, level, prev;
+	int	i, j, n, start, level, prev, min;
 	int	line = -1;
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	print_cost = 0;
 	int	maxlen = 32 * 1024 * 1024;
-	double	par;
+	double	par, maxpar;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 	struct cache_results* r;
 	struct mem_state state;
@@ -93,7 +94,7 @@ main(int ac, char **av)
 
 	n = collect_data(512, line, maxlen, warmup, repetitions, &r);
 
-	for (start = 0, prev = -1, level = 1; 
+	for (start = 0, prev = 0, level = 1; 
 	     (i = find_cache(start, n, r)) >= 0; 
 	     ++level, start = i + 1, prev = i) 
 	{
@@ -119,22 +120,35 @@ main(int ac, char **av)
 		state.len = r[i].len;
 		state.maxlen = r[i].len;
 		state.pagesize = getpagesize();
-		state.line = line_find(2*r[i].len, warmup, repetitions, &state);
+		state.line = line_find(2 * r[i].len, warmup, repetitions, &state);
 		if (state.line == 0) state.line = line;
 
-		/* Compute memory parallelism for cache */
-		par = par_mem(r[i].len/2, warmup, repetitions, &state);
+		/* locate most likely cache latency */
+		for (j = prev, min = prev; j < i; ++j) {
+			if (r[j].latency > 0. && r[j].ratio < r[min].ratio)
+				min = j;
+		}
 
-		if (prev >= 0) {
-			for (prev++; prev < i && r[prev].latency < 0.; prev++)
-				;
+		/* Compute memory parallelism for cache */
+		maxpar = par_mem(r[min].len, warmup, repetitions, &state);
+		for (j = prev + 2; j < i; ++j) {
+			if (r[j].latency == -1.) continue;
+			par = par_mem(r[j].len, warmup, repetitions, &state);
+			if (par > maxpar) {
+				maxpar = par;
+			}
 		}
 
 		fprintf(stderr, 
 		    "L%d cache: %d bytes %.2f nanoseconds %d linesize %.2f parallelism\n",
-		    level, r[i].len, r[prev >= 0 ? prev : 0].latency, state.line, par);
+		    level, r[i].len, r[min].latency, state.line, maxpar);
 	}
-	fprintf(stderr, "Memory latency: %.2f nanoseconds\n", r[n-1].latency);
+
+	/* Compute memory parallelism for main memory */
+	par = par_mem(r[n-1].len, warmup, repetitions, &state);
+
+	fprintf(stderr, "Memory latency: %.2f nanoseconds %.2f parallelism\n",
+		r[n-1].latency, par);
 
 	exit(0);
 }
@@ -149,15 +163,13 @@ find_cache(int start, int n, struct cache_results* p)
 		if (p[prev].ratio > 0.0) break;
 	}
 
-	for (i = start; i < n; ++i) {
+	for (i = start, j = -1; i < n; ++i) {
 		if (p[i].latency < 0.) continue;
-		if (p[prev].ratio <= p[i].ratio) {
-			if (p[i].ratio > max) {
-				j = i;
-				max = p[i].ratio;
-			} else if (max > THRESHOLD) {
-				return j;
-			}
+		if (p[prev].ratio <= p[i].ratio && p[i].ratio > max) {
+			j = i;
+			max = p[i].ratio;
+		} else if (p[i].ratio < max && THRESHOLD < max) {
+			return j;
 		}
 		prev = i;
 	}
@@ -198,6 +210,7 @@ collect_data(int start, int line, int maxlen,
 			p[idx].maxlen = maxlen;
 			p[idx].latency = -1.;
 			p[idx].ratio = -1.;
+			p[idx].slope = -1.;
 		}
 	}
 
@@ -208,15 +221,16 @@ collect_data(int start, int line, int maxlen,
 	search(0, samples - 1, line, warmup, repetitions, p);
 
 	/**/
-	fprintf(stderr, "%10.10s %10.10s %10.10s %10.10s\n", "mem size", "latency", "variation", "ratio");
+	fprintf(stderr, "%10.10s %10.10s %10.10s %10.10s %10.10s\n", "mem size", "latency", "variation", "ratio", "slope");
 	for (idx = 0; idx < samples; ++idx) {
 		if (p[idx].latency < 0.) continue;
 		fprintf(stderr, 
-			"%10.6f %10.5f %10.5f %10.5f\n", 
+			"%10.6f %10.5f %10.5f %10.5f %10.5f\n", 
 			p[idx].len / (1000. * 1000.), 
 			p[idx].latency, 
 			p[idx].variation, 
-			p[idx].ratio);
+			p[idx].ratio,
+			p[idx].slope);
 	}
 	/**/
 
@@ -229,22 +243,28 @@ search(int left, int right,
 {
 	int	middle = left + (right - left) / 2;
 
-	if (p[left].latency != 0.0) {
+	if (p[left].latency > 0.0) {
 		p[left].ratio = p[right].latency / p[left].latency;
+		p[left].slope = (p[left].ratio - 1.) / (double)(right - left);
 		/* we probably have a bad data point, so re-test it */
 		if (p[left].ratio < 0.98) {
+			/**/
 			fprintf(stderr, "search: retesting %d\n", p[left].len);
+			/**/
 			p[left].ratio = -1.;
+			p[left].latency = -1.;
 			collect_sample(line, warmup, repetitions, &p[left]);
-			if (p[left].latency != 0.0)
+			if (p[left].latency > 0.0) {
 				p[left].ratio = p[right].latency / p[left].latency;
+				p[left].slope = (p[left].ratio - 1.) / (double)(right - left);
+			}
 		}
 	}
 
 	if (middle == left || middle == right)
 		return 0;
 
-	if (p[left].ratio > 1.1 || p[left].ratio < 0.97) {
+	if (p[left].ratio > 1.05 || p[left].ratio < 0.97) {
 		collect_sample(line, warmup, repetitions, &p[middle]);
 		search(middle, right, line, warmup, repetitions, p);
 		search(left, middle, line, warmup, repetitions, p);
@@ -294,7 +314,7 @@ measure(int size, int line, int maxlen, int warmup,
 
 	for (i = 0; i < repetitions; ++i) {
 		benchmp(mem_initialize, mem_benchmark_0, mem_cleanup, 
-			0, 1, warmup, TRIES, &state);
+			0, 1, warmup, 7, &state);
 		save_minimum();
 		insertsort(gettime(), get_n(), r);
 		state.maxlen = maxlen;
