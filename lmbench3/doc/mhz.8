@@ -1,0 +1,40 @@
+.\" $Id$
+.TH MHZ 8 "$Date$" "(c)1994 Larry McVoy" "LMBENCH"
+.SH NAME
+mhz \- calulate processor clock rate
+.SH SYNOPSIS
+.B mhz
+.I [-c]
+.SH DESCRIPTION
+.B mhz
+calculates the processor clock rate and megahertz.  It uses an
+unrolled, interlocked loop of adds or shifts.  So far, superscalarness
+has been defeated on the tested processors (SuperSPARC, RIOS, Alpha).
+.SH OUTPUT
+Output format is either just the clock rate as a float (-c) or more verbose
+.sp
+.ft CB
+39.80 Mhz, 25 nanosec clock
+.ft
+.SH BUGS
+This program is highly compiler sensitive.  GCC seems to almost always do
+the right thing.  The right thing is this: the main loop is a series of
+dependent integer operations, such as \f(CWa++; a++; a++; ...\fP
+The variable is declared as a register integer and it is hoped that the
+compiler, \fBwithout optimization since optimizing would remove the whole
+loop\fP, will turn that directly into one instruction.
+.LP
+This is not always the case.  If you think that your mhz output is wrong,
+check the compiler output by compiling like so \f(CBcc -S mhz.c\fP and
+then examining mhz.s.  It should have a bunch of identical instructions
+at the bottom of the file.  All of the instructions should be
+adds or shifts of the same registers, over and over.
+If it is loading,
+adding, storing, then it failed to put the variable in a register.
+It probably put the variable on the stack.
+Try gcc if this happens.
+.SH ACKNOWLEDGEMENT
+Funding for the development of
+this tool was provided by Sun Microsystems Computer Corporation.
+.SH "SEE ALSO"
+lmbench(8).
