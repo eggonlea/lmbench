@@ -213,7 +213,7 @@ if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_FILE = XYES ]; then
 		echo Calculating file system latency >> ${OUTPUT}
 		msleep 250
 		echo '"File system latency' 1>&2
-		lat_fs -P $SYNC_MAX $FSDIR
+		lat_fs $FSDIR
 		echo "" 1>&2
 	fi
 fi
