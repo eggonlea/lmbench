@@ -30,7 +30,6 @@ char           *id = "$Id$\n";
 
 #include "bench.h"
 #include <sched.h>
-#include <sys/select.h>
 
 typedef     enum {USLEEP, NANOSLEEP, SELECT, PSELECT, ITIMER} timer_e;
 
@@ -83,6 +82,7 @@ bench_select(iter_t iterations, void *cookie)
     }
 }
 
+#ifdef _POSIX_SELECT
 void
 bench_pselect(iter_t iterations, void *cookie)
 {
@@ -95,6 +95,7 @@ bench_pselect(iter_t iterations, void *cookie)
 	pselect(0, NULL, NULL, NULL, &ts, NULL);
     }
 }
+#endif /* _POSIX_SELECT */
 
 void
 interval()
@@ -145,13 +146,15 @@ bench_itimer(iter_t iterations, void *cookie)
     }
 }
 
-void
+int
 set_realtime()
 {
     struct sched_param sp;
 
     sp.sched_priority = sched_get_priority_max(SCHED_RR);
-    sched_setscheduler(0, SCHED_RR, &sp);
+    if (sched_setscheduler(0, SCHED_RR, &sp) >= 0) return TRUE;
+    perror("sched_setscheduler");
+    return FALSE;
 }
 
 int
@@ -164,6 +167,8 @@ main(int ac, char **av)
     char            buf[512];
     timer_e	    what = USLEEP;
     state_t         state;
+    char           *scheduler = "";
+    char           *mechanism = "usleep";
     char           *usage = "[-r] [-u <method>] [-W <warmup>] [-N <repetitions>] usecs\nmethod=usleep|nanosleep|select|pselect|itimer\n";
 
     realtime = 0;
@@ -176,14 +181,21 @@ main(int ac, char **av)
 	case 'u':
 	    if (strcmp(optarg, "usleep") == 0) {
 		what = USLEEP;
+		mechanism = "usleep";
 	    } else if (strcmp(optarg, "nanosleep") == 0) {
 		what = NANOSLEEP;
+		mechanism = "nanosleep";
 	    } else if (strcmp(optarg, "select") == 0) {
 		what = SELECT;
+		mechanism = "select";
+#ifdef _POSIX_SELECT
 	    } else if (strcmp(optarg, "pselect") == 0) {
 		what = PSELECT;
+		mechanism = "pselect";
+#endif /* _POSIX_SELECT */
 	    } else if (strcmp(optarg, "itimer") == 0) {
 		what = ITIMER;
+		mechanism = "itimer";
 	    } else {
 		lmbench_usage(ac, av, usage);
 	    }
@@ -204,38 +216,36 @@ main(int ac, char **av)
     }
 
     state.usecs = bytes(av[optind]);
-    if (realtime) set_realtime();
+    if (realtime && set_realtime()) scheduler = "realtime ";
 
     switch (what) {
     case USLEEP:
 	benchmp(NULL, bench_usleep, NULL, 
 		0, 1, warmup, repetitions, &state);
-	sprintf(buf, "usleep %lu microseconds", state.usecs);
 	break;
     case NANOSLEEP:
 	benchmp(NULL, bench_nanosleep, NULL, 
 		0, 1, warmup, repetitions, &state);
-	sprintf(buf, "nanosleep %lu microseconds", state.usecs);
 	break;
     case SELECT:
 	benchmp(NULL, bench_select, NULL, 
 		0, 1, warmup, repetitions, &state);
-	sprintf(buf, "select %lu microseconds", state.usecs);
 	break;
+#ifdef _POSIX_SELECT
     case PSELECT:
 	benchmp(NULL, bench_pselect, NULL, 
 		0, 1, warmup, repetitions, &state);
-	sprintf(buf, "pselect %lu microseconds", state.usecs);
 	break;
+#endif /* _POSIX_SELECT */
     case ITIMER:
 	benchmp(initialize, bench_itimer, NULL, 
 		0, 1, warmup, repetitions, &state);
-	sprintf(buf, "itimer %lu microseconds", state.usecs);
 	break;
     default:
 	lmbench_usage(ac, av, usage);
 	break;
     }
+    sprintf(buf, "%s%s %lu microseconds", scheduler, mechanism, state.usecs);
     micro(buf, get_n());
     return (0);
 }
