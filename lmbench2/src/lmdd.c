@@ -64,7 +64,12 @@ void		flush(void);
 #ifdef	__sgi
 #	define	LSEEK(a,b,c)	(uint64)lseek64(a, (off64_t)b, c)
 #	define	ATOL(s)		atoll(s)
-#else
+#endif
+#ifdef	linux
+#	define	LSEEK(a,b,c)	(uint64)lseek64(a, (uint64)b, (uint64)c)
+#	define	ATOL(s)		atoll(s)
+#endif
+#if	!defined(linux) && !defined(__sgi)
 #	define	LSEEK(a,b,c)	(uint64)lseek(a, b, c)
 #	define	ATOL(s)		atol(s)
 #endif
