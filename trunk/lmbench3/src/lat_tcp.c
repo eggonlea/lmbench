@@ -32,7 +32,7 @@ main(int ac, char **av)
 {
 	state_t state;
 	int	parallel = 1;
-	char 	c;
+	int 	c;
 	char	buf[256];
 	char	*usage = "-s\n OR [-P <parallelism>] server\n OR [-]serverhost\n";
 

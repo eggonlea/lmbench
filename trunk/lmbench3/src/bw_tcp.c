@@ -35,7 +35,7 @@ int main(int ac, char **av)
 	state_t state;
 	char	*usage = "-s\n OR [-P <parallelism>] server [size]\n OR [-]serverhost\n";
 	char	*server;
-	char	c;
+	int	c;
 	uint64	usecs;
 	
 	state.buf = valloc(XFERSIZE);

@@ -60,7 +60,7 @@ int main(int ac, char **av)
 	int	parallel = 1;
 	int	nbytes;
 	state_t	state;
-	char	c;
+	int	c;
 	char	*usage = "[-P <parallelism>] <size> what [conflict]\nwhat: rd wr rdwr cp fwr frd fcp bzero bcopy\n";
 
 	while (( c = getopt(ac, av, "P:")) != EOF) {

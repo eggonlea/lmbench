@@ -3,7 +3,7 @@
  *
  * Three programs in one -
  *	server usage:	lat_connect -s
- *	client usage:	lat_connect hostname [N]
+ *	client usage:	lat_connect [-P <parallelism> hostname
  *	shutdown:	lat_connect -hostname
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
@@ -15,88 +15,93 @@
 char	*id = "$Id$\n";
 #include "bench.h"
 
-void	server_main(int ac, char **av);
-void	client_main(int ac, char **av);
+typedef struct _state {
+	char	*server;
+} state_t;
 
-void
-doit(char *server)
-{
-	int	sock = tcp_connect(server, TCP_CONNECT, SOCKOPT_NONE);
-	close(sock);
-}
+void	doclient(uint64 iterations, void * cookie);
+void	server_main();
 
-int
-main(int ac, char **av)
+int main(int ac, char **av)
 {
-	if (ac != 2) {
-		fprintf(stderr, "Usage: %s -s OR %s [-]serverhost\n",
-		    av[0], av[0]);
-		exit(1);
-	}
-	if (!strcmp(av[1], "-s")) {
+	state_t state;
+	int	parallel = 1;
+	char 	c;
+	char	buf[256];
+	char	*usage = "-s\n OR [-P <parallelism>] server\n OR [-]serverhost\n";
+
+	if (ac == 2 && !strcmp(av[1], "-s")) { /* Server */
 		if (fork() == 0) {
-			server_main(ac, av);
+			server_main();
 		}
 		exit(0);
-	} else {
-		client_main(ac, av);
 	}
-	exit(0);
-	/* NOTREACHED */
-}
+       /*
+	* Client
+	*/
 
-void
-client_main(int ac, char **av)
-{
-	int     sock;
-	char	*server;
-	char	buf[256];
-
-	if (ac != 2) {
-		fprintf(stderr, "usage: %s host\n", av[0]);
-		exit(1);
-	}
-	server = av[1][0] == '-' ? &av[1][1] : av[1];
-
-	/*
-	 * Stop server code.
-	 */
-	if (av[1][0] == '-') {
-		sock = tcp_connect(server, TCP_CONNECT, SOCKOPT_NONE);
-		write(sock, "0", 1);
-		close(sock);
-		exit(0);
-		/* NOTREACHED */
+	if (ac == 2) {
+		if (!strcmp(av[1],"-"))
+			lmbench_usage(ac, av, usage);
+		if (av[1][0] == '-') { /* shut down server */
+			int sock = tcp_connect(&av[1][1],
+					       TCP_CONNECT,
+					       SOCKOPT_NONE);
+			write(sock, "0", 1);
+			close(sock);
+			exit(0);
+		}
 	}
 
-	/*
-	 * We don't want more than a few of these, they stack up in time wait.
-	 * XXX - report an error if the clock is too shitty?
-	 */
-	BENCH(doit(server), 25000);
-	sprintf(buf, "TCP/IP connection cost to %s", server);
+	while (( c = getopt(ac, av, "P:")) != EOF) {
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0)
+				lmbench_usage(ac, av, usage);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
+	}
+
+	if (optind + 1 != ac) {
+		lmbench_usage(ac, av, usage);
+	}
+	state.server = av[optind];
+
+	benchmp(NULL, doclient, NULL,
+		REAL_SHORT, parallel, &state);
+
+	sprintf(buf, "TCP/IP connection cost to %s", state.server);
 	micro(buf, get_n());
-	exit(0);
-	/* NOTREACHED */
+}
+
+void doclient(uint64 iterations, void *cookie)
+{
+	state_t *state = (state_t *) cookie;
+	register char	*server = state->server;
+	register int 	sock;
+	
+	while (iterations-- > 0) {
+		sock = tcp_connect(server, TCP_CONNECT, SOCKOPT_NONE);
+		close(sock);
+	}
 }
 
 void
-server_main(int ac, char **av)
+server_main()
 {
 	int     newsock, sock;
-	char	c;
+	char	c ='1';
 
-	if (ac != 2) {
-		fprintf(stderr, "usage: %s -s\n", av[0]);
-		exit(1);
-	}
 	GO_AWAY;
 	sock = tcp_server(TCP_CONNECT, SOCKOPT_NONE);
 	for (;;) {
 		newsock = tcp_accept(sock, SOCKOPT_NONE);
-		c = 0;
 		read(newsock, &c, 1);
-		if (c && c == '0') {
+		if (c == '0') {
 			tcp_done(TCP_CONNECT);
 			exit(0);
 		}

@@ -47,7 +47,7 @@ int main(int ac, char **av)
 	TYPE	*buf, *lastone;
 	int	parallel = 1;
 	state_t	state;
-	char	c;
+	int	c;
 	char	*usage = "[-P <parallelism>] <size> open2close|mmap_only <filename>";
 
 	while (( c = getopt(ac, av, "P:")) != EOF) {

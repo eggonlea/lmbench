@@ -71,7 +71,7 @@ int main(int ac, char **av)
 	} else { /*
 		  * Client args are -server OR [-P <parallelism>] server
 		  */
-		char c;
+		int c;
 		if (ac == 2) {
 			if (!strcmp(av[1],"-"))
 				lmbench_usage(ac, av, usage);
