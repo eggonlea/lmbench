@@ -27,14 +27,15 @@ main(int ac, char **av)
 {
 	char	*where;
 	char	*tmp;
-	size_t	size;
-	size_t	max;
+	size_t	size = 0;
+	size_t	max = 0;
 
 	if (ac == 2) {
 		unsigned long t;
 		sscanf(av[1], "%lu", &t);
 		max = size = t * 1024 * 1024;
-	} else {
+	}
+	if (max < 1024 * 1024) {
 		max = size = 1024 * 1024 * 1024;
 	}
 	/*
