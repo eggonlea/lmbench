@@ -349,8 +349,7 @@ benchmp_interval(void* _state)
 	case timing_interval:
 		iterations = state->iterations;
 		if (state->parallel > 1 || result > 0.95 * state->enough) {
-			if (gettime() > 0)
-				insertsort(gettime(), get_n(), get_results());
+			insertsort(gettime(), get_n(), get_results());
 			state->i++;
 			/* we completed all the experiments, return results */
 			if (state->i >= state->repetitions) {
@@ -953,10 +952,12 @@ tvsub(struct timeval * tdiff, struct timeval * t1, struct timeval * t0)
 {
 	tdiff->tv_sec = t1->tv_sec - t0->tv_sec;
 	tdiff->tv_usec = t1->tv_usec - t0->tv_usec;
-	while (tdiff->tv_usec < 0 && tdiff->tv_sec > 0) {
+	if (tdiff->tv_usec < 0 && tdiff->tv_sec > 0) {
 		tdiff->tv_sec--;
 		tdiff->tv_usec += 1000000;
+		assert(tdiff->tv_usec >= 0);
 	}
+
 	/* time shouldn't go backwards!!! */
 	if (tdiff->tv_usec < 0 || t1->tv_sec < t0->tv_sec) {
 		tdiff->tv_sec = 0;
@@ -1073,6 +1074,8 @@ void
 insertsort(uint64 u, uint64 n, result_t *r)
 {
 	int	i, j;
+
+	if (u == 0) return;
 
 	for (i = 0; i < r->N; ++i) {
 		if (u/(double)n > r->v[i].u/(double)r->v[i].n) {
@@ -1192,10 +1195,10 @@ l_overhead(void)
 		insertinit(&two);
 		for (i = 0; i < TRIES; ++i) {
 			use_pointer((void*)one_op(p));
-			if (gettime() > 0 && gettime() > t_overhead())
+			if (gettime() > t_overhead())
 				insertsort(gettime() - t_overhead(), get_n(), &one);
 			use_pointer((void *)two_op(p));
-			if (gettime() > 0 && gettime() > t_overhead())
+			if (gettime() > t_overhead())
 				insertsort(gettime() - t_overhead(), get_n(), &two);
 		}
 		/*
@@ -1245,8 +1248,7 @@ t_overhead(void)
 		insertinit(&r);
 		for (i = 0; i < TRIES; ++i) {
 			BENCH_INNER(gettimeofday(&tv, 0), 0);
-			if (gettime() > 0) 
-				insertsort(gettime(), get_n(), &r);
+			insertsort(gettime(), get_n(), &r);
 		}
 		set_results(&r);
 		save_minimum();
@@ -1325,8 +1327,7 @@ time_N(iter_t N)
 	insertinit(&r);
 	for (i = 1; i < TRIES; ++i) {
 		usecs = duration(N);
-		if (usecs > 0)
-			insertsort(usecs, N, &r);
+		insertsort(usecs, N, &r);
 	}
 	set_results(&r);
 	save_minimum();
