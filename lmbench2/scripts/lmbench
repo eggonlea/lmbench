@@ -10,10 +10,12 @@
 PATH=.:../../scripts:$PATH:/etc:/usr/etc:/sbin:/usr/sbin
 export PATH
 
+OUTPUT=`output`
+
 if [ -f $1 ]
-then	echo Using config in $1 > /dev/tty
+then	echo Using config in $1 > ${OUTPUT}
 	. $1
-else	echo Using defaults > /dev/tty
+else	echo Using defaults > ${OUTPUT}
 	ENOUGH=1000000
 	TIMING_O=0
 	LOOP_O=0
@@ -127,7 +129,7 @@ fi
 mkdir $FSDIR 2>/dev/null
 touch $STAT 2>/dev/null
 if [ ! -f $STAT ]
-then	echo "Can't make a file - $STAT - in $FSDIR" > /dev/tty
+then	echo "Can't make a file - $STAT - in $FSDIR" > ${OUTPUT}
 	touch $STAT
 	exit 1
 fi
@@ -140,8 +142,8 @@ then	/bin/rm -rf $SYNC
 	fi
 fi
 
-date > /dev/tty
-echo Latency measurements > /dev/tty
+date > ${OUTPUT}
+echo Latency measurements > ${OUTPUT}
 if [ $MP = Y ]
 then	if [ $SYNC_MAX != $SYNC_PID ]; then sleep 5; fi
 	synchronize $SYNC/lat_syscall
@@ -197,9 +199,9 @@ do	if [ $MP = Y ]; then synchronize $SYNC/lat_mmap$i ; fi
 done
 echo "" 1>&2
 if [ X$SLOWFS != XYES ]
-then	date > /dev/tty
+then	date > ${OUTPUT}
 	if [ $MP = Y ]; then synchronize $SYNC/lat_fs; fi
-	echo Calculating file system latency > /dev/tty
+	echo Calculating file system latency > ${OUTPUT}
 	echo '"File system latency' 1>&2
 	lat_fs $FSDIR
 	echo "" 1>&2
@@ -208,7 +210,7 @@ fi
 if [ X"$DISKS" != X ]
 then	for i in $DISKS
 	do	if [ -r $i ]
-		then	echo "Calculating disk zone bw & seek times" > /dev/tty
+		then	echo "Calculating disk zone bw & seek times" > ${OUTPUT}
 			disk $i
 			echo "" 1>&2
 		fi
@@ -216,8 +218,8 @@ then	for i in $DISKS
 fi
 
 if [ $SYNC_PID = $SYNC_MAX ]
-then	date > /dev/tty
-	echo Local networking > /dev/tty
+then	date > ${OUTPUT}
+	echo Local networking > ${OUTPUT}
 	if [ ! -d ../../src/webpage-lm ]
 	then	(cd ../../src && tar xf webpage-lm.tar)
 		sync
@@ -246,7 +248,7 @@ then	date > /dev/tty
 	done
 
 	for remote in $REMOTE 
-	do	echo Networking to $remote > /dev/tty
+	do	echo Networking to $remote > ${OUTPUT}
 		$RCP $SERVERS lmhttp ../../src/webpage-lm.tar ${remote}:/tmp
 		for server in $SERVERS
 		do	$RSH $remote -n /tmp/$server -s &
@@ -272,8 +274,8 @@ then	date > /dev/tty
 fi	# MP
 
 if [ $MP = Y ]; then synchronize $SYNC/bw_unix; fi
-date > /dev/tty
-echo Bandwidth measurements > /dev/tty
+date > ${OUTPUT}
+echo Bandwidth measurements > ${OUTPUT}
 bw_unix
 if [ $MP = Y ]; then synchronize $SYNC/bw_pipe; fi
 bw_pipe
@@ -350,10 +352,10 @@ if [ $MP = Y ]; then synchronize $SYNC/bw_mema; fi
 echo "Memory bzero bandwidth" 1>&2
 for i in $ALL; do bw_mem $i bzero; done; echo "" 1>&2
 
-date > /dev/tty
+date > ${OUTPUT}
 msleep 250
 if [ $MP = Y ]; then synchronize $SYNC/lat_ctx; fi
-echo Calculating context switch overhead > /dev/tty
+echo Calculating context switch overhead > ${OUTPUT}
 if [ $MB -ge 8 ]
 then	CTX="0 4 8 16 32 64"
 	N="2 4 8 16 24 32 64 96"
@@ -367,8 +369,8 @@ do	if [ $MP = Y ]; then synchronize $SYNC/lat_ctx${size}_${N}; fi
 	lat_ctx -s $size $N
 done
 
-date > /dev/tty
-echo Calculating memory load latency > /dev/tty
+date > ${OUTPUT}
+echo Calculating memory load latency > ${OUTPUT}
 msleep 250
 echo "" 1>&2
 if [ $MP = Y ]; then synchronize $SYNC/lat_mem_rd; fi
@@ -377,7 +379,7 @@ if [ X$FASTMEM = XYES ]
 then	lat_mem_rd $MB 128
 else	lat_mem_rd $MB 16 32 64 128 256 512 1024 
 fi
-date > /dev/tty
+date > ${OUTPUT}
 echo '' 1>&2
 echo \[`date`] 1>&2
 
