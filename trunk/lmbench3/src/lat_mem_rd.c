@@ -155,7 +155,6 @@ loads(int len, int range, int stride, int parallel)
 	benchmp(initialize_loads, benchmark_loads, NULL, 0, parallel, &state);
 
 	/* We want to get to nanoseconds / load. */
-	fprintf(stderr,"*****************************************\n");
 	result = (int)(((uint64)1000 * gettime()) / ((uint64)100 * get_n()));
 	fprintf(stderr, "%.5f %d\n", range / (1024. * 1024), result);
 
