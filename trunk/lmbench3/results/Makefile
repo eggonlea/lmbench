@@ -50,6 +50,14 @@ LIST=	`$(SCRIPTS)getlist $(LST)`
 SHELL=/bin/sh
 
 SCRIPTS=../scripts/
+SRCS= ../scripts/allctx ../scripts/allmem ../scripts/bargraph \
+	../scripts/bghtml ../scripts/getbg ../scripts/getbw \
+	../scripts/getctx ../scripts/getdisk ../scripts/getlist \
+	../scripts/getmax ../scripts/getmem ../scripts/getpercent \
+	../scripts/getresults ../scripts/getsummary ../scripts/gifs \
+	../scripts/graph ../scripts/html-list ../scripts/html-man \
+	../scripts/os ../scripts/percent ../scripts/save \
+	../scripts/stats ../scripts/xroff 
 
 MISC=	tmp/misc_mhz.bg \
 	tmp/lat_ctx.bg \
@@ -98,13 +106,13 @@ GCTX=$(CLOSE) -grid -below
 GDISK=-below -close -grid -nolines
 #IMAGE=gifmono
 
-summary:
+summary: $(SRCS)
 	@$(SCRIPTS)getsummary $(LIST)
 
-percent:
+percent: $(SRCS)
 	@$(SCRIPTS)getpercent $(LIST)
 
-stats:
+stats: $(SRCS)
 	$(SCRIPTS)getsummary $(LIST) | $(SCRIPTS)percent
 
 roff:
@@ -305,6 +313,7 @@ get:	# nothing to do
 
 clean:
 	/bin/rm -f PS/* GIF/* HTML/* tmp/* summary.roff
+	-bk clean
 
 dirs:
 	@if [ ! -d tmp ]; then mkdir tmp; fi

@@ -19,7 +19,7 @@ SHELL=/bin/sh
 build: 
 	cd src && $(MAKE)
 
-results: 
+results: FRC
 	cd src && $(MAKE) results
 
 rerun: 
@@ -34,13 +34,13 @@ doc.lpr:
 doc.x:
 	cd doc && $(MAKE) x
 
-clean: 
+clobber clean: 
 	for i in doc src results scripts; do \
 		echo ===== $$i =====; \
 		(cd $$i && $(MAKE) clean); \
 	done
 	/bin/rm -rf bin/*
-	clean 
+	-bk clean 
 
 get: 
 	for i in doc src results scripts; do \
@@ -69,3 +69,5 @@ shar:
 	cd .. && \
 	find lmbench -type f -print  | egrep -v 'noship|RCS' > /tmp/FILES
 	cd .. && shar -S -a -n lmbench1.0 -L 50K < /tmp/FILES 
+
+FRC:

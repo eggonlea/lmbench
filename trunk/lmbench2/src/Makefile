@@ -34,7 +34,10 @@ OS=`../scripts/os`
 TARGET=`../scripts/target`
 BINDIR=../bin/$(OS)
 CONFIG=../bin/$(OS)/`../scripts/config`
-RCCS=../rccs
+UTILS=../scripts/target ../scripts/os ../scripts/gnu-os ../scripts/compiler \
+	../scripts/info ../scripts/info-template ../scripts/version \
+	../scripts/config ../scripts/config-run ../scripts/results \
+	../scripts/lmbench
 INSTALL=cp
 RESULTS=Results/$(OS)
 SAMPLES=lmbench/Results/aix/rs6000 lmbench/Results/hpux/snake \
@@ -56,7 +59,8 @@ SRCS =  bench.h bw_file_rd.c bw_mmap_rd.c 				\
 	memsize.c bw_unix.c lat_unix.c lmdd.c loop_o.c timing_o.c	\
 	timing.h stats.h lib_tcp.h lib_udp.h  enough.c lat_select.c	\
 	msleep.c bw_mem.c lat_fifo.c lmhttp.c lat_http.c	\
-	disk.c flushdisk.c lat_unix_connect.c lib_unix.c lib_stats.c
+	disk.c flushdisk.c lat_unix_connect.c lib_unix.c lib_stats.c \
+	lib_unix.h names.h version.h
 
 EXES =	$O/bw_file_rd $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp $O/hello	\
 	$O/lat_select $O/lat_pipe $O/lat_rpc $O/lat_syscall $O/lat_tcp	\
@@ -79,17 +83,17 @@ MAN8 =	$D/bw_file_rd.8 $D/bw_mem_cp.8 $D/bw_mem_rd.8 $D/bw_mem_wr.8	\
 
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o $O/lib_stats.o
 
-lmbench:
+lmbench: $(UTILS)
 	@echo Building for $(TARGET)
 	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
 	$(MAKE) CC="$(CC)" O=$(BINDIR) $(TARGET)
 
-results: 
+results: $(UTILS)
 	@$(MAKE) lmbench CC=$(CC) O=$(BINDIR) $(TARGET)
 	@../scripts/config-run
 	@../scripts/results
 
-rerun: 
+rerun: $(UTILS)
 	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; fi
 	@../scripts/results
 
@@ -148,16 +152,16 @@ edit get-e:
 
 clean:
 	/bin/rm -f ../bin/*/CONFIG ../bin/*/*.[oa]
-	clean
+	-bk clean
 
 clobber:
 	/bin/rm -rf ../bin* SHAR
-	clean
+	-bk clean
 
 shar:
 	cd ../.. && shar lmbench/Results/Makefile $(SAMPLES) lmbench/scripts/* lmbench/src/Makefile lmbench/src/*.[ch] > lmbench/SHAR
 
-depend:
+depend: ../scripts/depend
 	../scripts/depend
 
 $O/lmbench.a: lib_timing.c lib_tcp.c lib_udp.c lib_unix.c lib_stats.c bench.h timing.h stats.h lib_tcp.h lib_udp.h names.h
