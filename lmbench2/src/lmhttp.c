@@ -75,8 +75,6 @@ main(int ac, char **av)
 			perror(getenv("DOCROOT"));
 			exit(1);
 		}
-	} else {
-		chdir("/");
 	}
 	if (atoi(av[ac - 1]) != 0) {
 		prog = -atoi(av[ac - 1]);
