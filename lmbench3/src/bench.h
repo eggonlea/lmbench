@@ -127,6 +127,7 @@ void	save_median();
 void	save_minimum();
 void	set_results(result_t *r);
 result_t* get_results();
+void	print_results();
 
 
 #define	BENCHO(loop_body, overhead_body, enough) { 			\
