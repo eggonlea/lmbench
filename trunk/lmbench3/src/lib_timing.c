@@ -22,11 +22,11 @@
 #define	MB	(1000*1000.0)
 #define	KB	(1000.0)
 
-static struct timeval start_tv, stop_tv;
-FILE		*ftiming;
-uint64		use_result_dummy;	/* !static for optimizers. */
-static	uint64	iterations;
-static	void	init_timing(void);
+static struct timeval 	start_tv, stop_tv;
+FILE			*ftiming;
+static volatile uint64	use_result_dummy;
+static		uint64	iterations;
+static		void	init_timing(void);
 
 #if defined(hpux) || defined(__hpux)
 #include <sys/mman.h>
@@ -100,7 +100,7 @@ benchmp_child(support_f initialize,
 	      int result_signal, 
 	      int exit_signal,
 	      int parallel, 
-	      uint64 iterations,
+	      iter_t iterations,
 	      int repetitions,
 	      int enough,
 	      void* cookie
@@ -111,7 +111,7 @@ benchmp_parent(int response,
 	       int result_signal, 
 	       int exit_signal, 
 	       int parallel, 
-	       uint64 iterations,
+	       iter_t iterations,
 	       int warmup,
 	       int repetitions,
 	       int enough
@@ -129,7 +129,7 @@ void benchmp(support_f initialize,
 	     int repetitions,
 	     void* cookie)
 {
-	uint64		iterations = 1;
+	iter_t		iterations = 1;
 	double		result = 0.;
 	double		usecs;
 	long		i;
@@ -161,7 +161,7 @@ void benchmp(support_f initialize,
 		if (enough < SHORT) {
 			double tmp = (double)SHORT * (double)get_n();
 			tmp /= (double)gettime();
-			iterations = (uint64)tmp + 1;
+			iterations = (iter_t)tmp + 1;
 		}
 	}
 
@@ -254,7 +254,7 @@ void benchmp(support_f initialize,
 	 *   for children to die.  If they haven't died by 
 	 *   that time, then we start killing them.
 	 */
-	benchmp_sigalrm_timeout = (int)((2 * enough)/(uint64)1000000) + 2;
+	benchmp_sigalrm_timeout = (int)((2 * enough)/1000000) + 2;
 	if (benchmp_sigalrm_timeout < 5)
 		benchmp_sigalrm_timeout = 5;
 	signal(SIGCHLD, SIG_IGN);
@@ -291,7 +291,7 @@ typedef struct {
 	int		result_signal;
 	int		exit_signal;
 	int		enough;
-        uint64		iterations;
+        iter_t		iterations;
 	int		parallel;
         int		repetitions;
 	void*		cookie;
@@ -310,11 +310,11 @@ benchmp_getstate()
 	return ((void*)&_benchmp_child_state);
 }
 
-uint64
+iter_t
 benchmp_interval(void* _state)
 {
 	char		c;
-	uint64		iterations;
+	iter_t		iterations;
 	double		result;
 	fd_set		fds;
 	struct timeval	timeout;
@@ -362,7 +362,7 @@ benchmp_interval(void* _state)
 			if (result > 150.) {
 				double tmp = iterations / result;
 				tmp *= 1.1 * state->enough;
-				iterations = (uint64)(tmp + 1);
+				iterations = (iter_t)(tmp + 1);
 			} else {
 				iterations <<= 3;
 				if (iterations > 1<<27
@@ -413,13 +413,13 @@ benchmp_child(support_f initialize,
 		int result_signal, 
 		int exit_signal,
 		int enough,
-	        uint64 iterations,
+	        iter_t iterations,
 		int parallel, 
 	        int repetitions,
 		void* cookie
 		)
 {
-	uint64		iterations_batch = (parallel > 1) ? get_n() : 1;
+	iter_t		iterations_batch = (parallel > 1) ? get_n() : 1;
 	double		result = 0.;
 	double		usecs;
 	long		i = 0;
@@ -473,7 +473,7 @@ benchmp_parent(	int response,
 		int result_signal, 
 		int exit_signal, 
 		int parallel, 
-	        uint64 iterations,
+	        iter_t iterations,
 		int warmup,
 		int repetitions,
 		int enough
@@ -1311,7 +1311,7 @@ duration(long N)
  * find the minimum time that work "N" takes in "tries" tests
  */
 static uint64
-time_N(long N)
+time_N(iter_t N)
 {
 	int     i;
 	uint64	usecs;
@@ -1338,7 +1338,7 @@ static long
 find_N(int enough)
 {
 	int		tries;
-	static long	N = 10000;
+	static iter_t	N = 10000;
 	static uint64	usecs = 0;
 
 	if (!usecs) usecs = time_N(N);
@@ -1368,7 +1368,7 @@ static int
 test_time(int enough)
 {
 	int     i;
-	long	N;
+	iter_t	N;
 	uint64	usecs, expected, baseline, diff;
 
 	if ((N = find_N(enough)) <= 0)

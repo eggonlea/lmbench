@@ -23,7 +23,7 @@ struct _state {
 };
 
 void initialize(void* cookie);
-void benchmark(uint64 iterations, void* cookie);
+void benchmark(iter_t iterations, void* cookie);
 void cleanup(void* cookie);
 
 #define	ONE	p = (char **)*p; 
@@ -213,7 +213,7 @@ initialize(void* cookie)
 }
 
 
-void benchmark(uint64 iterations, void *cookie)
+void benchmark(iter_t iterations, void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 	static char *addr_save = NULL;

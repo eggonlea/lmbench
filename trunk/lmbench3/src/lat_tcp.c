@@ -25,7 +25,7 @@ typedef struct _state {
 
 void	init(void *cookie);
 void	cleanup(void *cookie);
-void	doclient(uint64 iterations, void * cookie);
+void	doclient(iter_t iterations, void * cookie);
 void	server_main();
 void	doserver(int sock);
 
@@ -109,7 +109,7 @@ void cleanup(void * cookie)
 }
 
 void
-doclient(uint64 iterations, void *cookie)
+doclient(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	int 	sock   = state->sock;

@@ -24,7 +24,7 @@ void	handler() { }
 jmp_buf	prot_env;
 
 void
-do_send(uint64 iterations, void* cookie)
+do_send(iter_t iterations, void* cookie)
 {
 	int	me = getpid();
 
@@ -34,7 +34,7 @@ do_send(uint64 iterations, void* cookie)
 }
 
 void
-do_install(uint64 iterations, void* cookie)
+do_install(iter_t iterations, void* cookie)
 {
 	struct	sigaction sa, old;
 
@@ -47,7 +47,7 @@ do_install(uint64 iterations, void* cookie)
 }
 
 void
-do_catch(uint64 iterations, void* cookie)
+do_catch(iter_t iterations, void* cookie)
 {
 	int	me = getpid();
 	struct	sigaction sa, old;
@@ -98,7 +98,7 @@ initialize(void* cookie)
 }
 
 void
-do_prot(uint64 iterations, void* cookie)
+do_prot(iter_t iterations, void* cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 

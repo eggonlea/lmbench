@@ -17,7 +17,7 @@ struct _state {
 };
 
 void
-do_getppid(uint64 iterations, void *cookie)
+do_getppid(iter_t iterations, void *cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	char	c;
@@ -28,7 +28,7 @@ do_getppid(uint64 iterations, void *cookie)
 }
 
 void
-do_write(uint64 iterations, void *cookie)
+do_write(iter_t iterations, void *cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	char	c;
@@ -42,7 +42,7 @@ do_write(uint64 iterations, void *cookie)
 }
 
 void
-do_read(uint64 iterations, void *cookie)
+do_read(iter_t iterations, void *cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	char	c;
@@ -56,7 +56,7 @@ do_read(uint64 iterations, void *cookie)
 }
 
 void
-do_stat(uint64 iterations, void *cookie)
+do_stat(iter_t iterations, void *cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	struct	stat sbuf;
@@ -70,7 +70,7 @@ do_stat(uint64 iterations, void *cookie)
 }
 
 void
-do_fstat(uint64 iterations, void *cookie)
+do_fstat(iter_t iterations, void *cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	struct	stat sbuf;
@@ -84,12 +84,12 @@ do_fstat(uint64 iterations, void *cookie)
 }
 
 void
-do_openclose(uint64 iterations, void *cookie)
+do_openclose(iter_t iterations, void *cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	int	fd;
 
-	for (; iterations > 0; --iterations) {
+	while (iterations-- > 0) {
 		fd = open(pState->file, 0);
 		if (fd == -1) {
 			perror(pState->file);

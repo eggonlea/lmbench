@@ -14,7 +14,7 @@ char	*id = "$Id$\n";
 
 void initialize(void *cookie);
 void cleanup(void *cookie);
-void doit(uint64 iterations,void *cookie);
+void doit(iter_t iterations, void *cookie);
 void writer(int w, int r);
 
 typedef struct _state {
@@ -66,7 +66,7 @@ int main(int ac, char **av)
 }
 
 
-void doit(uint64 iterations, void * cookie)
+void doit(iter_t iterations, void * cookie)
 {
 	state_t * 	state = (state_t *)cookie;
 	fd_set		nosave;

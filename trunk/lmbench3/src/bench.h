@@ -177,9 +177,9 @@ result_t* get_results();
 }
 	
 #define	BENCH_INNER(loop_body, enough) { 				\
-	static long	__iterations = 1;				\
+	static iter_t	__iterations = 1;				\
 	int		__enough = get_enough(enough);			\
-	long		__n;						\
+	iter_t		__n;						\
 	double		__result = 0.;					\
 									\
 	while(__result < 0.95 * __enough) {				\
@@ -193,9 +193,9 @@ result_t* get_results();
 			if (__result > 150.) {				\
 				double	tmp = __iterations / __result;	\
 				tmp *= 1.1 * __enough;			\
-				__iterations = (long)(tmp + 1);		\
+				__iterations = (iter_t)(tmp + 1);	\
 			} else {					\
-				if (__iterations > 1<<27) {		\
+				if (__iterations > (iter_t)1<<27) {	\
 					__result = 0.;			\
 					break;				\
 				}					\
@@ -218,7 +218,8 @@ extern	int	optopt;
 extern	char	*optarg;
 int	getopt(int ac, char **av, char *opts);
 
-typedef void (*bench_f)(uint64 iterations, void* cookie);
+typedef u_long iter_t;
+typedef void (*bench_f)(iter_t iterations, void* cookie);
 typedef void (*support_f)(void* cookie);
 
 extern void benchmp(support_f initialize, 
@@ -236,7 +237,7 @@ extern void benchmp(support_f initialize,
  * protection fault handling.  See lat_sig.c for sample usage.
  */
 extern void* benchmp_getstate();
-extern uint64 benchmp_interval(void* _state);
+extern iter_t benchmp_interval(void* _state);
 
 
 /*

@@ -29,15 +29,15 @@ char	*id = "$Id$";
  *
  * XXX - do a 64bit version of this.
  */
-void	rd(uint64 iterations, void *cookie);
-void	wr(uint64 iterations, void *cookie);
-void	rdwr(uint64 iterations, void *cookie);
-void	cp(uint64 iterations, void *cookie);
-void	fwr(uint64 iterations, void *cookie);
-void	frd(uint64 iterations, void *cookie);
-void	fcp(uint64 iterations, void *cookie);
-void	loop_bzero(uint64 iterations, void *cookie);
-void	loop_bcopy(uint64 iterations, void *cookie);
+void	rd(iter_t iterations, void *cookie);
+void	wr(iter_t iterations, void *cookie);
+void	rdwr(iter_t iterations, void *cookie);
+void	cp(iter_t iterations, void *cookie);
+void	fwr(iter_t iterations, void *cookie);
+void	frd(iter_t iterations, void *cookie);
+void	fcp(iter_t iterations, void *cookie);
+void	loop_bzero(iter_t iterations, void *cookie);
+void	loop_bcopy(iter_t iterations, void *cookie);
 void	init_overhead(void *cookie);
 void	init_loop(void *cookie);
 void	cleanup(void *cookie);
@@ -224,7 +224,7 @@ void cleanup(void *cookie)
 }
 
 void
-rd(uint64 iterations, void *cookie)
+rd(iter_t iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *lastone = state->lastone;
@@ -249,7 +249,7 @@ rd(uint64 iterations, void *cookie)
 #undef	DOIT
 
 void
-wr(uint64 iterations, void *cookie)
+wr(iter_t iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *lastone = state->lastone;
@@ -270,7 +270,7 @@ wr(uint64 iterations, void *cookie)
 #undef	DOIT
 
 void
-rdwr(uint64 iterations, void *cookie)
+rdwr(iter_t iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *lastone = state->lastone;
@@ -293,7 +293,7 @@ rdwr(uint64 iterations, void *cookie)
 #undef	DOIT
 
 void
-cp(uint64 iterations, void *cookie)
+cp(iter_t iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *lastone = state->lastone;
@@ -319,7 +319,7 @@ cp(uint64 iterations, void *cookie)
 #undef	DOIT
 
 void
-fwr(uint64 iterations, void *cookie)
+fwr(iter_t iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *lastone = state->lastone;
@@ -360,7 +360,7 @@ fwr(uint64 iterations, void *cookie)
 #undef	DOIT
 
 void
-frd(uint64 iterations, void *cookie)
+frd(iter_t iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register int sum = 0;
@@ -401,7 +401,7 @@ frd(uint64 iterations, void *cookie)
 #undef	DOIT
 
 void
-fcp(uint64 iterations, void *cookie)
+fcp(iter_t iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *lastone = state->lastone;
@@ -440,7 +440,7 @@ fcp(uint64 iterations, void *cookie)
 }
 
 void
-loop_bzero(uint64 iterations, void *cookie)
+loop_bzero(iter_t iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *p = state->buf;
@@ -452,7 +452,7 @@ loop_bzero(uint64 iterations, void *cookie)
 	}
 }
 void
-loop_bcopy(uint64 iterations, void *cookie)
+loop_bcopy(iter_t iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *p = state->buf;

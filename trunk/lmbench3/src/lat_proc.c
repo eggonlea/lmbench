@@ -24,10 +24,10 @@ char	*id = "$Id$\n";
 #define STATIC_PREFIX ""
 #endif
 
-void do_shell(uint64 iterations, void* cookie);
-void do_forkexec(uint64 iterations,void* cookie);
-void do_fork(uint64 iterations, void* cookie);
-void do_procedure(uint64 iterations, void* cookie);
+void do_shell(iter_t iterations, void* cookie);
+void do_forkexec(iter_t iterations,void* cookie);
+void do_fork(iter_t iterations, void* cookie);
+void do_procedure(iter_t iterations, void* cookie);
 	
 int
 main(int ac, char **av)
@@ -82,7 +82,7 @@ main(int ac, char **av)
 	return(0);
 }
 
-void do_shell(uint64 iterations, void* cookie)
+void do_shell(iter_t iterations, void* cookie)
 {
 	int	pid;
 	while (iterations-- > 0) {
@@ -103,7 +103,7 @@ void do_shell(uint64 iterations, void* cookie)
 	}
 }
 
-void do_forkexec(uint64 iterations,void* cookie)
+void do_forkexec(iter_t iterations,void* cookie)
 {
 	int	pid;
 	char	*nav[2];
@@ -128,7 +128,7 @@ void do_forkexec(uint64 iterations,void* cookie)
 	}
 }
 	
-void do_fork(uint64 iterations, void* cookie)
+void do_fork(iter_t iterations, void* cookie)
 {
 	int pid;
 	int i;
@@ -148,7 +148,7 @@ void do_fork(uint64 iterations, void* cookie)
 	}
 }
 	
-void do_procedure(uint64 iterations, void* cookie)
+void do_procedure(iter_t iterations, void* cookie)
 {
 	int r = *(int *) cookie;
 	while (iterations-- > 0) {

@@ -19,7 +19,7 @@ char	*id = "$Id$\n";
 
 void server_main(void);
 
-void benchmark(uint64 iterations, void* cookie)
+void benchmark(iter_t iterations, void* cookie)
 {
 	while (iterations-- > 0) {
 		int	sock = unix_connect(CONNAME);

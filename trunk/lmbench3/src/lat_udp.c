@@ -21,7 +21,7 @@ void	client_main(int ac, char **av);
 void	server_main();
 void	init(void *cookie);
 void	cleanup(void *cookie);
-void    doit(uint64 iter, void *cookie);
+void    doit(iter_t iterations, void *cookie);
 
 typedef struct _state {
 	int	sock;
@@ -120,7 +120,7 @@ void init(void * cookie)
 	state->buf = (char*)malloc(state->msize);
 }
 
-void doit(uint64 iterations, void *cookie)
+void doit(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	int seq = state->seq;

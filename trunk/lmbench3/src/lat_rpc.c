@@ -19,7 +19,7 @@ char	*id = "$Id$\n";
 
 void	client_main(int ac, char **av);
 void	server_main();
-void	benchmark(uint64 iterations, void* _state);
+void	benchmark(iter_t iterations, void* _state);
 char	*client_rpc_xact_1(char *argp, CLIENT *clnt);
 
 void
@@ -75,7 +75,7 @@ initialize(void* _state)
 }
 
 void
-benchmark(uint64 iterations, void* _state)
+benchmark(iter_t iterations, void* _state)
 {
 	state_t* state = (state_t*)_state;
 	char	buf[256];

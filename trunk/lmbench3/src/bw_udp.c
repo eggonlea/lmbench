@@ -33,7 +33,7 @@ void	client_main(int parallel, state_t *state);
 void	init(void *cookie);
 void	cleanup(void *cookie);
 
-void	loop_transfer(uint64 iter, void *cookie);
+void	loop_transfer(iter_t iterations, void *cookie);
 
 int main(int ac, char **av)
 {
@@ -127,7 +127,7 @@ void init(void * cookie)
 	state->buf = (char*)malloc(state->msize);
 }
 
-void loop_transfer(uint64 iterations, void *cookie)
+void loop_transfer(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	char	*server = state->server;

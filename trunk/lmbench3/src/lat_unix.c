@@ -22,7 +22,7 @@ struct _state {
 	char*	buf;
 };
 void	initialize(void* cookie);
-void	benchmark(uint64 iterations, void* cookie);
+void	benchmark(iter_t iterations, void* cookie);
 void	cleanup(void* cookie);
 
 int
@@ -93,7 +93,7 @@ void initialize(void* cookie)
 	exit(0);
 }
 
-void benchmark(uint64 iterations, void* cookie)
+void benchmark(iter_t iterations, void* cookie)
 {
 	struct _state* pState = (struct _state*)cookie;
 

@@ -24,7 +24,7 @@ struct _state {
 
 void compute_times(struct _state* state, double* tlb_time, double* cache_time);
 void initialize(void* cookie);
-void benchmark(uint64 iterations, void* cookie);
+void benchmark(iter_t iterations, void* cookie);
 void cleanup(void* cookie);
 
 #define	FIVE(m)		m m m m m
@@ -38,7 +38,7 @@ void cleanup(void* cookie);
 #define INIT(N) p##N = (addr_save==state->addr) ? sp##N : (char**)state->p[N];
 #define SAVE(N) sp##N = p##N;
 #define BENCHMARK(N,body) \
-void benchmark_##N(uint64 iterations, void *cookie) \
+void benchmark_##N(iter_t iterations, void *cookie) \
 { \
 	struct _state* state = (struct _state*)cookie; \
 	static char *addr_save = NULL; \
