@@ -10,6 +10,7 @@ char	*id = "$Id$\n";
 struct _state {
 	int	N;
 	int	M;
+	int	K;
 	double*	data;
 };
 
@@ -182,16 +183,12 @@ do_float_add(iter_t iterations, void* cookie)
 	struct _state *pState = (struct _state*)cookie;
 	register int i;
 	register float f = (float)pState->N;
-	register float g = (float)pState->M;
+	register float g = (float)pState->K;
 
 	while (iterations-- > 0) {
 		for (i = 0; i < 1000; ++i) {
-#ifndef __GNUC__
-			HUNDRED(f+=f;)
-#else
-			/* required because of GCC bug */
 			TEN(f+=f;)
-#endif
+			f+=g;
 		}
 	}
 	use_int((int)f);
@@ -248,16 +245,12 @@ do_double_add(iter_t iterations, void* cookie)
 	struct _state *pState = (struct _state*)cookie;
 	register int i;
 	register double f = (double)pState->N;
-	register double g = (double)pState->M;
+	register double g = (double)pState->K;
 
 	while (iterations-- > 0) {
 		for (i = 0; i < 1000; ++i) {
-#ifndef __GNUC__
-			HUNDRED(f+=f;)
-#else
-			/* required because of GCC bug */
 			TEN(f+=f;)
-#endif
+			f+=g;
 		}
 	}
 	use_int((int)f);
@@ -313,10 +306,10 @@ float_initialize(void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	register int i;
-	float* x = (float*)malloc(pState->N * sizeof(float));;
+	float* x = (float*)malloc(pState->M * sizeof(float));;
 
 	pState->data = (double*)x;
-	for (i = 0; i < pState->N; ++i) {
+	for (i = 0; i < pState->M; ++i) {
 		x[i] = 1.;
 	}
 }
@@ -327,8 +320,8 @@ double_initialize(void* cookie)
 	struct _state *pState = (struct _state*)cookie;
 	register int i;
 
-	pState->data = (double*)malloc(pState->N * sizeof(double));
-	for (i = 0; i < pState->N; ++i) {
+	pState->data = (double*)malloc(pState->M * sizeof(double));
+	for (i = 0; i < pState->M; ++i) {
 		pState->data[i] = 1.;
 	}
 }
@@ -338,7 +331,8 @@ cleanup(void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 
-	free(pState->data);
+	if (pState->data) 
+		free(pState->data);
 }
 
 void
@@ -349,7 +343,7 @@ do_float_bogomflops(iter_t iterations, void* cookie)
 	register float *x = (float*)pState->data;
 
 	while (iterations-- > 0) {
-		for (i = 0; i < pState->N; ++i) {
+		for (i = 0; i < pState->M; ++i) {
 			x[i] = (1.0 + x[i]) * (1.5 - x[i]) / x[i];
 		}
 	}
@@ -363,7 +357,7 @@ do_double_bogomflops(iter_t iterations, void* cookie)
 	register double *x = (double*)pState->data;
 
 	while (iterations-- > 0) {
-		for (i = 0; i < pState->N; ++i) {
+		for (i = 0; i < pState->M; ++i) {
 			x[i] = (1.0 + x[i]) * (1.5 - x[i]) / x[i];
 		}
 	}
@@ -380,8 +374,10 @@ main(int ac, char **av)
 	struct _state state;
 	char   *usage = "[-W <warmup>] [-N <repetitions>]\n";
 
-	state.N = 1000;
-	state.M = 1;
+	state.N = 1;
+	state.M = 1000;
+	state.K = -1023;
+	state.data = NULL;
 
 	while (( c = getopt(ac, av, "W:N:")) != EOF) {
 		switch(c) {
@@ -396,9 +392,6 @@ main(int ac, char **av)
 			break;
 		}
 	}
-
-	state.N = 1000;
-	state.M = 1;
 
 	benchmp(NULL, do_integer_bitwise, NULL, 0, 1, warmup, repetitions, &state);
 	nano("integer bit", get_n() * 100000 * 2);
@@ -451,11 +444,7 @@ main(int ac, char **av)
 	nano("uint64 mod", get_n() * 100000);
 	
 	benchmp(NULL, do_float_add, NULL, 0, 1, warmup, repetitions, &state);
-#ifndef __GNUC__
-	nano("float add", get_n() * 100000);
-#else
-	nano("float add", get_n() * 10000);
-#endif
+	nano("float add", get_n() * 1000 * 11);
 	
 	benchmp(NULL, do_float_mul, NULL, 0, 1, warmup, repetitions, &state);
 #ifndef __GNUC__
@@ -472,11 +461,7 @@ main(int ac, char **av)
 #endif
 
 	benchmp(NULL, do_double_add, NULL, 0, 1, warmup, repetitions, &state);
-#ifndef __GNUC__
-	nano("double add", get_n() * 100000);
-#else
-	nano("double add", get_n() * 10000);
-#endif
+	nano("double add", get_n() * 1000 * 11);
 	
 	benchmp(NULL, do_double_mul, NULL, 0, 1, warmup, repetitions, &state);
 #ifndef __GNUC__
