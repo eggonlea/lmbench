@@ -1,7 +1,27 @@
 /*
  * lat_ops.c - benchmark of simple operations
  *
- * Copyright (c) 1996-2000 Carl Staelin and Larry McVoy.  
+ * Copyright (c) 1996-2004 Carl Staelin and Larry McVoy.  
+ *
+ * This benchmark is meant to benchmark raw arithmetic operation
+ * latency for various operations on various datatypes.  Obviously,
+ * not all operations make sense for all datatypes (e.g., modulus
+ * on float).  The benchmarks are configured to use interlocking
+ * operations, so we measure the time of an individual operation.
+ * 
+ * The exception to the interlocking operation guidelines are the
+ * vector operations, muladd and bogomflops, for both float and
+ * double data types.  In this case we are trying to determine
+ * how well the CPU can schedule the various arithmetic units
+ * and overlap adjacent operations to get the maximal throughput
+ * from the system.  In addition, we are using relatively short
+ * vectors so these operations should be going to/from L1 (or
+ * possibly L2) cache, rather than main memory, which should
+ * reduce or eliminate the memory overheads.
+ *
+ * The vector operations use a slightly unrolled loop because
+ * this is common in scientific codes that do these sorts of
+ * operations.
  */
 char	*id = "$Id$\n";
 
@@ -14,259 +34,23 @@ struct _state {
 	double*	data;
 };
 
+#define FIVE(a) a a a a a
 #define TEN(a) a a a a a a a a a a
 #define HUNDRED(a) TEN(TEN(a))
-
-void
-do_integer_bitwise(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register int r = pState->N;
-	register int s = (int)iterations;
-
-	while (iterations-- > 0) {
-		HUNDRED(r^=iterations;s^=r;r|=s;)
-	}
-	use_int(r);
-}
-
-void
-do_integer_add(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register int a = pState->N;
-	register int b = pState->N;
-
-	while (iterations-- > 0) {
-		HUNDRED(a+=b;b-=a;)
-	}
-	use_int(a+b);
-}
-
-void
-do_integer_mul(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register int r = pState->N;
-	register int s = (pState->N + 1) ^ r;
-
-	while (iterations-- > 0) {
-		TEN(TEN(r=r*s;)r^=s;)
-	}
-	use_int(r);
-}
-
-void
-do_integer_div(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register int r = pState->N + 1;
-	register int s = (r + 1) << 20;
-
-	while (iterations-- > 0) {
-		HUNDRED(r=s/r;)
-	}
-	use_int(r);
-}
-
-void
-do_integer_mod(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register int r = pState->N;
-	register int s = pState->N + iterations;
-
-	while (iterations-- > 0) {
-		HUNDRED(r=r%s;r|=s;)
-	}
-	use_int(r);
-}
-
-void
-do_int64_bitwise(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register int64 r = pState->N;
-	register int64 s = (int64)iterations;
-	register int64 i = (int64)iterations;
-
-	while (iterations-- > 0) {
-		HUNDRED(r^=i;s^=r;r|=s;)
-		i--;
-	}
-	use_int((int)r);
-}
-
-void
-do_int64_add(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register int64 a = pState->N;
-	register int64 b = pState->N;
-
-	while (iterations-- > 0) {
-		HUNDRED(a+=b;b-=a;)
-	}
-	use_int((int)a+(int)b);
-}
-
-void
-do_int64_mul(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register int64 r = pState->N;
-	register int64 s = (pState->N + 1) ^ r;
-
-	while (iterations-- > 0) {
-		TEN(TEN(r=r*s;)r^=s;)
-	}
-	use_int((int)r);
-}
-
-void
-do_int64_div(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register int64 r = pState->N;
-	register int64 s = (r + 1) << 20;
-
-	while (iterations-- > 0) {
-		HUNDRED(r=s/r;)
-	}
-	use_int((int)r);
-}
-
-void
-do_int64_mod(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register int64 r = pState->N;
-	register int64 s = pState->N + iterations;
-
-	while (iterations-- > 0) {
-		HUNDRED(r=r%s;r|=s;)
-	}
-	use_int((int)r);
-}
-
-void
-do_float_add(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register float f = (float)pState->N;
-	register float g = (float)pState->K;
-
-	while (iterations-- > 0) {
-		TEN(f+=f;)
-		f+=g;
-	}
-	use_int((int)f);
-	use_int((int)g);
-}
-
-void
-do_float_mul(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register float f = (float)pState->N;
-	register float g = (float)pState->M;
-
-	while (iterations-- > 0) {
-#ifndef __GNUC__
-		HUNDRED(f*=f;)
-#else
-		/* required because of GCC bug */
-		TEN(f*=f;)
-#endif
-	}
-	use_int((int)f);
-	use_int((int)g);
-}
-
-void
-do_float_div(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register float f = (float)pState->N;
-	register float g = (float)pState->M;
-
-	while (iterations-- > 0) {
-#ifndef __GNUC__
-		HUNDRED(f=g/f;)
-#else
-		/* required because of GCC bug */
-		TEN(f=g/f;)
-#endif
-	}
-	use_int((int)f);
-	use_int((int)g);
-}
-
-void
-do_double_add(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register double f = (double)pState->N;
-	register double g = (double)pState->K;
-
-	while (iterations-- > 0) {
-		TEN(f+=f;)
-		f+=g;
-	}
-	use_int((int)f);
-	use_int((int)g);
-}
-
-void
-do_double_mul(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register double f = (double)pState->N;
-	register double g = (double)pState->M;
-
-	while (iterations-- > 0) {
-#ifndef __GNUC__
-		HUNDRED(f*=f;)
-#else
-		/* required because of GCC bug */
-		TEN(f*=f;)
-#endif
-	}
-	use_int((int)f);
-	use_int((int)g);
-}
-
-void
-do_double_div(iter_t iterations, void* cookie)
-{
-	struct _state *pState = (struct _state*)cookie;
-	register double f = (double)pState->N;
-	register double g = (double)pState->M;
-
-	while (iterations-- > 0) {
-#ifndef __GNUC__
-		HUNDRED(f=g/f;)
-#else
-		/* required because of GCC bug */
-		TEN(f=g/f;)
-#endif
-	}
-	use_int((int)f);
-	use_int((int)g);
-}
 
 void
 float_initialize(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	register int i;
-	float* x = (float*)malloc(pState->M * sizeof(float));;
+	register float* x;
 
 	if (iterations) return;
 
+	x = (float*)malloc(pState->M * sizeof(float));
 	pState->data = (double*)x;
 	for (i = 0; i < pState->M; ++i) {
-		x[i] = 1.;
+		x[i] = 3.14159265;
 	}
 }
 
@@ -280,7 +64,7 @@ double_initialize(iter_t iterations, void* cookie)
 
 	pState->data = (double*)malloc(pState->M * sizeof(double));
 	for (i = 0; i < pState->M; ++i) {
-		pState->data[i] = 1.;
+		pState->data[i] = 3.14159265;
 	}
 }
 
@@ -296,15 +80,248 @@ cleanup(iter_t iterations, void* cookie)
 }
 
 void
+do_integer_bitwise(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register int r = pState->N;
+	register int s = (int)iterations;
+
+	while (iterations-- > 0) {
+		HUNDRED(r ^= iterations; s ^= r; r |= s;)
+	}
+	use_int(r);
+}
+
+void
+do_integer_add(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register int a = pState->N;
+	register int b = pState->N;
+
+	while (iterations-- > 0) {
+		HUNDRED(a += b; b -= a;)
+	}
+	use_int(a+b);
+}
+
+void
+do_integer_mul(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register int r = pState->N;
+	register int s = (pState->N + 1) ^ r;
+
+	while (iterations-- > 0) {
+		TEN(r *= r; r *= s;); r ^= s;
+		TEN(r *= r; r *= s;); r ^= s;
+	}
+	use_int(r);
+}
+
+void
+do_integer_div(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register int r = pState->N + 1;
+	register int s = (r + 1) << 20;
+
+	while (iterations-- > 0) {
+		HUNDRED(r = s / r;)
+	}
+	use_int(r);
+}
+
+void
+do_integer_mod(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register int r = pState->N;
+	register int s = pState->N + iterations;
+
+	while (iterations-- > 0) {
+		HUNDRED(r %= s; r |= s;)
+	}
+	use_int(r);
+}
+
+void
+do_int64_bitwise(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register int64 r = pState->N;
+	register int64 s = (int64)iterations;
+	register int64 i = (int64)iterations;
+
+	while (iterations-- > 0) {
+		HUNDRED(r ^= i; s ^= r; r |= s;)
+		i--;
+	}
+	use_int((int)r);
+}
+
+void
+do_int64_add(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register int64 a = pState->N;
+	register int64 b = pState->N;
+
+	while (iterations-- > 0) {
+		HUNDRED(a += b; b -= a;)
+	}
+	use_int((int)a+(int)b);
+}
+
+void
+do_int64_mul(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register int64 r = pState->N;
+	register int64 s = (pState->N + 1) ^ r;
+
+	while (iterations-- > 0) {
+		TEN(r *= r; r *= s;); r ^= s;
+		TEN(r *= r; r *= s;); r ^= s;
+	}
+	use_int((int)r);
+}
+
+void
+do_int64_div(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register int64 r = pState->N;
+	register int64 s = (r + 1) << 20;
+
+	while (iterations-- > 0) {
+		HUNDRED(r = s / r;)
+	}
+	use_int((int)r);
+}
+
+void
+do_int64_mod(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register int64 r = pState->N;
+	register int64 s = pState->N + iterations;
+
+	while (iterations-- > 0) {
+		HUNDRED(r %= s; r |= s;);
+	}
+	use_int((int)r);
+}
+
+void
+do_float_add(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register float f = (float)pState->N;
+	register float g = (float)pState->K;
+
+	while (iterations-- > 0) {
+		TEN(f += (float)f;) f += (float)g;
+		TEN(f += (float)f;) f += (float)g;
+	}
+	use_int((int)f);
+	use_int((int)g);
+}
+
+void
+do_float_mul(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register float f = 8.0f * (float)pState->N;
+	register float g = 0.125f * (float)pState->M / 1000.0;
+
+	while (iterations-- > 0) {
+		TEN(f *= f; f *= g;);
+		TEN(f *= f; f *= g;);
+	}
+	use_int((int)f);
+	use_int((int)g);
+}
+
+void
+do_float_div(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register float f = 1.41421356f * (float)pState->N;
+	register float g = 3.14159265f * (float)pState->M / 1000.0;
+
+	while (iterations-- > 0) {
+		FIVE(TEN(f = g / f;) TEN(g = f / g;))
+	}
+	use_int((int)f);
+	use_int((int)g);
+}
+
+void
+do_double_add(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register double f = (double)pState->N;
+	register double g = (double)pState->K;
+
+	while (iterations-- > 0) {
+		TEN(f += (double)f;) f += (double)g;
+		TEN(f += (double)f;) f += (double)g;
+	}
+	use_int((int)f);
+	use_int((int)g);
+}
+
+void
+do_double_mul(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register double f = 8.0 * (double)pState->N;
+	register double g = 0.125 * (double)pState->M / 1000.0;
+
+	while (iterations-- > 0) {
+		TEN(f *= f; f *= g;)
+		TEN(f *= f; f *= g;)
+	}
+	use_int((int)f);
+	use_int((int)g);
+}
+
+void
+do_double_div(iter_t iterations, void* cookie)
+{
+	struct _state *pState = (struct _state*)cookie;
+	register double f = 1.41421356 * (double)pState->N;
+	register double g = 3.14159265 * (double)pState->M / 1000.0;
+
+	while (iterations-- > 0) {
+		FIVE(TEN(f = g / f;) TEN(g = f / g;))
+	}
+	use_int((int)f);
+	use_int((int)g);
+}
+
+void
 do_float_bogomflops(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	register int i;
-	register float *x = (float*)pState->data;
+	register int M = pState->M / 10;
 
 	while (iterations-- > 0) {
-		for (i = 0; i < pState->M; ++i) {
-			x[i] = (1.0f + x[i]) * (1.5f - x[i]) / x[i];
+		register float *x = (float*)pState->data;
+		for (i = 0; i < M; ++i) {
+			x[0] = (1.0f + x[0]) * (1.5f - x[0]) / x[0];
+			x[1] = (1.0f + x[1]) * (1.5f - x[1]) / x[1];
+			x[2] = (1.0f + x[2]) * (1.5f - x[2]) / x[2];
+			x[3] = (1.0f + x[3]) * (1.5f - x[3]) / x[3];
+			x[4] = (1.0f + x[4]) * (1.5f - x[4]) / x[4];
+			x[5] = (1.0f + x[5]) * (1.5f - x[5]) / x[5];
+			x[6] = (1.0f + x[6]) * (1.5f - x[6]) / x[6];
+			x[7] = (1.0f + x[7]) * (1.5f - x[7]) / x[7];
+			x[8] = (1.0f + x[8]) * (1.5f - x[8]) / x[8];
+			x[9] = (1.0f + x[9]) * (1.5f - x[9]) / x[9];
+			x += 10;
 		}
 	}
 }
@@ -314,11 +331,22 @@ do_double_bogomflops(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	register int i;
-	register double *x = (double*)pState->data;
+	register int M = pState->M / 10;
 
 	while (iterations-- > 0) {
-		for (i = 0; i < pState->M; ++i) {
-			x[i] = (1.0 + x[i]) * (1.5 - x[i]) / x[i];
+		register double *x = (double*)pState->data;
+		for (i = 0; i < M; ++i) {
+			x[0] = (1.0f + x[0]) * (1.5f - x[0]) / x[0];
+			x[1] = (1.0f + x[1]) * (1.5f - x[1]) / x[1];
+			x[2] = (1.0f + x[2]) * (1.5f - x[2]) / x[2];
+			x[3] = (1.0f + x[3]) * (1.5f - x[3]) / x[3];
+			x[4] = (1.0f + x[4]) * (1.5f - x[4]) / x[4];
+			x[5] = (1.0f + x[5]) * (1.5f - x[5]) / x[5];
+			x[6] = (1.0f + x[6]) * (1.5f - x[6]) / x[6];
+			x[7] = (1.0f + x[7]) * (1.5f - x[7]) / x[7];
+			x[8] = (1.0f + x[8]) * (1.5f - x[8]) / x[8];
+			x[9] = (1.0f + x[9]) * (1.5f - x[9]) / x[9];
+			x += 10;
 		}
 	}
 }
@@ -334,7 +362,7 @@ main(int ac, char **av)
 	uint64	iop_time;
 	uint64	iop_N;
 	struct _state state;
-	char   *usage = "[-W <warmup>] [-N <repetitions>]\n";
+	char   *usage = "[-W <warmup>] [-N <repetitions>] [-P <parallel>] \n";
 
 	state.N = 1;
 	state.M = 1000;
@@ -359,85 +387,87 @@ main(int ac, char **av)
 		}
 	}
 
-	BENCH((*do_integer_bitwise)(__n, &state); __n = 1;, 0);
+	benchmp(NULL, do_integer_bitwise, NULL, 
+		0, 1, warmup, repetitions, &state);
 	nano("integer bit", get_n() * 100 * 3);
 	iop_time = gettime();
 	iop_N = get_n() * 100 * 3;
 	
-	BENCH((*do_integer_add)(__n, &state); __n = 1;, 0);
+	benchmp(NULL, do_integer_add, NULL, 
+		0, 1, warmup, repetitions, &state);
 	nano("integer add", get_n() * 100 * 2);
 	
-	BENCH((*do_integer_mul)(__n, &state); __n = 1;, 0);
-	settime(gettime() - (get_n() * 10 * iop_time) / iop_N);
-	nano("integer mul", get_n() * 100);
+	benchmp(NULL, do_integer_mul, NULL, 
+		0, 1, warmup, repetitions, &state);
+	settime(gettime() - (get_n() * 2 * iop_time) / iop_N);
+	nano("integer mul", get_n() * 10 * 2 * 2);
 	
-	BENCH((*do_integer_div)(__n, &state); __n = 1;, 0);
+	benchmp(NULL, do_integer_div, NULL, 
+		0, 1, warmup, repetitions, &state);
 	nano("integer div", get_n() * 100);
 	
-	BENCH((*do_integer_mod)(__n, &state); __n = 1;, 0);
+	benchmp(NULL, do_integer_mod, NULL, 
+		0, 1, warmup, repetitions, &state);
 	settime(gettime() - (get_n() *  100 * iop_time) / iop_N);
 	nano("integer mod", get_n() * 100);
 	
-	BENCH((*do_int64_bitwise)(__n, &state); __n = 1;, 0);
+	benchmp(NULL, do_int64_bitwise, NULL, 
+		0, 1, warmup, repetitions, &state);
 	nano("int64 bit", get_n() * 100 * 3);
 	iop_time = gettime();
 	iop_N = get_n() * 100 * 3;
 
-	BENCH((*do_int64_add)(__n, &state); __n = 1;, 0);
+	benchmp(NULL, do_int64_add, NULL, 
+		0, 1, warmup, repetitions, &state);
 	nano("int64 add", get_n() * 100 * 2);
 	
-	BENCH((*do_int64_mul)(__n, &state); __n = 1;, 0);
-	settime(gettime() - (get_n() * 10 * iop_time) / iop_N);
-	nano("int64 mul", get_n() * 100);
+	benchmp(NULL, do_int64_mul, NULL, 
+		0, 1, warmup, repetitions, &state);
+	settime(gettime() - (get_n() * 2 * iop_time) / iop_N);
+	nano("int64 mul", get_n() * 10 * 2 * 2);
 	
-	BENCH((*do_int64_div)(__n, &state); __n = 1;, 0);
+	benchmp(NULL, do_int64_div, NULL, 
+		0, 1, warmup, repetitions, &state);
 	nano("int64 div", get_n() * 100);
 	
-	BENCH((*do_int64_mod)(__n, &state); __n = 1;, 0);
+	benchmp(NULL, do_int64_mod, NULL, 
+		0, 1, warmup, repetitions, &state);
 	settime(gettime() - (get_n() * 100 * iop_time) / iop_N);
 	nano("int64 mod", get_n() * 100);
 	
-	BENCH((*do_float_add)(__n, &state); __n = 1;, 0);
-	nano("float add", get_n() * 11);
+	benchmp(NULL, do_float_add, NULL, 
+		0, 1, warmup, repetitions, &state);
+	nano("float add", get_n() * (10 + 1) * 2);
 	
-	BENCH((*do_float_mul)(__n, &state); __n = 1;, 0);
-#ifndef __GNUC__
-	nano("float mul", get_n() * 100);
-#else
-	nano("float mul", get_n() * 10);
-#endif
+	benchmp(NULL, do_float_mul, NULL, 
+		0, 1, warmup, repetitions, &state);
+	nano("float mul", get_n() * 10 * 2 * 2);
 	
-	BENCH((*do_float_div)(__n, &state); __n = 1;, 0);
-#ifndef __GNUC__
+	benchmp(NULL, do_float_div, NULL, 
+		0, 1, warmup, repetitions, &state);
 	nano("float div", get_n() * 100);
-#else
-	nano("float div", get_n() * 10);
-#endif
 
-	BENCH((*do_double_add)(__n, &state); __n = 1;, 0);
-	nano("double add", get_n() * 11);
+	benchmp(NULL, do_double_add, NULL, 
+		0, 1, warmup, repetitions, &state);
+	nano("double add", get_n() * (10 + 1) * 2);
 	
-	BENCH((*do_double_mul)(__n, &state); __n = 1;, 0);
-#ifndef __GNUC__
-	nano("double mul", get_n() * 100);
-#else
-	nano("double mul", get_n() * 10);
-#endif
+	benchmp(NULL, do_double_mul, NULL, 
+		0, 1, warmup, repetitions, &state);
+	nano("double mul", get_n() * 10 * 2 * 2);
 	
-	BENCH((*do_double_div)(__n, &state); __n = 1;, 0);
-#ifndef __GNUC__
+	benchmp(NULL, do_double_div, NULL, 
+		0, 1, warmup, repetitions, &state);
 	nano("double div", get_n() * 100);
-#else
-	nano("double div", get_n() * 10);
-#endif
 
-	benchmp(float_initialize, 
-		do_float_bogomflops, cleanup, 0, parallel, warmup, repetitions, &state);
+	benchmp(float_initialize, do_float_bogomflops, cleanup, 
+		0, parallel, warmup, repetitions, &state);
 	nano("float bogomflops", get_n() * state.M);
+	fflush(stdout); fflush(stderr);
 
-	benchmp(double_initialize, 
-		do_double_bogomflops, cleanup, 0, parallel, warmup, repetitions, &state);
+	benchmp(double_initialize, do_double_bogomflops, cleanup, 
+		0, parallel, warmup, repetitions, &state);
 	nano("double bogomflops", get_n() * state.M);
+	fflush(stdout); fflush(stderr);
 
 	return(0);
 }
