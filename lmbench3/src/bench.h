@@ -4,24 +4,37 @@
 #ifndef _BENCH_H
 #define _BENCH_H
 
+#ifdef WIN32
+#include <windows.h>
+typedef unsigned char bool_t;
+#endif
+
 #include	<assert.h>
 #include        <ctype.h>
 #include        <stdio.h>
+#ifndef WIN32
 #include        <unistd.h>
+#endif
 #include        <stdlib.h>
 #include        <fcntl.h>
 #include        <signal.h>
 #include        <errno.h>
+#ifndef WIN32
 #include        <strings.h>
+#endif
 #include        <sys/types.h>
+#ifndef WIN32
 #include        <sys/mman.h>
+#endif
 #include        <sys/stat.h>
+#ifndef WIN32
 #include        <sys/wait.h>
 #include        <sys/time.h>
 #include        <sys/socket.h>
 #include        <sys/un.h>
 #include        <sys/resource.h>
 #include	<rpc/rpc.h>
+#endif
 #include	"stats.h"
 #include	"timing.h"
 #include	"lib_tcp.h"
@@ -71,7 +84,7 @@
 #define	XFERSIZE	(64*1024)	/* all bandwidth I/O should use this */
 #endif
 
-#ifdef SYS5
+#if defined(SYS5) || defined(WIN32)
 #define	bzero(b, len)	memset(b, 0, len)
 #define	bcopy(s, d, l)	memcpy(d, s, l)
 #define	rindex(s, c)	strrchr(s, c)
@@ -79,6 +92,11 @@
 #define	gettime		usecs_spent
 #define	streq		!strcmp
 #define	ulong		unsigned long
+
+#ifdef WIN32
+#include <process.h>
+#define getpid _getpid
+#endif
 
 #define	SMALLEST_LINE	32		/* smallest cache line size */
 #define	TIME_OPEN2CLOSE
@@ -114,9 +132,11 @@ void	get_results(result_t *r);
 	if (enough < LONGER) {loop_body;} /* warm the cache */		\
 	for (__i = 0; __i < __N; ++__i) {				\
 		BENCH1(overhead_body, enough);				\
-		insertsort(gettime(), get_n(), &__overhead);		\
+		if (gettime() > 0) 					\
+			insertsort(gettime(), get_n(), &__overhead);	\
 		BENCH1(loop_body, enough);				\
-		insertsort(gettime(), get_n(), &__r);			\
+		if (gettime() > 0) 					\
+			insertsort(gettime(), get_n(), &__r);		\
 	}								\
 	for (__i = 0; __i < __r.N; ++__i) {				\
 		__oh = __overhead.u[__i] / (double)__overhead.n[__i];	\
@@ -133,7 +153,8 @@ void	get_results(result_t *r);
 	if (enough < LONGER) {loop_body;} /* warm the cache */		\
 	for (__i = 0; __i < __N; ++__i) {				\
 		BENCH1(loop_body, enough);				\
-		insertsort(gettime(), get_n(), &__r);			\
+		if (gettime() > 0) 					\
+			insertsort(gettime(), get_n(), &__r);		\
 	}								\
 	save_results(&__r);						\
 }
@@ -143,109 +164,37 @@ void	get_results(result_t *r);
 	BENCH_INNER(loop_body, enough);  				\
 	__usecs = gettime();						\
 	__usecs -= t_overhead() + get_n() * l_overhead();		\
-	settime((uint64)__usecs);					\
+	settime(__usecs >= 0. ? (uint64)__usecs : 0.);			\
 }
 	
 #define	BENCH_INNER(loop_body, enough) { 				\
-	static long	__iterations = 1;				\
+	static uint64	__iterations = 1;				\
 	int		__enough = get_enough(enough);			\
-	long		__n;						\
+	uint64		__n;						\
 	double		__result = 0.;					\
 									\
 	while(__result < 0.95 * __enough) {				\
-	start(0);							\
-	for (__n = __iterations; __n > 0; __n--) {			\
-		loop_body;						\
-	}								\
-	__result = stop(0,0);						\
-	if (__result < 0.99 * __enough || __result > 1.2 * __enough) {	\
-		if (__result > 150) {					\
-			double	tmp = __iterations / __result;		\
-			tmp *= 1.1 * __enough;				\
-			__iterations = (long)(tmp + 1);			\
-		} else							\
-			__iterations *= 10;				\
-	}								\
+		start(0);						\
+		for (__n = __iterations; __n > 0; __n--) {		\
+			loop_body;					\
+		}							\
+		__result = stop(0,0);					\
+		if (__result < 0.99 * __enough 				\
+		    || __result > 1.2 * __enough) {			\
+			if (__result > 150.) {				\
+				double	tmp = __iterations / __result;	\
+				tmp *= 1.1 * __enough;			\
+				__iterations = (uint64)(tmp + 1);	\
+			} else {					\
+				if (__iterations > (uint64)1<<40) {	\
+					__result = 0.;			\
+					break;				\
+				}					\
+				__iterations <<= 3;			\
+			}						\
+		}							\
 	} /* while */							\
 	save_n((uint64)__iterations); settime((uint64)__result);	\
-}
-
-#if 0
-	/*  \
-	   fprintf(stderr, "\tN=%d u=%lu", __interations, (unsigned long)usecs);	\
-	   fflush(stderr);\
-	   fprintf(stderr, " c=%.2f\tr=%.2f\n", (double)usecs/__interations,	\
-		((double)usecs - t_overhead - __interations * l_overhead)		\
-		/ __interations );  			\
-	*/ \
-#endif
-
-/*
- * Standard timing loop.  Usage:
- *
- *	LOOP_FIRST(N, usecs, time)
- *	<code that you want timed>
- *	LOOP_LAST(N, usecs, time)
- *
- * time is how long you think it should run to be accurate.
- * "N" is a variable that will be set to the number of times it 
- * took to get "usecs" duration.  You then use N & usecs to print
- * out your results.
- * 
- * Notes: 
- *
- * Adjust the amount of time proportional to how
- * far we need to go.  We want time/usecs to be ~1.
- *
- * For systems with low resolution clocks, usecs can
- * be 0 or very close to 0.  We don't know how 
- * much time we spent, it could be anywhere from
- * 1 to 9999 usecs.  We pretend it was 1000 usecs.
- * The 129 value is because some systems bump the
- * timeval each time you call gettimeofday().
- */
-#define	LOOP_FIRST(N, usecs, time)			\
-	N = 0;						\
-	do {						\
-		if (!N) {				\
-			N = 1;				\
-		} else {				\
-			double	__adj;			\
-			int	__n;			\
-			if (usecs <= 129) {		\
-				usecs = 1000;		\
-			}				\
-			__adj = (int)((time * 1.5)/usecs + .9);	\
-			__n = N * __adj;			\
-			/* printf("\tN=%.2f u=%.2f a=%.2f n=%d\n", \
-			    (double)N, (double)usecs, __adj, __n);  \
-			*/ \
-			N = __n <= N ? N+1 : __n;	\
-		}					\
-timit:		usecs = N;				\
-		start(0);				\
-		while (usecs--) {
-
-#define	LOOP_LAST(N, usecs, time)			\
-		}					\
-		usecs = stop(0,0);			\
-	} while (usecs < time);				
-
-#define	OBENCH(test, enough, result) { 				\
-	int	__bench_n, __bench_i, __bench_enough;		\
-								\
-	__bench_enough = get_enough(enough);			\
-	test;							\
-	LOOP_FIRST(__bench_n, __bench_i, __bench_enough);	\
-	test;							\
-	LOOP_LAST(__bench_n, __bench_i, __bench_enough);	\
-	result = __bench_i;					\
-	result -= t_overhead();					\
-	result /= __bench_n;					\
-	/*							\
-	printf("usecs=%d n=%d c=%f r=%f\n", __bench_i, __bench_n, \
-	    (double)__bench_i/__bench_n, result);		\
-	*/							\
 }
 
 
