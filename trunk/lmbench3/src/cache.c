@@ -37,9 +37,11 @@ double	measure(int size, int repetitions,
 		double* variation, struct mem_state* state);
 double	remove_chunk(int i, int chunk, int npages, int* pages, 
 		       int len, int repetitions, struct mem_state* state);
+int	test_chunk(int i, int chunk, int npages, int* pages, int len, 
+		   double *baseline, double chunk_baseline,
+		   int repetitions, struct mem_state* state);
 int	fixup_chunk(int i, int chunk, int npages, int* pages, int len, 
-		    double *baseline, double *nodiff_chunk_baseline,
-		    double chunk_baseline,
+		    double *baseline, double chunk_baseline,
 		    int repetitions, struct mem_state* state);
 
 #ifdef ABS
@@ -297,8 +299,14 @@ collect_data(int start, int line, int maxlen,
 	for (i = 0; i < state.npages; ++i)
 		state.pages[i] = i * state.pagesize;
 
-	collect_sample(repetitions, &state, &p[0]);
-	while (collect_sample(repetitions, &state, &p[samples-1]) == 0) {
+	p[0].latency = measure(p[0].len, repetitions, &p[0].variation, &state);
+	p[samples-1].latency = measure(p[samples-1].len, repetitions, 
+				       &p[samples-1].variation, &state);
+	while (p[samples-1].latency <= 0.0) {
+		p[samples-1].latency = measure(p[samples-1].len, 
+					       repetitions, 
+					       &p[samples-1].variation, 
+					       &state);
 		--samples;
 	}
 	search(0, samples - 1, repetitions, &state, p);
@@ -345,7 +353,7 @@ search(int left, int right, int repetitions,
 	if (middle == left || middle == right)
 		return;
 
-	/*
+	/**/
 	fprintf(stderr, "search(%d, %d, ...): middle=%d\n", p[left].len, p[right].len, p[middle].len);
 	/**/
 
@@ -361,66 +369,29 @@ int
 collect_sample(int repetitions, struct mem_state* state, 
 	       struct cache_results* p)
 {
-	int	i, chunk, page, npages, ntotalpages, nsparepages;
-	int	modified, changed, iters;
-	int	*pages, *pageset;
-	static int	available_index = 0;
-	double	baseline, t, tt, low, var, new_baseline, nodiff_chunk_baseline;
-
-	p->latency = measure(p->len, repetitions, &p->variation, state);
-	baseline = p->latency;
+	int	i, modified, npages;
+	int	*pages;
+	double	baseline;
 
 	npages = p->len / getpagesize();
-	pages = state->pages;
-	pageset = state->pages + npages;
+        baseline = measure(p->len, repetitions, &p->variation, state);
 	
-	if (npages < 2 || nsparepages <= npages)
-		return (p->latency > 0);
-
-	nodiff_chunk_baseline = baseline;
-	iters = 0;
-	do {
-		modified = 0;
-		chunk = (npages + 9) / 10;
-		if (chunk > 10)	chunk = 10;
-
-		for (i = 0; i < npages; i+=chunk) {
-			if (i + chunk > npages) chunk = npages - i;
-
-			t = remove_chunk(i, chunk, npages, pages, 
-					 p->len, repetitions, state);
-
-			/**/
-			fprintf(stderr, "collect_sample(...): baseline=%G, t=%G, len=%d, chunk=%d, i=%d\n", baseline, t, p->len, chunk, i);
-			/**/
-
-			if (t >= 0.99 * baseline) continue;
-			if (t >= 0.999 * nodiff_chunk_baseline) continue;
-
-			/**/
-			fprintf(stderr, "collect_sample(...): faster chunk: baseline=%G, t=%G, len=%d, chunk=%d, i=%d\n", baseline, t, p->len, chunk, i);
-			/**/
-
-			changed = fixup_chunk(i, chunk, npages, 
-					      pages, p->len, 
-					      &baseline,
-					      &nodiff_chunk_baseline,
-					      t,
-					      repetitions, 
-					      state);
-
-			if (changed) {
-				modified = 1;
-			} else {
-				nodiff_chunk_baseline = t;
-			}
-		}
-		++iters;
-	} while (modified && iters < 8);
-
-	p->latency = baseline;
 	/**/
-	fprintf(stderr, "collect_sample(...): end of loop: baseline=%G, len=%d, chunk=%d, iters=%d, modified=%d\n", baseline, p->len, chunk, iters, modified);
+	fprintf(stderr, "collect_sample(...): entering: baseline=%G, len=%d\n", baseline, p->len);
+	/**/
+
+	if (npages >= 2) {
+		for (i = 0, modified = 1; i < 8 && modified; ++i) {
+			modified = test_chunk(0, npages, npages, 
+					      state->pages, p->len, 
+					      &baseline, baseline, 
+					      repetitions, state);
+		}
+	}
+	p->latency = baseline;
+
+	/**/
+	fprintf(stderr, "collect_sample(...): exiting: baseline=%G, len=%d, iters=%d, modified=%d\n", baseline, p->len, i, modified);
 	/**/
 
 	return (p->latency > 0);
@@ -526,49 +497,132 @@ remove_chunk(int i, int chunk, int npages, int* pages,
 }
 
 int
+test_chunk(int i, int chunk, int npages, int* pages, int len, 
+	   double *baseline, double chunk_baseline,
+	   int repetitions, struct mem_state* state)
+{
+	int	j, k, subchunk;
+	int	changed = 0;
+	int	modified = 0;
+	double	t, tt, nodiff_chunk_baseline;
+
+	if (chunk <= 20) {
+		return fixup_chunk(i, chunk, npages, pages, len, baseline, 
+				   chunk_baseline, repetitions, state);
+	}
+
+	nodiff_chunk_baseline = *baseline;
+	subchunk = (chunk + 19) / 20;
+	for (j = i; j < i + chunk; j+=subchunk) {
+		if (j + subchunk > i + chunk) subchunk = i + chunk - j;
+		changed = 0;
+
+		t = remove_chunk(j, subchunk, npages, pages, 
+				 len, repetitions, state);
+
+		/**/
+		fprintf(stderr, "test_chunk(...): baseline=%G, t=%G, len=%d, chunk=%d, i=%d\n", *baseline, t, len, subchunk, j);
+		/**/
+
+		if (t >= 0.99 * *baseline) continue;
+		if (t >= 0.999 * nodiff_chunk_baseline) continue;
+
+		tt = remove_chunk(j, subchunk, npages, pages, 
+				  len, repetitions, state);
+
+		if (tt > t) t = tt;
+
+		if (t >= 0.99 * *baseline) continue;
+		if (t >= 0.999 * nodiff_chunk_baseline) continue;
+
+		/**/
+		fprintf(stderr, "test_chunk(...): faster chunk: baseline=%G, t=%G, len=%d, chunk=%d, i=%d\n", *baseline, t, len, subchunk, j);
+		/**/
+
+		changed = test_chunk(j, subchunk, npages, pages, len,
+				     baseline, t, repetitions, state);
+
+		if (changed) {
+			modified = 1;
+		} else {
+			nodiff_chunk_baseline = t;
+		}
+	}
+	return modified;
+}
+
+/*
+ * This routine is called once we have identified a chunk
+ * that has pages that are suspected of colliding with other
+ * pages.
+ *
+ * The algorithm is to remove all the pages, and then 
+ * slowly add back pages; attempting to add pages with
+ * minimal cost.
+ */
+int
 fixup_chunk(int i, int chunk, int npages, int* pages, int len, 
-	    double *baseline, double *nodiff_chunk_baseline,
-	    double chunk_baseline,
+	    double *baseline, double chunk_baseline,
 	    int repetitions, struct mem_state* state)
 {
-	int	j, k, page, substitute, ntotalpages, nsparepages;
+	int	j, k;
+	int	page, substitute, original;
+	int	ntotalpages, nsparepages;
+	int	subset_len;
 	int	swapped = 0;
 	int	*pageset;
+	int	*saved_pages;
 	static int	available_index = 0;
 	double	t, tt, low, var, new_baseline;
+
+	/**/
+	fprintf(stderr, "fixup_chunk(%d, %d, %d, xxx, %d, %G, %G, ...): entering\n", i, chunk, npages, len, *baseline, chunk_baseline);
+	/**/
 
 	ntotalpages = state->maxlen / getpagesize();
 	nsparepages = ntotalpages - npages;
 	pageset = state->pages + npages;
+	new_baseline = *baseline;
+
+	saved_pages = (int*)malloc(sizeof(int) * ntotalpages);
+	bcopy(pages, saved_pages, sizeof(int) * ntotalpages);
+
+	/* move everything to the end of the page list */
+	if (i + chunk < npages) {
+		for (j = 0; j < chunk; ++j) {
+			page = pages[i+j];
+			pages[i+j] = pages[npages-chunk+j];
+			pages[npages-chunk+j] = page;
+		}
+	}
 
 	if (available_index >= nsparepages) available_index = 0;
 
 	for (j = 0; j < chunk; ++j) {
-		page = pages[i + j];
-		tt = remove_chunk(i + j, 1, npages, pages, 
-				  len, repetitions, state);
+		original = npages - chunk + j;
+		subset_len = (original + 1) * getpagesize();
+		page = pages[original];
+
+		tt = measure(subset_len, repetitions, &var, state);
+
 		/**/
 		fprintf(stderr, 
 			"\ti = %d\tpage = %d\tbase = %G\ttt = %G\n", 
 			i + j, page, *baseline, tt);
 		/**/
-		if (tt >= 0.995 * *baseline) continue;
 				
-		tt = remove_chunk(i + j, 1, npages, pages, 
-				  len, repetitions, state);
-
-		if (tt >= 0.995 * *baseline) continue;
-
 		low = tt;
-		new_baseline = *baseline;
+		new_baseline = tt;
+
+		if (0.995 * tt <= chunk_baseline) continue;
 
 		/* page is no good, find a substitute! */
 		for (k = 0; k < 2 * npages; ++k) {
 			substitute = nsparepages - 1;
-			substitute -= (k + available_index) % nsparepages;
-			pages[i + j] = pageset[substitute];
+			substitute -= (k + available_index) % (nsparepages - 1);
+			pages[original] = pageset[substitute];
 
-			tt = measure(len, repetitions, &var, state);
+			tt = measure(subset_len, repetitions, &var, state);
 			/**/
 			fprintf(stderr, 
 				"\t\tk = %d\tpage = %d\ttt = %G\tbase = %G\n", 
@@ -580,20 +634,42 @@ fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 				new_baseline = tt;
 				/* p->variation = var; */
 				pageset[substitute] = page;
-				page = pages[i + j];
+				page = pages[original];
 				++swapped;
 			}
 
 			/* pageset[k] is OK */
-			if (tt < 0.995 * *baseline
-			    && low >= 0.995 * tt)
-				break;
+			if (0.995 * tt <= chunk_baseline) break;
 		}
-		*baseline = new_baseline;
-		*nodiff_chunk_baseline = new_baseline;
-		available_index = substitute;
-		pages[i + j] = page;
+		/**/
+		if ((k + available_index) % (nsparepages - 1) < available_index) {
+			fprintf(stderr, "\t\trolled available_index, nsparepages=%d, npages=%d\n", nsparepages, npages);
+		}
+		/**/
+
+		available_index = (k + available_index) % (nsparepages - 1);
+		pages[original] = page;
 	}
+
+	if (new_baseline >= 0.999 * *baseline) {
+		/* there was no benefit to these changes, so back them out */
+		swapped = 0;
+		bcopy(saved_pages, pages, sizeof(int) * ntotalpages);
+	} else {
+		/* we sped up, so keep these changes */
+		*baseline = new_baseline;
+
+		/* move back to the middle of the pagelist */
+		if (i + chunk < npages) {
+			for (j = 0; j < chunk; ++j) {
+				page = pages[i+j];
+				pages[i+j] = pages[npages-chunk+j];
+				pages[npages-chunk+j] = page;
+			}
+		}
+	}
+	free(saved_pages);
+
 	return swapped;
 }
 
