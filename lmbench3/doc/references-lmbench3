@@ -3,8 +3,8 @@
 %A Carl Staelin
 %A Larry McVoy
 %T mhz: Anatomy of a microbenchmark
-%C Proceedings USENIX Annual Technical Conference
-%c New Orleans, LA
+%B Proceedings USENIX Annual Technical Conference
+%C New Orleans, LA
 %D June 1998
 %P 155-166
 
@@ -13,10 +13,27 @@
 %A Larry McVoy
 %A Carl Staelin
 %T lmbench: Portable tools for performance analysis
-%C Proceedings USENIX Winter Conference
-%c San Diego, CA
+%B Proceedings USENIX Winter Conference
+%C San Diego, CA
 %D January 1996
 %P 279-284
+
+%K Bray90
+%A Tim Bray
+%T Bonnie benchmark
+%D 1990
+%o http://www.textuality.com/bonnie/
+
+%z Article
+%K Brown97
+%A Aaron Brown
+%A Margo Seltzer
+%T Operating system benchmarking in the wake of lmbench: A case study of the performance of NetBSD on the Intel x86 architecture
+%B Proceedings of the 1997 ACM SIGMETRICS Conference on Measurement and Modeling of Computer Systems
+%C Seattle, WA
+%D June 1997
+%P 214-224
+%o http://www.eecs.harvard.edu/~vino/perf/hbench/sigmetrics/hbench.html
 
 %z Thesis
 %K Prestor01
@@ -68,6 +85,14 @@
 %I Morgan Kaufman
 %D 1996
 
+%z Book
+%K Jain91
+%A Raj Jain
+%T The Art of Computer Systems Performance Analysis: Techniques for Experimental Design, Measurement, Simulation, and Modeling
+%I Wiley-Interscience
+%C New York, NY
+%D April 1991
+
 %z Article
 %K Chen94a
 %A P. M. Chen
@@ -108,8 +133,8 @@
 %s wilkes%cello@hplabs.hp.com (Fri Jun 29 20:46:08 PDT 1990)
 %A John K. Ousterhout
 %T Why aren't operating systems getting faster as fast as hardware?
-%C Proceedings USENIX Summer Conference
-%c Anaheim, CA
+%B Proceedings USENIX Summer Conference
+%C Anaheim, CA
 %D June 1990
 %P 247-256
 %x This paper evaluates several hardware pplatforms and operating systems using
@@ -130,8 +155,8 @@
 %A L. W. McVoy
 %A S. R. Kleiman
 %T Extent-like Performance from a Unix File System
-%C Proceedings USENIX Winter Conference
-%c Dallas, TX
+%B Proceedings USENIX Winter Conference
+%C Dallas, TX
 %D January 1991
 %P 33-43
 
@@ -224,8 +249,8 @@
 %A Mike Callahan
 %A Paul Woodbury
 %T NFSSTONE: A network file server performance benchmark
-%C Proceedings USENIX Summer Conference
-%c Baltimore, MD
+%B Proceedings USENIX Summer Conference
+%C Baltimore, MD
 %D June 1989
 %P 269-275
 
@@ -261,8 +286,8 @@
 %A Guarav Banga
 %A Peter Druschel
 %T Measuring the capacity of a web server
-%C Proceedings USENIX Symposium on Internet Technologies and Systems
-%c Monterey, CA
+%B Proceedings USENIX Symposium on Internet Technologies and Systems
+%C Monterey, CA
 %D December 1997
 
 %z Article
@@ -270,8 +295,8 @@
 %A Guarav Banga
 %A Jeffrey C. Mogul
 %T Scalable kernel performance for internet servers under realistic loads
-%C Proceedings of the 1998 USENIX Annual Technical Conference
-%c New Orleans, LA
+%B Proceedings of the 1998 USENIX Annual Technical Conference
+%C New Orleans, LA
 %D June 1998
 
 %z Article
@@ -281,8 +306,8 @@
 %A Keith Smith
 %A Xiolan Zhang
 %T The case for application-specific benchmarking
-%C Proceedings of the 1999 Workshop on Hot Topics in Operating Systems
-%c Rico, AZ
+%B Proceedings of the 1999 Workshop on Hot Topics in Operating Systems
+%C Rico, AZ
 %D 1999
 
 %z Article
@@ -306,7 +331,7 @@
 %A Susan Eggers
 %A Henry Levy
 %T Suppoerting fine-grain synchronization on a simultaneous multithreaded processor
-%C Proceedings of the 5th International Symposium on High Performance Computer Architecture
+%B Proceedings of the 5th International Symposium on High Performance Computer Architecture
 %D January 1999
 %P 54-58
 %O http://www.cs.washington.edu/research/smt/papers/hpca.ps
