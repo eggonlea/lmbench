@@ -409,3 +409,10 @@
 %T GENESIS distributed memory benchmark suite
 %O http://wotug.ukc.ac.uk/parallel/performance/benchmarks/genesis
 %D 1994
+
+%z Article
+%K Intel99
+%Q Intel
+%T Profusion --- An 8-way symmetric multiprocessing chipset
+%O http://netserver.hp.com/docs/download.asp?file=tp_profusion(r).pdf
+%D July 1999
