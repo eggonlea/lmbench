@@ -54,6 +54,7 @@ main(int ac, char **av)
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	c;
+	uint64	datasize;
 	struct _state state;
 	char   *p;
 	char   *usage = "[-v <stream version 1|2>] [-M <len>[K|M]] [-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
@@ -94,6 +95,7 @@ main(int ac, char **av)
 		
 	/* convert from bytes to array length */
 	state.len /= 3 * sizeof(double);
+	datasize = sizeof(double) * state.len * parallel;
 
 	if (version == 1) {
 		benchmp(initialize, copy, cleanup, 
@@ -102,7 +104,7 @@ main(int ac, char **av)
 			save_minimum();
 			nano("STREAM copy latency", state.len * get_n());
 			fprintf(stderr, "STREAM copy bandwidth: ");
-			mb(2 * sizeof(double) * state.len * get_n());
+			mb(2 * datasize * get_n());
 		}
 
 		benchmp(initialize, scale, cleanup, 
@@ -111,7 +113,7 @@ main(int ac, char **av)
 			save_minimum();
 			nano("STREAM scale latency", state.len * get_n());
 			fprintf(stderr, "STREAM scale bandwidth: ");
-			mb(2 * sizeof(double) * state.len * get_n());
+			mb(2 * datasize * get_n());
 		}
 
 		benchmp(initialize, sum, cleanup, 
@@ -120,7 +122,7 @@ main(int ac, char **av)
 			save_minimum();
 			nano("STREAM sum latency", state.len * get_n());
 			fprintf(stderr, "STREAM sum bandwidth: ");
-			mb(3 * sizeof(double) * state.len * get_n());
+			mb(3 * datasize * get_n());
 		}
 
 		benchmp(initialize, triad, cleanup, 
@@ -129,7 +131,7 @@ main(int ac, char **av)
 			save_minimum();
 			nano("STREAM triad latency", state.len * get_n());
 			fprintf(stderr, "STREAM triad bandwidth: ");
-			mb(3 * sizeof(double) * state.len * get_n());
+			mb(3 * datasize * get_n());
 		}
 	} else {
 		benchmp(initialize, fill, cleanup, 
@@ -138,7 +140,7 @@ main(int ac, char **av)
 			save_minimum();
 			nano("STREAM2 fill latency", state.len * get_n());
 			fprintf(stderr, "STREAM2 fill bandwidth: ");
-			mb(sizeof(double) * state.len * get_n());
+			mb(datasize * get_n());
 		}
 
 		benchmp(initialize, copy, cleanup, 
@@ -147,7 +149,7 @@ main(int ac, char **av)
 			save_minimum();
 			nano("STREAM2 copy latency", state.len * get_n());
 			fprintf(stderr, "STREAM2 copy bandwidth: ");
-			mb(2 * sizeof(double) * state.len * get_n());
+			mb(2 * datasize * get_n());
 		}
 
 		benchmp(initialize, daxpy, cleanup, 
@@ -156,7 +158,7 @@ main(int ac, char **av)
 			save_minimum();
 			nano("STREAM2 daxpy latency", state.len * get_n());
 			fprintf(stderr, "STREAM2 daxpy bandwidth: ");
-			mb(3 * sizeof(double) * state.len * get_n());
+			mb(3 * datasize * get_n());
 		}
 
 		benchmp(initialize, cumsum, cleanup, 
@@ -165,7 +167,7 @@ main(int ac, char **av)
 			save_minimum();
 			nano("STREAM2 sum latency", state.len * get_n());
 			fprintf(stderr, "STREAM2 sum bandwidth: ");
-			mb(sizeof(double) * state.len * get_n());
+			mb(datasize * get_n());
 		}
 	}
 
