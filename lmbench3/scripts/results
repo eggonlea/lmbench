@@ -17,7 +17,7 @@ fi
 if [ ! -d ../$RESULTS ]
 then	mkdir -p ../$RESULTS
 fi
-RESULTS=$BASE
+RESULTS=$BASE.$EXT
 while [ -f $RESULTS ]
 do      EXT=`expr $EXT + 1`
 	RESULTS=$BASE.$EXT
