@@ -162,7 +162,9 @@ void benchmp(support_f initialize,
 	if (pipe(response) < 0
 	    || pipe(start_signal) < 0
 	    || pipe(exit_signal) < 0) {
+#ifdef _DEBUG
 		fprintf(stderr, "BENCHMP: Could not create control pipes\n");
+#endif /* _DEBUG */
 		return;
 	}
 
@@ -172,7 +174,9 @@ void benchmp(support_f initialize,
 	pids = (pid_t*)malloc(parallel * sizeof(pid_t));
 	if (setjmp(benchmp_sigchld_env)) {
 		/* error exit, child died unexpectedly */
+#ifdef _DEBUG
 		fprintf(stderr, "BENCHMP: Child died unexpectedly\n");
+#endif /* _DEBUG */
 		settime(0);
 		save_n(1);
 		return;
@@ -185,7 +189,9 @@ void benchmp(support_f initialize,
 		switch(pid = fork()) {
 		case -1:
 			/* could not open enough children! */
+#ifdef _DEBUG
 			fprintf(stderr, "BENCHMP: fork() failed!\n");
+#endif /* _DEBUG */
 			/* clean up and kill all children */
 			signal(SIGCHLD, SIG_IGN);
 			while (i > 0) {
@@ -589,7 +595,9 @@ benchmp_parent(	int response,
 		bytes_read = read(response, buf, parallel * sizeof(result_t) - i);
 		if (bytes_read < 0) {
 			/* error exit */
+#ifdef _DEBUG
 			fprintf(stderr, "Only read %d/%d bytes of results!\n", i, parallel * sizeof(result_t));
+#endif /* _DEBUG */
 			break;
 		}
 	}
