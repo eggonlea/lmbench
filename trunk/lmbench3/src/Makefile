@@ -18,6 +18,18 @@
 #
 # This is largely self configuring.  Most stuff is pretty portable.  
 #
+# If you don't have gcc, try make CC=cc and see if that works.
+#
+# If you want to do cross-compilation try make OS=armv5tel-linux-gnu
+# or whatever your OS string should be in the target environment.
+# Since many embedded development environments also have a special
+# cross-compiler, you might want to also select a particular compiler,
+# so your build command would look something like:
+#	make OS=armv5tel-linux-gnu CC=gcc-arm
+#
+# Overriding the OS and CC make parameters needs to be done as an
+# argument to make, not as an environment variable.  See above comments.
+#
 
 # I finally know why Larry Wall's Makefile says "Grrrr".
 SHELL=/bin/sh
@@ -57,7 +69,7 @@ SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
 	lat_mem_rd.c lat_mmap.c lat_ops.c lat_pagefault.c lat_pipe.c 	\
 	lat_proc.c lat_rpc.c lat_select.c lat_sig.c lat_syscall.c	\
 	lat_tcp.c lat_udp.c lat_unix.c lat_unix_connect.c lat_sem.c	\
-	lat_usleep.c lat_pmake.c					\
+	lat_usleep.c lat_pmake.c  					\
 	lib_debug.c lib_mem.c lib_stats.c lib_tcp.c lib_timing.c 	\
 	lib_udp.c lib_unix.c						\
 	line.c lmdd.c lmhttp.c par_mem.c par_ops.c loop_o.c memsize.c 	\
@@ -73,12 +85,14 @@ ASMS =  $O/bw_file_rd.s $O/bw_mem.s $O/bw_mmap_rd.s $O/bw_pipe.s 	\
 	$O/lat_pagefault.s $O/lat_pipe.s $O/lat_proc.s $O/lat_rpc.s	\
 	$O/lat_select.s $O/lat_sig.s $O/lat_syscall.s $O/lat_tcp.s	\
 	$O/lat_udp.s $O/lat_unix.s $O/lat_unix_connect.s $O/lat_sem.s	\
-	$O/lat_usleep.s $O/lat_pmake.s $O/lib_debug.s $O/lib_mem.s	\
+	$O/lat_usleep.s $O/lat_pmake.s $O/lat_cmd.s 			\
+	$O/lib_debug.s $O/lib_mem.s	\
 	$O/lib_stats.s $O/lib_tcp.s $O/lib_timing.s $O/lib_udp.s	\
 	$O/lib_unix.s $O/line.s $O/lmdd.s $O/lmhttp.s $O/par_mem.s	\
 	$O/par_ops.s $O/loop_o.s $O/memsize.s $O/mhz.s $O/msleep.s	\
-	$O/rhttp.s $O/timing_o.s $O/tlb.s $O/stream.s
-
+	$O/rhttp.s $O/timing_o.s $O/tlb.s $O/stream.s			\
+	$O/cache.s $O/lat_dram_page.s $O/lat_pmake.s $O/lat_rand.s	\
+	$O/lat_usleep.s $O/lat_cmd.s
 EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
 	$O/bw_unix $O/hello						\
 	$O/lat_select $O/lat_pipe $O/lat_rpc $O/lat_syscall $O/lat_tcp	\
@@ -89,39 +103,39 @@ EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
 	$O/msleep $O/loop_o $O/lat_fifo $O/lmhttp $O/lat_http		\
 	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk		\
 	$O/lat_ops $O/line $O/tlb $O/par_mem $O/par_ops 		\
-	$O/stream 
+	$O/stream
 OPT_EXES=$O/cache $O/lat_dram_page $O/lat_pmake $O/lat_rand 		\
-	$O/lat_usleep 
+	$O/lat_usleep $O/lat_cmd
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o 	\
 	$O/lib_mem.o $O/lib_stats.o $O/lib_debug.o $O/getopt.o
 
 lmbench: $(UTILS)
-	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
-	-@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="-k $(MAKEFLAGS)" ../scripts/build opt
+	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" CC="$(CC)" OS="$(OS)" ../scripts/build all
+	-@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="-k $(MAKEFLAGS)" CC="$(CC)" OS="$(OS)" ../scripts/build opt
 
 results: lmbench
-	@../scripts/config-run
-	@BENCHMARK_HARDWARE=YES BENCHMARK_OS=YES ../scripts/results
+	@env OS="${OS}" ../scripts/config-run
+	@env OS="${OS}" ../scripts/results
 
 rerun: lmbench
-	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; fi
-	@../scripts/results
+	@if [ ! -f $(CONFIG) ]; then env OS="${OS}" ../scripts/config-run; fi
+	@env OS="${OS}" ../scripts/results
 
 scaling: lmbench
-	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; \
+	@if [ ! -f $(CONFIG) ]; then env OS="${OS}" ../scripts/config-run; \
 	 else ../scripts/config-scaling $(CONFIG); fi
-	@../scripts/results
+	@env OS="${OS}" ../scripts/results
 
 hardware: lmbench
-	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; fi
-	@BENCHMARK_HARDWARE=YES BENCHMARK_OS=NO  ../scripts/results
+	@if [ ! -f $(CONFIG) ]; then env OS="${OS}" ../scripts/config-run; fi
+	@env OS="${OS}" BENCHMARK_HARDWARE=YES BENCHMARK_OS=NO  ../scripts/results
 
 os: lmbench
-	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; fi
-	@BENCHMARK_HARDWARE=NO  BENCHMARK_OS=YES ../scripts/results
+	@if [ ! -f $(CONFIG) ]; then env OS="${OS}" ../scripts/config-run; fi
+	@env OS="${OS}" BENCHMARK_HARDWARE=NO  BENCHMARK_OS=YES ../scripts/results
 
 install: lmbench
-	@env CFLAGS=-O MAKE="$(MAKE)"  MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build install-target
+	@env CFLAGS=-O MAKE="$(MAKE)"  MAKEFLAGS="$(MAKEFLAGS)" CC="${CC}" OS="${OS}" ../scripts/build install-target
 
 install-target:
 	if [ ! -d $(BASE) ]; then mkdir $(BASE); fi
@@ -131,7 +145,7 @@ install-target:
 	cp $(EXES) $(BASE)/bin
 	cp $(INCS) $(BASE)/include
 	cp $O/lmbench.a $(BASE)/lib/libmbench.a
-	cd ../doc; env MAKEFLAGS="$(MAKEFLAGS)" make BASE="$(BASE)" install
+	cd ../doc; env MAKEFLAGS="$(MAKEFLAGS)" make CC="${CC}" OS="${OS}" BASE="$(BASE)" install
 
 
 # No special handling for all these
@@ -142,13 +156,13 @@ $(ASMS):
 	$(CC) -S $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ `basename $@ .s`.c
 
 Wall:
-	@env CFLAGS="-Wall -ansi" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
+	@env CFLAGS="-Wall -ansi" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" CC="${CC}" OS="${OS}" ../scripts/build all opt
 
 debug:
-	@env CFLAGS=-g MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
+	@env CFLAGS="-g -O" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" CC="${CC}" OS="${OS}" ../scripts/build all opt
 
 assembler:
-	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build asm
+	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" CC="${CC}" OS="${OS}" ../scripts/build asm
 
 bk.ver: ../SCCS/s.ChangeSet
 	rm -f bk.ver
@@ -484,3 +498,8 @@ $O/lat_pmake:  lat_pmake.c timing.h stats.h bench.h $O/lmbench.a
 $O/lat_rand.s:lat_rand.c timing.h stats.h bench.h
 $O/lat_rand:  lat_rand.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/lat_rand lat_rand.c $O/lmbench.a $(LDLIBS)
+
+$O/lat_cmd.s:lat_cmd.c timing.h stats.h bench.h
+$O/lat_cmd:  lat_cmd.c timing.h stats.h bench.h $O/lmbench.a
+	$(COMPILE) -o $O/lat_cmd lat_cmd.c $O/lmbench.a $(LDLIBS)
+
