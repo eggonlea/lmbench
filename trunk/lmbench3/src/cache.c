@@ -43,13 +43,14 @@ void cleanup(void* cookie);
 int
 main(int ac, char **av)
 {
-	int	i, l, len;
+	int	i, j, l, len;
 	int	c;
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	print_cost = 0;
 	int	maxlen = 32 * 1024 * 1024;
 	double	time;
+	result_t r, *r_save;
 	struct _state state;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 
@@ -63,6 +64,8 @@ main(int ac, char **av)
 			break;
 		case 'L':
 			state.line = atoi(optarg);
+			if (state.line < sizeof(char*))
+				state.line = sizeof(char*);
 			break;
 		case 'M':
 			l = strlen(optarg);
@@ -89,12 +92,22 @@ main(int ac, char **av)
 
 	for (i = sizeof(char*); i <= maxlen; i<<=1) {
 		state.len = i;
-		benchmp(initialize, benchmark, cleanup, 0, 1, 
-			warmup, repetitions, &state);
+
+		r_save = get_results();
+		insertinit(&r);
+
+		for (j = 0; j < TRIES; ++j) {
+			benchmp(initialize, benchmark, cleanup, 0, 1, 
+				warmup, repetitions, &state);
+			insertsort(gettime(), get_n(), &r);
+		}
+		set_results(&r);
 
 		/* We want nanoseconds / load. */
 		time = (1000. * (double)gettime()) / (100. * (double)get_n());
 		fprintf(stderr, "cache: %d bytes %.5f nanoseconds\n", state.len, time);
+
+		set_results(r_save);
 	}
 
 #if 0
@@ -124,7 +137,7 @@ initialize(void* cookie)
 	register char *p = 0 /* lint */;
 
 	nbytes = state->len;
-	npointers = state->len / sizeof(char*);
+	npointers = state->len / state->line;
 	nwords = state->line / sizeof(char*);
 	nlines = state->pagesize / state->line;
 	npages = (nbytes + state->pagesize) / state->pagesize;
