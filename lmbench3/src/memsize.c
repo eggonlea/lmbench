@@ -119,7 +119,6 @@ timeit(char *where, size_t size)
 static void
 touchRange(char *p, size_t range, ssize_t stride)
 {
-	int i = 0;
 	register char	*tmp = p + (stride > 0 ? 0 : range - 1);
 	register size_t delta = (stride > 0 ? stride : -stride);
 
@@ -127,24 +126,5 @@ touchRange(char *p, size_t range, ssize_t stride)
 		*tmp = 0;
 		tmp += stride;
 		range -= delta;
-		i++;
 	}
-}
-
-#undef	malloc
-#undef	free
-
-char	*
-Malloc(int n)
-{
-	char	*p = malloc(n);
-
-	fprintf(stderr, "malloc(%d) = %x\n", n, p);
-	return (p);
-}
-
-Free(char *p)
-{
-	fprintf(stderr, "free(%x)\n", p);
-	free(p);
 }
