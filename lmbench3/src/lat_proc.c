@@ -55,16 +55,16 @@ main(int ac, char **av)
 #define NOINIT NULL
 #define NOCLEANUP NULL
 
-	if (!strcmp("procedure", av[1])) {
+	if (!strcmp("procedure", av[optind])) {
 		benchmp(NOINIT,do_procedure,NOCLEANUP, 0, parallel, &ac);
 		micro("Procedure call", get_n());
-	} else if (!strcmp("fork", av[1])) {
+	} else if (!strcmp("fork", av[optind])) {
 		benchmp(NOINIT,do_fork,NOCLEANUP, 0, parallel, NULL);
 		micro(STATIC_PREFIX "Process fork+exit", get_n());
-	} else if (!strcmp("exec", av[1])) {
+	} else if (!strcmp("exec", av[optind])) {
 		benchmp(NOINIT,do_forkexec,NOCLEANUP,0,parallel,NULL);
 		micro(STATIC_PREFIX "Process fork+execve", get_n());
-	} else if (!strcmp("shell", av[1])) {
+	} else if (!strcmp("shell", av[optind])) {
 		benchmp(NOINIT,do_shell,NOCLEANUP,0,parallel,NULL);
 		micro(STATIC_PREFIX "Process fork+/bin/sh -c", get_n());
 	} else {
