@@ -126,15 +126,7 @@ main(int ac, char **av)
 				state.line = sizeof(char*);
 			break;
 		case 'M':
-			l = strlen(optarg);
-			if (optarg[l-1] == 'm' || optarg[l-1] == 'M') {
-				maxlen = 1024 * 1024;
-				optarg[l-1] = 0;
-			} else if (optarg[l-1] == 'k' || optarg[l-1] == 'K') {
-				maxlen = 1024;
-				optarg[l-1] = 0;
-			}
-			maxlen *= atoi(optarg);
+			maxlen = bytes(optarg);
 			break;
 		case 'W':
 			warmup = atoi(optarg);

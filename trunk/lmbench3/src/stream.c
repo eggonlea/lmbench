@@ -56,15 +56,9 @@ main(int ac, char **av)
 			verbose = 1;
 			break;
 		case 'M':
-			l = strlen(optarg);
-			if (optarg[l-1] == 'm' || optarg[l-1] == 'M') {
-				state.len = 1024 * 1024;
-				optarg[l-1] = 0;
-			} else if (optarg[l-1] == 'k' || optarg[l-1] == 'K') {
-				state.len = 1024;
-				optarg[l-1] = 0;
-			}
-			state.len *= atoi(optarg);
+			state.len = bytes(optarg);
+			/* convert from bytes to array length */
+			state.len /= 3 * sizeof(double);
 			break;
 		case 'W':
 			warmup = atoi(optarg);
