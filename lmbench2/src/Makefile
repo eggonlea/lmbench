@@ -154,7 +154,8 @@ dist: bk.ver
 		cd src; \
 		make bk.ver; \
 		cd /tmp; \
-		tar czf $${SRCDIR}/../$${DIR}-$${TODAY}.tgz $${DIR}-$${VERSION}; \
+		tar czf $${SRCDIR}/../$${DIR}-$${VERSION}.tgz \
+			$${DIR}-$${VERSION}; \
 		rm -rf /tmp/$${DIR}-$${VERSION};
 
 get $(SRCS):
