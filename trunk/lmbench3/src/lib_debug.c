@@ -71,11 +71,11 @@ bw_quartile(uint64 bytes)
 	double	b = (double)bytes;
 
 	fprintf(stderr, "%d\t%e\t%e\t%e\t%e\t%e\n", get_n(), 
-		(double)bytes / (1000000. * percentage_point(0.00)),
-		(double)bytes / (1000000. * percentage_point(0.25)),
-		(double)bytes / (1000000. * percentage_point(0.50)),
-		(double)bytes / (1000000. * percentage_point(0.75)),
-		(double)bytes / (1000000. * percentage_point(1.00)));
+		(double)bytes / (1000000. * percent_point(0.00)),
+		(double)bytes / (1000000. * percent_point(0.25)),
+		(double)bytes / (1000000. * percent_point(0.50)),
+		(double)bytes / (1000000. * percent_point(0.75)),
+		(double)bytes / (1000000. * percent_point(1.00)));
 }
 
 /*
@@ -87,11 +87,11 @@ void
 nano_quartile(uint64 n)
 {
 	fprintf(stderr, "%d\t%e\t%e\t%e\t%e\t%e\n", get_n(), 
-		percentage_point(0.00) * 1000. / (double)n,
-		percentage_point(0.25) * 1000. / (double)n,
-		percentage_point(0.50) * 1000. / (double)n,
-		percentage_point(0.75) * 1000. / (double)n,
-		percentage_point(1.00) * 1000. / (double)n);
+		percent_point(0.00) * 1000. / (double)n,
+		percent_point(0.25) * 1000. / (double)n,
+		percent_point(0.50) * 1000. / (double)n,
+		percent_point(0.75) * 1000. / (double)n,
+		percent_point(1.00) * 1000. / (double)n);
 }
 
 /*
