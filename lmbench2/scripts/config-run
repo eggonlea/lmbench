@@ -337,44 +337,6 @@ EOF
 fi
 
 ############################################################################
-# Multiple copies
-############################################################################
-echo $L
-cat<<EOF;
-
-If you are running on an MP machine and you want to try running
-multiple copies of lmbench in parallel, you can specify how many here.
-
-Using this option will make the benchmark run 100x slower (sorry).
-
-This is experimental and results are undefined for the time being.
-
-EOF
-AGAIN=Y
-while [ $AGAIN = Y ]
-do	echo $ECHON "MULTIPLE COPIES [default 1] $ECHOC"
-	read SYNC_MAX
-	if [ "X$SYNC_MAX" != X ]
-	then	case "$SYNC_MAX" in
-		[0-9]|[0-9][0-9]|[0-9][0-9][0-9])
-			AGAIN=N
-			;;
-		*)	echo "Please enter a number between 1 and 999"
-			;;
-		esac
-	else	AGAIN=N
-		SYNC_MAX=1
-	fi
-done
-
-if [ $SYNC_MAX -gt 1 ]
-then	echo "Hang on, we are recalculating your timing granularity."
-	ENOUGH=`expr $SYNC_MAX \* 500001`
-	echo "OK, it looks like you can time stuff down to $ENOUGH usec resolution."
-	echo ""
-fi
-
-############################################################################
 # Submit results?
 ############################################################################
 echo $L
@@ -481,7 +443,6 @@ echo OS=\"$OS\" >> $C
 echo PROCESSORS=\"$PROCESSORS\" >> $C
 echo REMOTE=\"$REMOTE\" >> $C
 echo SLOWFS=\"$SLOWFS\" >> $C
-echo SYNC_MAX=\"$SYNC_MAX\" >> $C
 echo TIMING_O=$TIMING_O >> $C
 echo RSH=$RSH >> $C
 echo RCP=$RCP >> $C
