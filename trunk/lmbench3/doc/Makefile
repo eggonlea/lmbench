@@ -6,6 +6,8 @@ DESC = description.ms
 USENIX = tmac.usenix usenix96.ms 
 PIC = ctx.pic mem.pic 
 SCRIPTS = ../scripts/
+BASE=/usr/local
+MANDIR=${BASE}/man
 
 MAN = \
 	bargraph.1 graph.1 						\
@@ -71,7 +73,7 @@ parallel.ps: $(ALL) references-parallel parallel.ms
 
 install: $(MAN)
 	for f in $(MAN); do \
-		for s in 1 2 3 4 5 6 7 8 9; do
+		for s in 1 2 3 4 5 6 7 8 9; do \
 			if [ ! -d ${MANDIR}/man$${s} ]; then \
 				mkdir -p ${MANDIR}/man$${s}; \
 			fi; \
