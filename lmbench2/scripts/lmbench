@@ -20,7 +20,7 @@ else	echo Using defaults > ${OUTPUT}
 	TIMING_O=0
 	LOOP_O=0
 fi
-export ENOUGH TIMING_O LOOP_O SYNC_MAX SYNC_PID
+export ENOUGH TIMING_O LOOP_O
 
 if [ X$FILE = X ]
 then	FILE=/tmp/XXX
@@ -49,21 +49,6 @@ if [ X$FSDIR = X ]
 then	FSDIR=/usr/tmp/lat_fs
 fi
 MP=N
-if [ $SYNC_MAX -gt 1 ]
-then	if [ X$SYNC_PID = X ]
-	then	echo "Must set both SYNC_MAX and SYNC_PID"
-		exit 1
-	fi
-	if [ "X$DISKS" != X ]
-	then	echo "MP and disks are mutually exclusive (sorry)"
-		exit 1
-	fi
-	if [ "X$REMOTE" != X ]
-	then	echo "MP and remote networking are mutually exclusive (sorry)"
-		exit 1
-	fi
-	MP=Y
-fi
 
 # Figure out as much stuff as we can about this system.
 # Sure would be nice if everyone had SGI's "hinv".
@@ -88,8 +73,6 @@ echo \[PROCESSORS: ${PROCESSORS}] 1>&2
 echo \[REMOTE: ${REMOTE}] 1>&2
 echo \[SLOWFS: ${SLOWFS}] 1>&2
 echo \[OS: ${OS}] 1>&2
-echo \[SYNC_MAX: ${SYNC_MAX}] 1>&2
-echo \[SYNC_PID: ${SYNC_PID}] 1>&2
 echo \[TIMING_O: ${TIMING_O}] 1>&2
 echo \[LMBENCH VERSION: ${VERSION}] 1>&2
 echo \[USER: $USER] 1>&2
@@ -119,13 +102,7 @@ mount | while read i
 do	echo \[mount: "$i"] 1>&2
 done
 
-if [ $MP = Y ]
-then	SYNC=${FSDIR}/sync		# I want this to be global
-	FSDIR=${FSDIR}/lmbench_${SYNC_PID}
-	STAT=$FSDIR/lmbench.$SYNC_PID
-	FILE=${FILE}.$SYNC_PID
-else	STAT=$FSDIR/lmbench
-fi
+STAT=$FSDIR/lmbench
 mkdir $FSDIR 2>/dev/null
 touch $STAT 2>/dev/null
 if [ ! -f $STAT ]
@@ -133,74 +110,33 @@ then	echo "Can't make a file - $STAT - in $FSDIR" > ${OUTPUT}
 	touch $STAT
 	exit 1
 fi
-if [ X$SYNC != X ]
-then	/bin/rm -rf $SYNC
-	mkdir -p $SYNC 2>/dev/null
-	if [ ! -d $SYNC ]
-	then	echo "Can't make $SYNC"
-		exit 1
-	fi
-fi
 
 date > ${OUTPUT}
 echo Latency measurements > ${OUTPUT}
-if [ $MP = Y ]
-then	if [ $SYNC_MAX != $SYNC_PID ]; then sleep 5; fi
-	synchronize $SYNC/lat_syscall
-fi
 lat_syscall null
-if [ $MP = Y ]; then synchronize $SYNC/lat_syscall2; fi
 lat_syscall read
-if [ $MP = Y ]; then synchronize $SYNC/lat_syscall3; fi
 lat_syscall write
-if [ $MP = Y ]; then synchronize $SYNC/lat_syscall4; fi
 lat_syscall stat $STAT
-if [ $MP = Y ]; then synchronize $SYNC/lat_syscall5; fi
 lat_syscall fstat $STAT
-if [ $MP = Y ]; then synchronize $SYNC/lat_syscall6; fi
 lat_syscall open $STAT
-for i in 10 100 250 500
-do	if [ $MP = Y ]; then synchronize $SYNC/lat_select$i ; fi
-	lat_select $i
-done
-if [ $MP = Y ]; then synchronize $SYNC/lat_sig; fi
+for i in 10 100 250 500; do lat_select $i; done
 lat_sig install
-if [ $MP = Y ]; then synchronize $SYNC/lat_sig2; fi
 lat_sig catch
 lat_sig prot lat_sig
-if [ $MP = Y ]; then synchronize $SYNC/lat_pipe; fi
 lat_pipe
-if [ $MP = Y ]; then synchronize $SYNC/lat_unix; fi
 lat_unix
-if [ $MP = Y ]
-then	if [ $SYNC_MAX = $SYNC_PID ]; then cp hello /tmp/hello; fi
-	synchronize $SYNC/lat_proc
-else	cp hello /tmp/hello
-fi
-for i in fork exec shell
-do	if [ $MP = Y ]; then synchronize $SYNC/lat_proc$i ; fi
-	lat_proc $i
-done
-if [ $MP = Y ]
-then	synchronize $SYNC/lat_proc2
-	if [ $SYNC_MAX = $SYNC_PID ]; then rm -f /tmp/hello; fi
-else	rm /tmp/hello 
-fi
+cp hello /tmp/hello
+for i in fork exec shell; do lat_proc $i; done
+rm /tmp/hello 
 rm -f $FILE
-if [ $MP = Y ]; then synchronize $SYNC/lmdd; fi
 lmdd label="File $FILE write bandwidth: " of=$FILE move=${MB}m fsync=1 print=3
-if [ $MP = Y ]; then synchronize $SYNC/lat_pagefault; fi
 lat_pagefault $FILE
 echo "" 1>&2
 echo \"mappings 1>&2
-for i in $ALL
-do	if [ $MP = Y ]; then synchronize $SYNC/lat_mmap$i ; fi
-	lat_mmap $i $FILE
-done
+for i in $ALL; do lat_mmap $i $FILE; done
 echo "" 1>&2
 if [ X$SLOWFS != XYES ]
 then	date > ${OUTPUT}
-	if [ $MP = Y ]; then synchronize $SYNC/lat_fs; fi
 	echo Calculating file system latency > ${OUTPUT}
 	echo '"File system latency' 1>&2
 	lat_fs $FSDIR
@@ -217,144 +153,115 @@ then	for i in $DISKS
 	done
 fi
 
-if [ $SYNC_PID = $SYNC_MAX ]
-then	date > ${OUTPUT}
-	echo Local networking > ${OUTPUT}
-	if [ ! -d ../../src/webpage-lm ]
-	then	(cd ../../src && tar xf webpage-lm.tar)
-		sync
-		sleep 1
-	fi
-	SERVERS="lat_udp lat_tcp lat_rpc lat_connect bw_tcp"
-	for server in $SERVERS; do $server -s; done
-	DOCROOT=../../src/webpage-lm lmhttp 8008 &
-	sleep 2;
-	for i in localhost
-	do
-		lat_udp $i
-		lat_udp -$i
-		lat_tcp $i
-		lat_tcp -$i
-		lat_rpc $i
-		lat_rpc -$i
-		lat_connect $i
-		lat_connect -$i
-		bw_tcp $i
-		bw_tcp -$i
-		# I want a hot cache number
-		lat_http $i 8008 < ../../src/webpage-lm/URLS > /dev/null 2>&1
-		lat_http $i 8008 < ../../src/webpage-lm/URLS
-		lat_http -$i 8008
-	done
+date > ${OUTPUT}
+echo Local networking > ${OUTPUT}
+if [ ! -d ../../src/webpage-lm ]
+then	(cd ../../src && tar xf webpage-lm.tar)
+	sync
+	sleep 1
+fi
+SERVERS="lat_udp lat_tcp lat_rpc lat_connect bw_tcp"
+for server in $SERVERS; do $server -s; done
+DOCROOT=../../src/webpage-lm lmhttp 8008 &
+sleep 2;
+for i in localhost
+do
+	lat_udp $i
+	lat_udp -$i
+	lat_tcp $i
+	lat_tcp -$i
+	lat_rpc $i
+	lat_rpc -$i
+	lat_connect $i
+	lat_connect -$i
+	bw_tcp $i
+	bw_tcp -$i
+	# I want a hot cache number
+	lat_http $i 8008 < ../../src/webpage-lm/URLS > /dev/null 2>&1
+	lat_http $i 8008 < ../../src/webpage-lm/URLS
+	lat_http -$i 8008
+done
 
-	for remote in $REMOTE 
-	do	echo Networking to $remote > ${OUTPUT}
-		$RCP $SERVERS lmhttp ../../src/webpage-lm.tar ${remote}:/tmp
-		for server in $SERVERS
-		do	$RSH $remote -n /tmp/$server -s &
-		done
-		$RSH $remote -n 'cd /tmp; tar xf webpage-lm.tar; cd webpage-lm; ../lmhttp 8008' &
-		sleep 10
-		echo "[ Networking remote to $remote: `$RSH $remote uname -a` ]" 1>&2
-		lat_udp $remote; lat_udp -$remote;
-		lat_tcp $remote; lat_tcp -$remote;
-		lat_rpc $remote udp; lat_rpc $remote tcp; lat_rpc -$remote; 
-		lat_connect $remote; lat_connect -$remote;
-		bw_tcp $remote; bw_tcp -$remote 
-		# I want a hot cache number
-		lat_http $remote 8008 < ../../src/webpage-lm/URLS > /dev/null 2>&1
-		lat_http $remote 8008 < ../../src/webpage-lm/URLS
-		lat_http -$remote 8008
-		RM=
-		for server in $SERVERS
-		do	RM="/tmp/$server $RM"
-		done
-		$RSH $remote rm $RM
+for remote in $REMOTE 
+do	echo Networking to $remote > ${OUTPUT}
+	$RCP $SERVERS lmhttp ../../src/webpage-lm.tar ${remote}:/tmp
+	for server in $SERVERS
+	do	$RSH $remote -n /tmp/$server -s &
 	done
-fi	# MP
+	$RSH $remote -n 'cd /tmp; tar xf webpage-lm.tar; cd webpage-lm; ../lmhttp 8008' &
+	sleep 10
+	echo "[ Networking remote to $remote: `$RSH $remote uname -a` ]" 1>&2
+	lat_udp $remote; lat_udp -$remote;
+	lat_tcp $remote; lat_tcp -$remote;
+	lat_rpc $remote udp; lat_rpc $remote tcp; lat_rpc -$remote; 
+	lat_connect $remote; lat_connect -$remote;
+	bw_tcp $remote; bw_tcp -$remote 
+	# I want a hot cache number
+	lat_http $remote 8008 < ../../src/webpage-lm/URLS > /dev/null 2>&1
+	lat_http $remote 8008 < ../../src/webpage-lm/URLS
+	lat_http -$remote 8008
+	RM=
+	for server in $SERVERS
+	do	RM="/tmp/$server $RM"
+	done
+	$RSH $remote rm $RM
+done
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_unix; fi
 date > ${OUTPUT}
 echo Bandwidth measurements > ${OUTPUT}
 bw_unix
-if [ $MP = Y ]; then synchronize $SYNC/bw_pipe; fi
 bw_pipe
 echo "" 1>&2
 echo \"read bandwidth 1>&2
-for i in $ALL
-do	if [ $MP = Y ]; then synchronize $SYNC/bw_file_rd${i}1; fi
-	bw_file_rd $i io_only $FILE
-done
+for i in $ALL; do bw_file_rd $i io_only $FILE; done
 echo "" 1>&2
 
 echo "" 1>&2
 echo \"read open2close bandwidth 1>&2
-for i in $ALL
-do	if [ $MP = Y ]; then synchronize $SYNC/bw_file_rd${i}2; fi
-	bw_file_rd $i open2close $FILE
-done
+for i in $ALL; do bw_file_rd $i open2close $FILE; done
 echo "" 1>&2
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_mmap_rd; fi
 echo \"Mmap read bandwidth 1>&2
-for i in $ALL
-do	if [ $MP = Y ]; then synchronize $SYNC/bw_mmap_rd${i}; fi
-	bw_mmap_rd $i mmap_only $FILE
-done
+for i in $ALL; do bw_mmap_rd $i mmap_only $FILE; done
 echo "" 1>&2
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_mmap_rd2; fi
 echo \"Mmap read open2close bandwidth 1>&2
-for i in $ALL
-do	if [ $MP = Y ]; then synchronize $SYNC/bw_mmap_rd${i}2; fi
-	bw_mmap_rd $i open2close $FILE
-done
+for i in $ALL; do bw_mmap_rd $i open2close $FILE; done
 echo "" 1>&2
 rm -f $FILE
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem; fi
 echo \"libc bcopy unaligned 1>&2
 for i in $HALF; do bw_mem $i bcopy; done; echo "" 1>&2
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem2; fi
 echo \"libc bcopy aligned 1>&2
 for i in $HALF; do bw_mem $i bcopy conflict; done; echo "" 1>&2
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem3; fi
 echo \"unrolled bcopy unaligned 1>&2
 for i in $HALF; do bw_mem $i fcp; done; echo "" 1>&2
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem4; fi
 echo \"unrolled partial bcopy unaligned 1>&2
 for i in $HALF; do bw_mem $i cp; done; echo "" 1>&2
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem5; fi
 echo "Memory read bandwidth" 1>&2
 for i in $ALL; do bw_mem $i frd; done; echo "" 1>&2
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem6; fi
 echo "Memory partial read bandwidth" 1>&2
 for i in $ALL; do bw_mem $i rd; done; echo "" 1>&2
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem7; fi
 echo "Memory write bandwidth" 1>&2
 for i in $ALL; do bw_mem $i fwr; done; echo "" 1>&2
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem8; fi
 echo "Memory partial write bandwidth" 1>&2
 for i in $ALL; do bw_mem $i wr; done; echo "" 1>&2
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_mem9; fi
 echo "Memory partial read/write bandwidth" 1>&2
 for i in $ALL; do bw_mem $i rdwr; done; echo "" 1>&2
 
-if [ $MP = Y ]; then synchronize $SYNC/bw_mema; fi
 echo "Memory bzero bandwidth" 1>&2
 for i in $ALL; do bw_mem $i bzero; done; echo "" 1>&2
 
 date > ${OUTPUT}
 msleep 250
-if [ $MP = Y ]; then synchronize $SYNC/lat_ctx; fi
 echo Calculating context switch overhead > ${OUTPUT}
 if [ $MB -ge 8 ]
 then	CTX="0 4 8 16 32 64"
@@ -364,16 +271,12 @@ else
 	N="2 4 8 16 24 32 64 96"
 fi
 	
-for size in $CTX
-do	if [ $MP = Y ]; then synchronize $SYNC/lat_ctx${size}_${N}; fi
-	lat_ctx -s $size $N
-done
+for size in $CTX; do lat_ctx -s $size $N; done
 
 date > ${OUTPUT}
 echo Calculating memory load latency > ${OUTPUT}
 msleep 250
 echo "" 1>&2
-if [ $MP = Y ]; then synchronize $SYNC/lat_mem_rd; fi
 echo "Memory load latency" 1>&2
 if [ X$FASTMEM = XYES ]
 then	lat_mem_rd $MB 128
