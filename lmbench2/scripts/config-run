@@ -58,15 +58,25 @@ echo ""
 # Figure out memory size.
 ############################################################################
 TMP=
+XTMP=
 if [ -r /proc/meminfo ]
 then	TMP=`grep 'Mem:' /proc/meminfo | awk '{print $2}'`
 	if [ X$TMP != X ]
-	then	TMP=`echo \(\( $TMP / 1048576 \) \* 7 \) / 10 | bc`
+	then	XTMP=`echo \(\( $TMP / 1048576 \) \* 7 \) / 10 | bc 2>/dev/null`
+	fi
+	if [ X$XTMP = X ]
+	then	XTMP=`expr $TMP / 1048576 2>/dev/null`
+		XTMP=`expr $XTMP \* 7`
+		XTMP=`expr $XTMP / 10`
+	fi
+	if [ X$XTMP != X -a $XTMP -gt 0 ]
+	then	TMP=$XTMP
 	fi
 fi
 if [ X$TMP != X ]
 then	MB=$TMP
-else	MB=32
+else	$ECHON "Probing system for available memory: $ECHOC"
+	MB=`../bin/$OS/memsize 1024`
 fi
 
 echo $L
