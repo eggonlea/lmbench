@@ -25,7 +25,7 @@ do_integer_bitwise(uint64 iterations, void* cookie)
 
 	while (iterations-- > 0) {
 		for (i = 0; i < 1000; ++i) {
-			HUNDRED(r^=i;r=~r;)
+			HUNDRED(r^=i;r<<=1;)
 		}
 	}
 	use_int(r);
@@ -100,7 +100,8 @@ do_uint64_bitwise(uint64 iterations, void* cookie)
 
 	while (iterations-- > 0) {
 		for (i = 0; i < 1000; ++i) {
-			HUNDRED(r^=i;r=~r;)
+			HUNDRED(r^=i;r<<=1;)
+/*			HUNDRED(r=~(r^i);) */
 		}
 	}
 	use_int((int)r);
@@ -115,7 +116,7 @@ do_uint64_add(uint64 iterations, void* cookie)
 
 	while (iterations-- > 0) {
 		for (i = 1; i < 1001; ++i) {
-			HUNDRED(r=(r+i)^r;)
+			HUNDRED(r+=(r+i);)
 		}
 	}
 	use_int((int)r);
@@ -334,7 +335,7 @@ do_float_bogomflops(uint64 iterations, void* cookie)
 
 	while (iterations-- > 0) {
 		for (i = 0; i < pState->N; ++i) {
-			x[i] = (1.0 + x[i])*(1.5 - x[i])/x[i];
+			x[i] = (1.0 + x[i]) * (1.5 - x[i]) / x[i];
 		}
 	}
 }
@@ -348,7 +349,7 @@ do_double_bogomflops(uint64 iterations, void* cookie)
 
 	while (iterations-- > 0) {
 		for (i = 0; i < pState->N; ++i) {
-			x[i] = (1.0 + x[i])*(1.5 - x[i])/x[i];
+			x[i] = (1.0 + x[i]) * (1.5 - x[i]) / x[i];
 		}
 	}
 }
@@ -389,10 +390,9 @@ main(int ac, char **av)
 	nano("uint64 bit", get_n() * 100000 * 2);
 	iop_time = gettime();
 	iop_N = get_n() * 100000 * 2;
-	
+
 	benchmp(NULL, do_uint64_add, NULL, 0, 1, 0, TRIES, &state);
-	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
-	nano("uint64 add", get_n() * 100000);
+	nano("uint64 add", get_n() * 100000 * 2);
 	
 	benchmp(NULL, do_uint64_mul, NULL, 0, 1, 0, TRIES, &state);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
