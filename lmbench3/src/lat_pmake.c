@@ -16,6 +16,7 @@ char	*id = "$Id$\n";
 
 void setup(iter_t iterations, void* cookie);
 void bench(iter_t iterations, void *cookie);
+void cleanup(iter_t iterations, void *cookie);
 void work(iter_t iterations, void *cookie);
 
 typedef struct _state {
@@ -23,6 +24,7 @@ typedef struct _state {
 	iter_t	iterations;	/* how long each job should work */
 	long*	x;		/* used by work() */
 	long**	p;
+	pid_t*	pids;
 } state_t;
 
 int 
@@ -33,9 +35,10 @@ main(int ac, char **av)
 	int warmup = 0;
 	int repetitions = TRIES;
 	int c;
+	double time;
 	uint64	usecs;
 	char buf[1024];
-	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
+	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] Njobs usecs...\n";
 
 	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
@@ -54,21 +57,25 @@ main(int ac, char **av)
 			break;
 		}
 	}
-	if (optind != ac - 2) {
+	if (ac < optind + 2) {
 		lmbench_usage(ac, av, usage);
 	}
 	state.jobs = atoi(av[optind]);
-	usecs = bytes(av[optind+1]);
-	benchmp(setup, work, NULL, 0, 1, 0, TRIES, &state);
-	if (gettime() == 0) exit(1);
-	state.iterations = (iter_t)((usecs * get_n()) / gettime());
-	/*nano("work", get_n());*/
+	state.pids = NULL;
+	fprintf(stderr, "\"pmake jobs=%d\n", state.jobs);
+	while (++optind < ac) {
+		usecs = bytes(av[optind]);
+		benchmp(setup, work, NULL, 0, 1, 0, TRIES, &state);
+		if (gettime() == 0) exit(1);
+		state.iterations = (iter_t)((usecs * get_n()) / gettime());
 
-	benchmp(setup, bench, NULL, 0, parallel, 
-		warmup, repetitions, &state);
-	sprintf(buf, "time to complete %d jobs, each with %lu usecs work",
-		state.jobs, usecs);
-	micro(buf, get_n());
+		benchmp(setup, bench, NULL, 0, parallel, 
+			warmup, repetitions, &state);
+		time = gettime();
+		time /= get_n();
+		if (time > 0.0)
+			fprintf(stderr, "%llu %.2f\n", usecs, time);
+	}
 	return (0);
 }
 
@@ -87,20 +94,49 @@ setup(iter_t iterations, void* cookie)
 void 
 bench(register iter_t iterations, void *cookie)
 {
-	state_t *state = (state_t *) cookie;
 	int	i;
-	pid_t*	pids = (pid_t*)malloc(state->jobs * sizeof(pid_t));
+	int	status;
+	state_t *state = (state_t *) cookie;
+	
+	state->pids = (pid_t*)malloc(state->jobs * sizeof(pid_t));
 
-	signal(SIGCHLD, SIG_IGN);
+	/* 
+	 * This design has one buglet --- we cannot detect if the 
+	 * worker process died prematurely.  I.e., we don't have
+	 * a handshake step to collect "I finished correctly"
+	 * messages.
+	 */
 	while (iterations-- > 0) {
 		for (i = 0; i < state->jobs; ++i) {
-			if ((pids[i] = fork()) == 0) {
+			if ((state->pids[i] = fork()) == 0) {
 				work(state->iterations, state);
 				exit(0);
 			}
 		}
 		for (i = 0; i < state->jobs; ++i) {
-			waitpid(pids[i], NULL, 0);
+			waitpid(state->pids[i], &status, 0);
+			state->pids[i] = -1;
+
+			/* child died badly */
+			if (!WIFEXITED(status)) {
+				cleanup(0, cookie);
+				exit(1);
+			}
+		}
+	}
+}
+
+void 
+cleanup(register iter_t iterations, void *cookie)
+{
+	int	i;
+	state_t *state = (state_t *) cookie;
+
+	for (i = 0; i < state->jobs; ++i) {
+		if (state->pids[i] > 0) {
+			kill(state->pids[i], SIGKILL);
+			waitpid(state->pids[i], NULL, 0);
+			state->pids[i] = -1;
 		}
 	}
 }
