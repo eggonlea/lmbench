@@ -5,7 +5,13 @@
  *
  * %W% %@%
  *
+ * Copyright (c) 2000 Carl Staelin.
  * Copyright (c) 1994-1998 Larry McVoy.
+ * Distributed under the FSF GPL with
+ * additional restriction that results may published only if
+ * (1) the benchmark is unmodified, and
+ * (2) the version in the sccsid below is included in the report.
+ * Support for this development by Sun Microsystems is gratefully acknowledged.
  */
 #define	 _LIB /* bench.h needs this */
 #include "bench.h"
@@ -1542,14 +1548,14 @@ touch(char *buf, int nbytes)
 }
 
 int*
-permutation(int max)
+permutation(int max, int scale)
 {
 	int	i, v;
 	static unsigned int r = 0;
 	int*	result = (int*)malloc(max * sizeof(int));
 
 	for (i = 0; i < max; ++i) {
-		result[i] = i;
+		result[i] = i * scale;
 	}
 
 	if (r == 0)
