@@ -136,6 +136,7 @@ debug:
 	@env CFLAGS=-g MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
 
 bk.ver: ../SCCS/s.ChangeSet
+	rm -f bk.ver
 	-echo `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` > bk.ver
 	touch bk.ver
 
@@ -176,6 +177,10 @@ shar:
 
 depend: ../scripts/depend
 	../scripts/depend
+
+.PHONY: lmbench results rerun hardware os install all Wall debug \
+	install install-target dist get edit get-e clean clobber \
+	share depend
 
 $O/lmbench.a: $(LIBOBJS)
 	/bin/rm -f $O/lmbench.a
