@@ -36,7 +36,7 @@ void	cleanup(void* cookie);
 int main(int ac, char **av)
 {
 	int	parallel = 1;
-	int	warmup = 0;
+	int	warmup = LONGER;
 	int	repetitions = TRIES;
 	int	shutdown = 0;
 	state_t state;
@@ -104,13 +104,13 @@ int main(int ac, char **av)
 	}
 
 	/*
-	 * Initialize connection by running warming up for at least
-	 * five seconds, then measure performance over one second.
+	 * Default is to warmup the connection for seven seconds, 
+	 * then measure performance over each timing interval.
 	 * This minimizes the effect of opening and initializing TCP 
 	 * connections.
 	 */
 	benchmp(initialize, loop_transfer, cleanup, 
-		0, parallel, LONGER + warmup, repetitions, &state);
+		0, parallel, warmup, repetitions, &state);
 	if (gettime() > 0) {
 		fprintf(stderr, "%.6f ", state.msize / (1000. * 1000.));
 		mb(state.move * get_n() * parallel);
