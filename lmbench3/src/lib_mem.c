@@ -252,7 +252,13 @@ line_initialize(void* cookie)
 	state->lines = lines;
 	state->pages = pages;
 	
-	if (state->addr == NULL || lines == NULL || pages == NULL) {
+	if (state->addr == NULL || state->lines == NULL || state->pages == NULL) {
+		if (state->lines) free(state->lines);
+		if (state->pages) free(state->pages);
+		if (state->addr)  free(state->addr);
+		state->lines = NULL;
+		state->pages = NULL;
+		state->addr = NULL;
 		return;
 	}
 
@@ -420,11 +426,18 @@ line_find(int len, int warmup, int repetitions, struct mem_state* state)
 	big_jump = 0;
 	line = 0;
 
-	state->len = len;
-	state->maxlen = len;
+	/*
+	fprintf(stderr, "line_find(%d, ...): entering\n", len);
+	/**/
+
 	state->width = 1;
 	state->line = sizeof(char*);
-	line_initialize(state);
+	state->addr = NULL;
+	while (state->addr == NULL) {
+		state->len = state->maxlen = len;
+		line_initialize(state);
+		if (state->addr == NULL) len >>= 1;
+	}
 	if (state->addr) {
 		for (i = sizeof(char*); i <= maxline; i<<=1) {
 			t = line_test(i, warmup, repetitions, state);
@@ -443,6 +456,9 @@ line_find(int len, int warmup, int repetitions, struct mem_state* state)
 		}
 	}
 	mem_cleanup(state);
+	/*
+	fprintf(stderr, "line_find(%d, ...): returning %d\n", len, line);
+	/**/
 	return line;
 }
 
@@ -477,7 +493,7 @@ line_test(int line, int warmup, int repetitions, struct mem_state* state)
 	for (i = 0; i < repetitions; ++i) {
 		BENCH1(HUNDRED(p = *(char**)p;),0);
 		/*
-		fprintf(stderr, "%d\t%d\n", (int)gettime(), (int)get_n()); 
+		fprintf(stderr, "%d\t%d\t%d\n", line, (int)gettime(), (int)get_n()); 
 		/**/
 		insertsort(gettime(), get_n(), r);
 	}
@@ -522,7 +538,7 @@ par_mem(int len, int warmup, int repetitions, struct mem_state* state)
 	state->width = 1;
 	state->len = len;
 	state->maxlen = len;
-	max_par = -1.;
+	max_par = 1.;
 	__n = 1;
 
 	mem_initialize(state);
