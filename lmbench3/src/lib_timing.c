@@ -1429,7 +1429,7 @@ time_N(iter_t N)
 /*
  * return the amount of work needed to run "enough" microseconds
  */
-static long
+static iter_t
 find_N(int enough)
 {
 	int		tries;
@@ -1452,7 +1452,7 @@ find_N(int enough)
 		}
 		usecs = time_N(N);
 	}
-	return (-1);
+	return (0);
 }
 
 /*
@@ -1466,7 +1466,7 @@ test_time(int enough)
 	iter_t	N;
 	uint64	usecs, expected, baseline, diff;
 
-	if ((N = find_N(enough)) <= 0)
+	if ((N = find_N(enough)) == 0)
 		return (0);
 
 	baseline = time_N(N);
