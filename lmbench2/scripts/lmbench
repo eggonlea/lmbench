@@ -117,7 +117,8 @@ lat_syscall write
 lat_syscall stat $STAT
 lat_syscall fstat $STAT
 lat_syscall open $STAT
-for i in 10 100 250 500; do lat_select $i; done
+for i in 10 100 250 500; do lat_select file $i; done
+for i in 10 100 250 500; do lat_select tcp $i; done
 lat_sig install
 lat_sig catch
 lat_sig prot lat_sig
