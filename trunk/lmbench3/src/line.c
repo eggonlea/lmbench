@@ -26,10 +26,10 @@ main(int ac, char **av)
 {
 	int	i, j, l;
 	int	verbose = 0;
-	int	maxlen = 64 * 1024 * 1024;
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	c;
+	size_t	maxlen = 64 * 1024 * 1024;
 	struct mem_state state;
 	char   *usage = "[-v] [-W <warmup>] [-N <repetitions>][-M len[K|M]]\n";
 
