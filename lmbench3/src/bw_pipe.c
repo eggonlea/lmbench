@@ -105,22 +105,30 @@ writer(int control[2], int pipes[2], char* buf)
 int
 main(int argc, char *argv[])
 {
-	struct _state state;
-	int parallel = 1;
-	int c;
+    struct _state state;
+    int parallel = 1;
+    int c;
+    char* usage = "[-P <parallelism>]\n";
 
-	state.bytes = XFER;
+    state.bytes = XFER;
 
-	while (( c = getopt(argc,argv,"P:")) != EOF) {
-	  if (c == 'P') parallel = atoi(optarg);
+    while (( c = getopt(argc,argv,"P:")) != EOF) {
+	switch(c) {
+	case 'P':
+	    parallel = atoi(optarg);
+	    if (parallel <= 0) lmbench_usage(argc, argv, usage);
+	    break;
+	default:
+	    lmbench_usage(argc, argv, usage);
+	    break;
 	}
-	if (optind < argc || parallel <= 0) {
-	  fprintf(stderr,"Usage : %s [-P <parallelism>]\n",argv[0]);
-	  exit(-1);
-	}
-	benchmp(initialize, reader, cleanup, MEDIUM, parallel, &state);
+    }
+    if (optind < argc) {
+	lmbench_usage(argc, argv, usage);
+    }
+    benchmp(initialize, reader, cleanup, MEDIUM, parallel, &state);
 
-	fprintf(stderr, "Pipe bandwidth: ");
-	mb(get_n() * parallel * XFER);
-	return(0);
+    fprintf(stderr, "Pipe bandwidth: ");
+    mb(get_n() * parallel * XFER);
+    return(0);
 }
