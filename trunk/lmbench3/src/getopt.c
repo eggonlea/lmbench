@@ -22,7 +22,7 @@
  * to the option letter and can not be blank.
  */
 #include "bench.h"
-char *id = "%@%";
+static char *id = "%@%";
 
 int	optopt;		/* option that is in error, if we return an error */
 int     optind;		/* next arg in argv we process */
