@@ -124,14 +124,15 @@ typedef long long int64;
 #define	streq		!strcmp
 #define	ulong		unsigned long
 
-#ifdef USE_RAND
+#ifndef HAVE_DRAND48
+#ifdef HAVE_RAND
 #define srand48		srand
 #define drand48()	((double)rand() / (double)RAND_MAX)
-#endif
-#ifdef USE_RANDOM
-#define srand48		srand
-#define drand48()	((double)rand() / (double)RAND_MAX)
-#endif
+#elif defined(USE_RANDOM)
+#define srand48		srandom
+#define drand48()	((double)random() / (double)RAND_MAX)
+#endif /* HAVE_RAND */
+#endif /* HAVE_DRAND48 */
 
 #ifdef WIN32
 #include <process.h>
