@@ -3,9 +3,27 @@ $Id$
 Add standard deviation and other statistics calculations to "make stats"
 in results
 
+Add flags to various file-related benchmarks bw_file_rd, bw_mmap_rd,
+lat_fcntl.c, lat_fs, lat_mmap, and lat_pagefault, for parallelism
+which selects whether each instance has its own file or shares a
+file.
+
+Figure out how to improve lat_select.  It doesn't really work for
+multi-processor systems.  Linus suggests that we have each process
+do some amount of work, and vary the amount of work until context
+switch times for the producer degrade.  The current architecture
+of lat_select is too synchronous and favors simple hand-off
+scheduling too much.  From Linus.
+
+Look into threads vs. process scaling.  benchmp currently uses
+separate processes (via fork()); some benchmarks such as page
+faults and VM mapping might have very different performance
+for threads vs. processes since Linux (at least) has per-memory
+space locks for many of these things.  From Linus.
+
 Rewrite scripts/lmbench to use the new "-P <parallelism>" model for
-benchmarking parallel performance.  (replace/update the old
-'synchronize' calls)
+benchmarking parallel performance. 
+[in progress]
 
 Write/extend the results processing system/scripts to graph/display/
 process results in the "-P <parallelism>" dimension, and to properly
@@ -16,18 +34,6 @@ Add "-m <message size>" to networking benchmarks; this would specify
 the number of bytes for each message's payload.  (message size must
 be >= 1)
 [partially complete]
-
-Add "cache" benchmark to determine cache sizes (in bytes)
-[in progress]
-
-Add "line" benchmark to determine cache line size (in bytes)
-[in progress]
-
-Add "tlb" benchmark to determine effective TLB size (in pages)
-[in progress]
-
-Add "load" benchmark to determine how many loads a CPU can do in parallel
-[in progress]
 
 Add "bw_udp" benchmark to measure UDP bandwidth
 [in progress]
@@ -53,9 +59,6 @@ adding a test to scripts/build for the presence of long double
 on this system.
 
 Make all results print out bandwidths in powers of 10/sizes in powers of two.
-
-Make a version of memory latency that chases N lists.  This is to
-measure multiple outstanding load implementations.
 
 Make the lat_mem_rd walk in different strides.  Try and make it so that
 you flip back and forth between the same cache line.  So if you assume
