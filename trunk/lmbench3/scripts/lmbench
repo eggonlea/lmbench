@@ -418,6 +418,7 @@ if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_CTX = XYES ]; then
 	do	
 		lat_ctx -P $SYNC_MAX -s $size $N
 	done
+	echo "" 1>&2
 fi
 
 if [ X$BENCHMARK_HARDWARE = XYES -o X$BENCHMARK_MEM = XYES ]; then
