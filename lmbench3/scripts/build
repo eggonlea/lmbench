@@ -7,34 +7,52 @@ TARGET=`../scripts/target`
 BINDIR="../bin/${OS}"
 CONFIG="../bin/${OS}/`../scripts/config`"
 
+trap 'rm -f /tmp/dummy$$.s /tmp/dummy$$.c /tmp/dummy$$.o /tmp/dummy$$; exit 1' 1 2 15
+
 # check for HP-UX's ANSI compiler
 if [ X$CC = "Xcc" ]
 then
-	echo "main(int ac, char *av[]) { int i; }" > $$.c
-	${CC} -o $$ $$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -Ae"
-	rm -f $$ $$.c
+	echo "main(int ac, char *av[]) { int i; }" > /tmp/dummy$$.c
+	${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -Ae"
+	rm -f /tmp/dummy$$ /tmp/dummy$$.c
 fi
 	
 # check for bcopy (optionally set the SYS5 flag)
-echo "#include <string.h>" > $$.c
-echo "main() { char buf1[256]; char buf2[256]; bcopy(buf1, buf2, 256); }" >> $$.c
-${CC} -o $$ $$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -DSYS5"
-rm -f $$ $$.c
+echo "#include <string.h>" > /tmp/dummy$$.c
+echo "main() { char buf1[256]; char buf2[256]; bcopy(buf1, buf2, 256); }" >> /tmp/dummy$$.c
+${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -DSYS5"
+rm -f /tmp/dummy$$ /tmp/dummy$$.c
 
 # check for valloc
-echo "#include <stdlib.h>" > $$.c
-echo "main() { char* buf = valloc(123); }" >> $$.c
-${CC} -o $$ $$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -Dvalloc=malloc"
-rm -f $$ $$.c
+echo "#include <stdlib.h>" > /tmp/dummy$$.c
+echo "main() { char* buf = valloc(123); }" >> /tmp/dummy$$.c
+${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -Dvalloc=malloc"
+rm -f /tmp/dummy$$ /tmp/dummy$$.c
 
-# check for -lnsl -lsocket
-echo "extern int callrpc(); main() { callrpc(); }" > $$.c
-if ${CC} -o $$ $$.c 1>/dev/null 2>/dev/null; then
+# check for getrusage
+echo "#include <sys/resource.h>" > /tmp/dummy$$.c
+echo "main() { struct rusage ru; getrusage(RUSAGE_SELF, &ru); }" >> /tmp/dummy$$.c
+${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null && CFLAGS="${CFLAGS} -DRUSAGE"
+rm -f /tmp/dummy$$ /tmp/dummy$$.c
+
+# check for -lnsl
+echo "extern int pmap_getport(); main() { pmap_getport(); }" > /tmp/dummy$$.c
+if ${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null; then
 	true;
 else
-	${CC} -o $$ $$.c -lnsl -lsocket 1>/dev/null 2>/dev/null && LDLIBS="${LDLIBS} -lnsl -lsocket"
+	${CC} -o /tmp/dummy$$ /tmp/dummy$$.c -lnsl 1>/dev/null 2>/dev/null && LDLIBS="${LDLIBS} -lnsl"
 fi
-rm -f $$ $$.c
+rm -f /tmp/dummy$$ /tmp/dummy$$.c
+
+
+# check for -lsocket
+echo "extern void* getservent(); main() { getservent(); }" > /tmp/dummy$$.c
+if ${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null; then
+	true;
+else
+	${CC} -o /tmp/dummy$$ /tmp/dummy$$.c -lsocket 1>/dev/null 2>/dev/null && LDLIBS="${LDLIBS} -lsocket"
+fi
+rm -f /tmp/dummy$$ /tmp/dummy$$.c
 
 
 # echo Building for $(TARGET)
