@@ -18,6 +18,7 @@ char	*id = "$Id$\n";
 
 void	client_main(int ac, char **av);
 void	server_main(void);
+void	benchmark(char *server, char* protocol);
 char	*client_rpc_xact_1(char *argp, CLIENT *clnt);
 
 void
@@ -37,32 +38,13 @@ doit(CLIENT *cl, char *server)
 	}
 }
 
-int
-main(int ac, char **av)
-{
-	if (ac != 2 && ac != 3) {
-		fprintf(stderr, "Usage: %s -s OR %s [-]serverhost [proto]\n",
-		    av[0], av[0]);
-		exit(1);
-	}
-	if (!strcmp(av[1], "-s")) {
-		if (fork() == 0) {
-			server_main();
-		}
-		exit(0);
-	} else {
-		client_main(ac, av);
-	}
-	return(0);
-}
-
 /* Default timeout can be changed using clnt_control() */
 static struct timeval TIMEOUT = { 0, 2500 };
 
 char	*proto[] = { "tcp", "udp", 0 };
 
-void
-client_main(int ac, char **av)
+int
+main(int ac, char **av)
 {
 	CLIENT *cl;
 	struct	timeval tv;
@@ -71,37 +53,63 @@ client_main(int ac, char **av)
 	int	i;
 
 	if (ac != 2 && ac != 3) {
-		fprintf(stderr, "Usage: %s hostname [protocol]\n", av[0]);
+		fprintf(stderr, "Usage: %s -s\n OR %s serverhost [proto]\n OR %s -serverhost\n",
+		    av[0], av[0], av[0]);
 		exit(1);
 	}
+
+	if (!strcmp(av[1], "-s")) {
+		if (fork() == 0) {
+			server_main();
+		}
+		exit(0);
+	}
+
 	server = av[1][0] == '-' ? &av[1][1] : av[1];
-	for (i = 0; i < 2; ++i) {
-		if (!(cl =
-		    clnt_create(server, XACT_PROG, XACT_VERS, proto[i]))) {
+
+	if (av[1][0] == '-') {
+		cl = clnt_create(server, XACT_PROG, XACT_VERS, proto[1]);
+		if (!cl) {
 			clnt_pcreateerror(server);
 			exit(1);
 		}
-		if (av[1][0] == '-') {
-done:			clnt_call(cl, RPC_EXIT, (xdrproc_t)xdr_void, 0, 
-			    (xdrproc_t)xdr_void, 0, TIMEOUT);
-			exit(0);
-		}
-		if (i == 1) {
-			tv.tv_sec = 0;
-			tv.tv_usec = 2500;
-			if (!clnt_control(cl,
-			    CLSET_RETRY_TIMEOUT, (char *)&tv)) {
-				clnt_perror(cl, "setting timeout");
-				exit(1);
-			}
-		}
-		BENCH(doit(cl, server), MEDIUM);
-		sprintf(buf, "RPC/%s latency using %s", proto[i], server);
-		micro(buf, get_n());
-
+		clnt_call(cl, RPC_EXIT, (xdrproc_t)xdr_void, 0, 
+			  (xdrproc_t)xdr_void, 0, TIMEOUT);
+		exit(0);
 	}
-	goto done;
-	/* NOTREACHED */
+
+	if (ac == 3) {
+		benchmark(server, av[2]);
+	} else {
+		benchmark(server, proto[0]);
+		benchmark(server, proto[1]);
+	}
+	exit(0);
+}
+
+void
+benchmark(char *server, char* protocol)
+{
+	CLIENT *cl;
+	char	buf[256];
+	struct	timeval tv;
+
+	cl = clnt_create(server, XACT_PROG, XACT_VERS, protocol);
+	if (!cl) {
+		clnt_pcreateerror(server);
+		exit(1);
+	}
+	if (strcasecmp(protocol, proto[1]) == 0) {
+		tv.tv_sec = 0;
+		tv.tv_usec = 2500;
+		if (!clnt_control(cl, CLSET_RETRY_TIMEOUT, (char *)&tv)) {
+			clnt_perror(cl, "setting timeout");
+			exit(1);
+		}
+	}
+	BENCH(doit(cl, server), MEDIUM);
+	sprintf(buf, "RPC/%s latency using %s", protocol, server);
+	micro(buf, get_n());
 }
 
 char *
