@@ -85,7 +85,7 @@ MAN8 =	$D/bw_file_rd.8 $D/bw_mem.8 $D/bw_pipe.8 $D/bw_pipe.8		\
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o $O/lib_stats.o
 
 lmbench: $(UTILS)
-	@env CFLAGS=-O ../scripts/build all
+	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
 
 results: lmbench
 	@../scripts/config-run
@@ -119,10 +119,10 @@ install-target:
 all: $(EXES) bk.ver
 
 Wall:
-	@env CFLAGS="-Wall -ansi" ../scripts/build
+	@env CFLAGS="-Wall -ansi" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build
 
 debug:
-	@env CFLAGS=-g ../scripts/build
+	@env CFLAGS=-g MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build
 
 bk.ver: ../SCCS/s.ChangeSet
 	-echo  `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` > bk.ver
@@ -162,15 +162,21 @@ depend: ../scripts/depend
 $(UTILS):
 	@cd ../scripts; make get
 
-$O/lmbench.a: lib_timing.c lib_tcp.c lib_udp.c lib_unix.c lib_stats.c bench.h timing.h stats.h lib_tcp.h lib_udp.h names.h
-	$(COMPILE) -c lib_timing.c -o $O/lib_timing.o
-	$(COMPILE) -c lib_tcp.c -o $O/lib_tcp.o
-	$(COMPILE) -c lib_udp.c -o $O/lib_udp.o
-	$(COMPILE) -c lib_unix.c -o $O/lib_unix.o
-	$(COMPILE) -c lib_stats.c -o $O/lib_stats.o
+$O/lmbench.a: $(LIBOBJS)
 	/bin/rm -f $O/lmbench.a
 	$(AR) $(ARCREATE) $O/lmbench.a $(LIBOBJS)
 	-ranlib $O/lmbench.a
+
+$O/lib_timing.o : lib_timing.c $(INCS)
+	$(COMPILE) -c lib_timing.c -o $O/lib_timing.o
+$O/lib_tcp.o : lib_tcp.c $(INCS)
+	$(COMPILE) -c lib_tcp.c -o $O/lib_tcp.o
+$O/lib_udp.o : lib_udp.c $(INCS)
+	$(COMPILE) -c lib_udp.c -o $O/lib_udp.o
+$O/lib_unix.o : lib_unix.c $(INCS)
+	$(COMPILE) -c lib_unix.c -o $O/lib_unix.o
+$O/lib_stats.o : lib_stats.c $(INCS)
+	$(COMPILE) -c lib_stats.c -o $O/lib_stats.o
 
 # Do not remove the next line, $(MAKE) depend needs it
 # MAKEDEPEND follows
