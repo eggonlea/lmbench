@@ -815,7 +815,7 @@ EOF
 			&num($d10k, 6),
 			&num($lat_mappings[$i], 7),
 			&num($lat_protfault[$i], 5),
-			&num($lat_pagefault[$i]/$K, 7),
+			&num($lat_pagefault[$i], 7),
 			&num($lat_fd_select[$i], 5);
 	}
 }
