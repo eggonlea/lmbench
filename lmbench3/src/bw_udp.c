@@ -4,7 +4,7 @@
  * Three programs in one -
  *	server usage:	bw_tcp -s
  *	client usage:	bw_tcp [-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] hostname [bytes]
- *	shutdown:	bw_tcp -hostname
+ *	shutdown:	bw_tcp -S hostname
  *
  * Copyright (c) 2000 Carl Staelin.
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
@@ -50,7 +50,7 @@ int main(int ac, char **av)
 	state.move = 10*1024*1024;
 
 	/* Rest is client argument processing */
-	while (( c = getopt(ac, av, "sSm:W:N:")) != EOF) {
+	while (( c = getopt(ac, av, "sS:m:W:N:")) != EOF) {
 		switch(c) {
 		case 's': /* Server */
 			if (fork() == 0) {
@@ -60,7 +60,7 @@ int main(int ac, char **av)
 		case 'S': /* shutdown serverhost */
 		{
 			int seq, n;
-			int sock = udp_connect(av[optind],
+			int sock = udp_connect(optarg,
 					       UDP_XACT,
 					       SOCKOPT_NONE);
 			for (n = -1; n > -5; --n) {

@@ -4,7 +4,7 @@
  * Three programs in one -
  *	server usage:	tcp_xact -s
  *	client usage:	tcp_xact [-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] hostname
- *	shutdown:	tcp_xact -hostname
+ *	shutdown:	tcp_xact -S hostname
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -42,7 +42,7 @@ main(int ac, char **av)
 
 	state.msize = 1;
 
-	while (( c = getopt(ac, av, "sSm:P:W:N:")) != EOF) {
+	while (( c = getopt(ac, av, "sS:m:P:W:N:")) != EOF) {
 		switch(c) {
 		case 's': /* Server */
 			if (fork() == 0) {
@@ -50,7 +50,7 @@ main(int ac, char **av)
 			}
 			exit(0);
 		case 'S': /* shutdown serverhost */
-			state.sock = tcp_connect(av[ac - 1],
+			state.sock = tcp_connect(optarg,
 						 TCP_XACT,
 						 SOCKOPT_NONE);
 			close(state.sock);
