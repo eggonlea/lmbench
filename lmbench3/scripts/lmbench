@@ -471,10 +471,7 @@ if [ X$BENCHMARK_HARDWARE = XYES -o X$BENCHMARK_MEM = XYES ]; then
 	fi
 	echo "" 1>&2
 	echo "Random load latency" 1>&2
-	if [ X$FASTMEM = XYES ]
-	then    lat_mem_rd -t -P $SYNC_MAX $MB 128
-	else    lat_mem_rd -t -P $SYNC_MAX $MB 16 32 64 128 256 512 1024 
-	fi
+	lat_mem_rd -t -P $SYNC_MAX $MB 16
 	echo "" 1>&2
 fi
 
