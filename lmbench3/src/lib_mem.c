@@ -301,21 +301,24 @@ tlb_initialize(void* cookie)
 int
 line_find(int len, int warmup, int repetitions, struct mem_state* state)
 {
-	int 	i, j;
-	int 	l = 0;
+	int 	i, j, big_jump;
 	int	maxline = getpagesize() / 8;
-	double	t, threshold;
+	double	baseline, t;
 
 	state->len = len;
+	big_jump = 0;
 
-	threshold = .85 * line_test(maxline, warmup, repetitions, state);
-
-	for (i = maxline>>1; i >= sizeof(char*); i>>=1) {
+	for (i = sizeof(char*); i <= maxline; i<<=1) {
 		t = line_test(i, warmup, repetitions, state);
 
-		if (t <= threshold) {
-			return (i<<1);
+		if (i > sizeof(char*)) {
+			if (t > 1.3 * baseline) {
+				big_jump = 1;
+			} else if (big_jump && t < 1.15 * baseline) {
+				return (i>>1);
+			}
 		}
+		baseline = t;
 	}
 
 	return (0);
@@ -355,7 +358,7 @@ par_mem(int len, int warmup, int repetitions, struct mem_state* state)
 
 	state->len = len;
 	state->maxlen = len;
-	max_par = 1.;
+	max_par = -1.;
 		
 	for (i = 0; i < MAX_MEM_PARALLELISM; ++i) {
 		state->width = i + 1;
@@ -363,7 +366,7 @@ par_mem(int len, int warmup, int repetitions, struct mem_state* state)
 			0, 1, warmup, repetitions, state);
 		if (i == 0) {
 			baseline = (double)gettime() / (double)get_n();
-		} else {
+		} else if (gettime() > 0) {
 			par = baseline;
 			par /= (double)gettime() / (double)((i + 1) * get_n());
 			if (par > max_par) {
