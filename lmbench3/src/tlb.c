@@ -36,15 +36,14 @@ main(int ac, char **av)
 	int	print_cost = 0;
 	int	warmup = 0;
 	int	repetitions = TRIES;
-	int	maxline = getpagesize() / sizeof(char*);
 	double	tlb_time, cache_time, diff;
 	struct mem_state state;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 
 	maxpages = 16 * 1024;
 	state.width = 1;
-	state.line = state.pagesize / 32;
 	state.pagesize = getpagesize();
+	state.line = sizeof(char*);
 
 	tlb = 2;
 
@@ -75,16 +74,20 @@ main(int ac, char **av)
 	/* assumption: no TLB will have less than 16 entries */
 	tlb = find_tlb(8, maxpages, warmup, repetitions, &tlb_time, &cache_time, &state);
 
-	if (print_cost) {
-		compute_times(tlb * 2, warmup, repetitions, &tlb_time, &cache_time, &state);
-		fprintf(stderr, "tlb: %d pages %.5f nanoseconds\n", tlb, tlb_time - cache_time);
-	} else {
-		fprintf(stderr, "tlb: %d pages\n", tlb);
+	if (tlb > 0) {
+		if (print_cost) {
+			compute_times(tlb * 2, warmup, repetitions, &tlb_time, &cache_time, &state);
+			fprintf(stderr, "tlb: %d pages %.5f nanoseconds\n", tlb, tlb_time - cache_time);
+		} else {
+			fprintf(stderr, "tlb: %d pages\n", tlb);
+		}
 	}
 
+	/*
 	for (i = tlb<<1; i <= maxpages; i<<=1) {
 		compute_times(i, warmup, repetitions, &tlb_time, &cache_time, &state);
 	}
+	/**/
 
 	return(0);
 }
@@ -137,19 +140,27 @@ compute_times(int pages, int warmup, int repetitions,
 	insertinit(&tlb_results);
 	insertinit(&cache_results);
 
-	for (i = 0; i < TRIES; ++i) {
-		state->len = pages * state->pagesize;
-		state->maxlen = pages * state->pagesize;
-		benchmp(tlb_initialize, mem_benchmark_0, mem_cleanup, 0, 1, 
-			warmup, repetitions, state);
-		insertsort(gettime(), get_n(), &tlb_results);
-	
-		state->len = pages * state->line;
-		state->maxlen = pages * state->line;
-		benchmp(mem_initialize, mem_benchmark_0, mem_cleanup, 0, 1,
-			warmup, repetitions, state);
-		insertsort(gettime(), get_n(), &cache_results);
+	state->len = pages * state->pagesize;
+	state->maxlen = pages * state->pagesize;
+	tlb_initialize(state);
+	if (state->initialized) {
+		for (i = 0; i < TRIES; ++i) {
+			BENCH1(mem_benchmark_0(__n, state); __n = 1;, 0);
+			insertsort(gettime(), get_n(), &tlb_results);
+		}
 	}
+	tlb_cleanup(state);
+	
+	state->len = pages * state->line;
+	state->maxlen = pages * state->line;
+	mem_initialize(state);
+	if (state->initialized) {
+		for (i = 0; i < TRIES; ++i) {
+			BENCH1(mem_benchmark_0(__n, state); __n = 1;, 0);
+			insertsort(gettime(), get_n(), &cache_results);
+		}
+	}
+	mem_cleanup(state);
 
 	/* We want nanoseconds / load. */
 	set_results(&tlb_results);
