@@ -347,23 +347,23 @@
 %Q Standard Performance Evaluation Corporation
 %T SPEC HPC96 benchmark
 %D 1996
-%o http://www.specbench.org/hpg/hpc96/
+%O http://www.specbench.org/hpg/hpc96/
 
 %z Article
 %K Parkbench
 %Q PARallel Kernels and BENCHmarks committee
 %T PARKBENCH
 %D 2002
-%o http://www.netlib.org/parkbench/
+%O http://www.netlib.org/parkbench/
 
 %z Article
 %K NAS
 %Q NASA Advanced Supercomputing Division, NASA Ames Research Center
 %T NAS parallel benchmarks
-%o http://www.nas.nasa.gov/NAS/NPB
+%O http://www.nas.nasa.gov/NAS/NPB
 
 %z Article
 %K Glendinning94
 %A Ian Glendinning
 %T GENESIS distributed memory benchmark suite
-%o http://wotug.ukc.ac.uk/parallel/performance/benchmarks/genesis
+%O http://wotug.ukc.ac.uk/parallel/performance/benchmarks/genesis
