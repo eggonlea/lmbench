@@ -21,11 +21,13 @@
 
 #define DEREF(N)	p##N = (char**)*p##N;
 #define DECLARE(N)	static char **sp##N; register char **p##N;
-#define INIT(N)		p##N = (addr_save==state->addr) ? sp##N : (char**)state->p[N];
+#define INIT(N)		p##N = (mem_benchmark_rerun && addr_save==state->addr) ? sp##N : (char**)state->p[N];
 #define SAVE(N)		sp##N = p##N;
 
 #define MEM_BENCHMARK_F(N) mem_benchmark_##N,
 bench_f mem_benchmarks[] = {REPEAT_15(MEM_BENCHMARK_F)};
+
+static int mem_benchmark_rerun = 0;
 
 #define MEM_BENCHMARK_DEF(N,repeat,body) 				\
 void									\
@@ -42,6 +44,7 @@ mem_benchmark_##N(iter_t iterations, void *cookie)			\
 									\
 	repeat(SAVE);							\
 	addr_save = state->addr;					\
+	mem_benchmark_rerun = 1;					\
 }
 
 MEM_BENCHMARK_DEF(0, REPEAT_0, DEREF)
@@ -62,12 +65,59 @@ MEM_BENCHMARK_DEF(14, REPEAT_14, DEREF)
 MEM_BENCHMARK_DEF(15, REPEAT_15, DEREF)
 
 
+int*	words_initialize(int max, int scale);
+
+
+void
+mem_reset()
+{
+	mem_benchmark_rerun = 0;
+}
+
 void
 mem_cleanup(void* cookie)
 {
 	struct mem_state* state = (struct mem_state*)cookie;
-	free(state->addr);
-	state->addr = NULL;
+	if (state->addr) {
+		free(state->addr);
+		state->addr = NULL;
+	}
+	if (state->lines) {
+		free(state->lines);
+		state->lines = NULL;
+	}
+	if (state->pages) {
+		free(state->pages);
+		state->pages = NULL;
+	}
+	if (state->words) {
+		free(state->words);
+		state->words = NULL;
+	}
+}
+
+void
+tlb_cleanup(void* cookie)
+{
+	int i;
+	struct mem_state* state = (struct mem_state*)cookie;
+	char **addr = (char**)state->addr;
+
+	if (addr) {
+		for (i = 0; i < state->npages; ++i) {
+			if (addr[i]) free(addr[i]);
+		}
+		free(addr);
+		state->addr = NULL;
+	}
+	if (state->pages) {
+		free(state->pages);
+		state->pages = NULL;
+	}
+	if (state->lines) {
+		free(state->lines);
+		state->lines = NULL;
+	}
 }
 
 /*
@@ -89,13 +139,16 @@ mem_cleanup(void* cookie)
 void
 mem_initialize(void* cookie)
 {
-	int i, j, k, w, nwords, nlines, nbytes, npages, nmpages, npointers;
+	int i, j, k, l, np, nw, nwords, nlines, nbytes, npages, nmpages, npointers;
 	unsigned int r;
 	int    *pages;
 	int    *lines;
 	int    *words;
 	struct mem_state* state = (struct mem_state*)cookie;
 	register char *p = 0 /* lint */;
+
+	state->initialized = 0;
+	mem_reset();
 
 	npointers = state->len / state->line;
 	nbytes = state->len;
@@ -106,55 +159,61 @@ mem_initialize(void* cookie)
 
 	srand(getpid());
 
-	words = permutation(nwords, sizeof(char*));
-	lines = permutation(nlines, state->line);
+	words = words_initialize(nwords, sizeof(char*));
+	lines = words_initialize(nlines, state->line);
 	pages = permutation(nmpages, state->pagesize);
 	p = state->addr = (char*)malloc(state->maxlen + 2 * state->pagesize);
 
+	state->nwords = nwords;
+	state->nlines = nlines;
+	state->npages = npages;
+	state->lines = lines;
+	state->pages = pages;
+	state->words = words;
+
 	if (state->addr == NULL \
 	    || pages == NULL || lines == NULL || words == NULL) {
-		exit(0);
+		return;
 	}
 
 	if ((unsigned long)p % state->pagesize) {
 		p += state->pagesize;
 		p -= (unsigned long)p % state->pagesize;
 	}
+	state->base = p;
 
 	/* setup the run through the pages */
-	for (i = 0, k = 0, w = 0; i < npages; ++i) {
-		for (j = 0; j < nlines - 1 && k < npointers - 1; ++j) {
-			*(char**)(p + pages[i] + lines[j] + words[w]) =
-			    p + pages[i] + lines[j+1] + words[w];
-			if (k % (npointers/state->width) == 0
-			    && k / (npointers/state->width) < MAX_MEM_PARALLELISM) {
-				state->p[k / (npointers/state->width)] = 
-					p + pages[i] + lines[j] + words[w];
+	l = 0;
+	for (i = 0; i < npages; ++i) {
+		for (j = 0; j < nlines - 1 && l < npointers - 1; ++j, ++l) {
+			for (k = 0; k < state->line; k += sizeof(char*)) {
+				*(char**)(p + pages[i] + lines[j] + k) =
+					p + pages[i] + lines[j+1] + k;
 			}
-			k++;
+			if (l % (npointers/state->width) == 0
+			    && l / (npointers/state->width) < MAX_MEM_PARALLELISM) {
+				k = l / (npointers/state->width);
+				state->p[k] = p + pages[i] + lines[j] + words[k % nwords];
+			}
 		}
-		if (i == npages - 1 || k == npointers - 1) {
-			*(char**)(p + pages[i] + lines[j] + words[w]) =
-			    p + pages[0] + lines[0] + words[0];
-		} else {
-			*(char**)(p + pages[i] + lines[j] + words[w]) =
-			    p + pages[i+1] + lines[0] + words[(w+1)%nwords];
+
+		if (i < npages - 1) {
+			for (k = 0; k < nwords; ++k) 
+				*(char**)(p + pages[i] + lines[j] + words[k]) =
+					p + pages[i+1] + lines[0] + words[k];
 		}
-		if (k % (npointers/state->width) == 0
-		    && k / (npointers/state->width) < MAX_MEM_PARALLELISM) {
-			state->p[k / (npointers/state->width)] = 
-				p + pages[i] + lines[j] + words[w];
-		}
-		k++;
-		w = (w+1) % nwords;
+	}
+	for (k = 0; k < nwords; ++k) {
+		nw = (k == nwords - 1) ? 0 : k + 1;
+		*(char**)(p + pages[npages-1] + lines[j] + words[k]) =
+			p + pages[0] + lines[0] + words[nw];
 	}
 
-	free(pages);
-	free(lines);
-	free(words);
-
 	/* now, run through the chain once to clear the cache */
-	(*mem_benchmarks[state->width-1])((npointers + 100) / 100, state);
+	mem_reset();
+	(*mem_benchmarks[state->width-1])((nwords * npointers + 100) / 100, state);
+
+	state->initialized = 1;
 }
 
 /*
@@ -174,24 +233,34 @@ line_initialize(void* cookie)
 	struct mem_state* state = (struct mem_state*)cookie;
 	register char *p = 0 /* lint */;
 
+	state->initialized = 0;
+
 	state->width = 1;
 	nlines = state->pagesize / state->line;
 	npages = (state->len + state->pagesize - 1) / state->pagesize;
 
 	srand(getpid());
 
-	p     = state->addr = (char*)valloc(state->len + state->pagesize);
+	lines = words_initialize(nlines, state->line);
 	pages = permutation(npages, state->pagesize);
-	lines = permutation(nlines, state->line);
+	p     = state->addr = (char*)valloc(state->len + state->pagesize);
 
+	state->nwords = 0;
+	state->nlines = nlines;
+	state->npages = npages;
+	state->words = NULL;
+	state->lines = lines;
+	state->pages = pages;
+	
 	if (state->addr == NULL || lines == NULL || pages == NULL) {
-		exit(0);
+		return;
 	}
 
 	if ((unsigned long)p % state->pagesize) {
 		p += state->pagesize;
 		p -= (unsigned long)p % state->pagesize;
 	}
+	state->base = p;
 
 	/* new setup runs through the lines */
 	for (i = 0; i < npages; ++i) {
@@ -207,11 +276,11 @@ line_initialize(void* cookie)
 	}
 	state->p[0] = p + pages[0] + lines[0];
 
-	free(lines);
-	free(pages);
-
 	/* now, run through the chain once to clear the cache */
+	mem_reset();
 	mem_benchmark_0((nlines * npages + 100) / 100, state);
+
+	state->initialized = 1;
 }
 
 /*
@@ -235,113 +304,184 @@ line_initialize(void* cookie)
 void
 tlb_initialize(void* cookie)
 {
-	int i, nwords, nlines, npages, pagesize;
+	int i, j, nwords, nlines, npages, pagesize;
 	unsigned int r;
-	char ***pages;
-	int    *lines;
-	int    *words;
+	char **pages = NULL;
+	char **addr = NULL;
+	int    *lines = NULL;
 	struct mem_state* state = (struct mem_state*)cookie;
 	register char *p = 0 /* lint */;
 
+	state->initialized = 0;
+
 	pagesize = state->pagesize;
-	nwords   = state->line / sizeof(char*);
-	nlines   = pagesize / state->line;
+	nwords   = 0;
+	nlines   = pagesize / sizeof(char*);
 	npages   = state->len / pagesize;
 
-	srand(getpid());
+	srand(getpid() ^ (getppid()<<7));
 
-	words = permutation(nwords, 1);
-	lines = permutation(nlines, 1);
-	pages = (char***)malloc(npages * sizeof(char**));
-	state->addr = (char*)valloc(pagesize);
+	lines = words_initialize(nlines, sizeof(char*));
+	pages = (char**)malloc(npages * sizeof(char**));
+	addr = (char**)malloc(npages * sizeof(char**));
 
-	if (state->addr == NULL || pages == NULL || lines == NULL || words == NULL) {
-		exit(0);
+	state->nwords = 1;
+	state->nlines = nlines;
+	state->npages = npages;
+	state->words = NULL;
+	state->lines = lines;
+	state->pages = (int*)pages;
+	state->addr = (char*)addr;
+	if (addr) bzero(addr, npages * sizeof(char**));
+	if (pages) bzero(pages, npages * sizeof(char**));
+
+	if (addr == NULL || pages == NULL || lines == NULL) {
+		return;
 	}
 
 	/* first, layout the sequence of page accesses */
 	for (i = 0; i < npages; ++i) {
-		p = (char*)valloc(pagesize);
-		if ((unsigned long)state->p % pagesize) {
+		p = addr[i] = (char*)valloc(pagesize);
+		if (p == NULL) return;
+		if ((unsigned long)p % pagesize) {
 			free(p);
-			p = (char*)valloc(2 * pagesize);
+			p = addr[i] = (char*)valloc(2 * pagesize);
+			if (p == NULL) return;
 			p += pagesize - (unsigned long)p % pagesize;
 		}
-		pages[i] = (char**)p;
+		pages[i] = (char*)p;
 	}
 
 	/* randomize the page sequences (except for zeroth page) */
 	r = (rand() << 15) ^ rand();
 	for (i = npages - 2; i > 0; --i) {
-		char** l;
+		char* l;
 		r = (r << 1) ^ (rand() >> 4);
 		l = pages[(r % i) + 1];
 		pages[(r % i) + 1] = pages[i + 1];
 		pages[i + 1] = l;
 	}
 
-	for (i = 0; i < nlines; ++i)
-		lines[i] *= nwords;
-
 	/* now setup run through the pages */
 	for (i = 0; i < npages - 1; ++i) {
-		pages[i][lines[i % nlines]+words[i%nwords]] = (char*)(pages[i+1] + lines[(i+1) % nlines] + words[(i+1) % nwords]);
+		*(char**)(pages[i] + lines[i%nlines]) = 
+			pages[i+1] + lines[(i+1)%nlines];
 	}
-	pages[i][lines[i % nlines]+words[i%nwords]] = (char*)(pages[0] + lines[0] + words[0]);
-	state->p[0] = (char*)(pages[0] + lines[0] + words[0]);
-
-	free(pages);
-	free(lines);
-	free(words);
+	*(char**)(pages[i] + lines[i%nlines]) = pages[0] + lines[0];
+	state->p[0] = pages[0] + lines[0];
 
 	/* run through the chain once to clear the cache */
+	mem_reset();
 	mem_benchmark_0((npages + 100) / 100, state);
+
+	state->initialized = 1;
 }
+
+/*
+ * words_initialize
+ *
+ * This is supposed to create the order in which the words in a 
+ * "cache line" are used.  Since we rarely know the cache line
+ * size with any real reliability, we need to jump around so
+ * as to maximize the number of potential cache misses, and to
+ * minimize the possibility of re-using a cache line.
+ */
+int*
+words_initialize(int max, int scale)
+{
+	int	i, j, nbits;
+	int*	words = (int*)malloc(max * sizeof(int));
+
+	if (words) bzero(words, max * sizeof(int));
+	else return NULL;
+
+	for (i = max>>1, nbits = 0; i != 0; i >>= 1, nbits++)
+		;
+	for (i = 0; i < max; ++i) {
+		/* now reverse the bits */
+		for (j = 0; j < nbits; j++) {
+			if (i & (1<<j)) {
+				words[i] |= (1<<(nbits-j-1));
+			}
+		}
+		words[i] *= scale;
+	}
+	return words;
+}
+
 
 int
 line_find(int len, int warmup, int repetitions, struct mem_state* state)
 {
-	int 	i, j, big_jump;
-	int	maxline = getpagesize() / 8;
+	int 	i, j, big_jump, line;
+	int	maxline = getpagesize() / 16;
 	double	baseline, t;
 
-	state->len = len;
 	big_jump = 0;
+	line = 0;
 
-	for (i = sizeof(char*); i <= maxline; i<<=1) {
-		t = line_test(i, warmup, repetitions, state);
+	state->len = len;
+	state->maxlen = len;
+	state->width = 1;
+	state->line = sizeof(char*);
+	line_initialize(state);
+	if (state->addr) {
+		for (i = sizeof(char*); i <= maxline; i<<=1) {
+			t = line_test(i, warmup, repetitions, state);
 
-		if (t == 0.) break;
+			if (t == 0.) break;
 
-		if (i > sizeof(char*)) {
-			if (t > 1.3 * baseline) {
-				big_jump = 1;
-			} else if (big_jump && t < 1.15 * baseline) {
-				return (i>>1);
+			if (i > sizeof(char*)) {
+				if (t > 1.3 * baseline) {
+					big_jump = 1;
+				} else if (big_jump && t < 1.15 * baseline) {
+					line = (i>>1);
+					break;
+				}
 			}
+			baseline = t;
 		}
-		baseline = t;
 	}
-
-	return (0);
+	mem_cleanup(state);
+	return line;
 }
 
 double
 line_test(int line, int warmup, int repetitions, struct mem_state* state)
 {
 	int	i;
+	int	npages = state->npages;
+	int	nlines = state->pagesize / line;
 	double	t;
+	char*	p = state->base;
+	char*	first = p + state->pages[0] + state->lines[0];
+	char*	last = p + state->pages[npages-1] + state->lines[nlines-1];
 	result_t *r, *r_save;
 
-	state->line = line;
+
+	/* only visit a subset of the lines in each page */
+	if (nlines < state->nlines) {
+		p = state->base;
+		for (i = 0; i < npages - 1; ++i) {
+			*(char**)(p + state->pages[i] + state->lines[nlines-1]) =
+				p + state->pages[i+1] + state->lines[0];
+		}
+		*(char**)(p + state->pages[npages-1] + state->lines[nlines-1]) =
+			p + state->pages[0] + state->lines[0];
+	}
+
 	r_save = get_results();
 	r = (result_t*)malloc(sizeof_result(repetitions));
 	insertinit(r);
+	p = first;
 	for (i = 0; i < repetitions; ++i) {
-		benchmp(line_initialize, mem_benchmark_0, mem_cleanup, 
-			0, 1, warmup, 7, state);
+		BENCH1(HUNDRED(p = *(char**)p;),0);
+		/*
+		fprintf(stderr, "%d\t%d\n", (int)gettime(), (int)get_n()); 
+		/**/
 		insertsort(gettime(), get_n(), r);
 	}
+	use_pointer(p);
 	set_results(r);
 	t = 10. * (double)gettime() / (double)get_n();
 	set_results(r_save);
@@ -351,33 +491,78 @@ line_test(int line, int warmup, int repetitions, struct mem_state* state)
 	fprintf(stderr, "%d\t%.5f\t%d\n", line, t, state->len); 
 	/**/
 
+	/* fixup full path again */
+	if (nlines < state->nlines) {
+		p = state->base;
+		for (i = 0; i < npages - 1; ++i) {
+			*(char**)(p + 
+				  state->pages[i] + 
+				  state->lines[nlines-1]) =
+				p + 
+				state->pages[i] + 
+				state->lines[nlines];
+		}
+		*(char**)(p + 
+			  state->pages[npages-1] + 
+			  state->lines[nlines-1]) =
+			p + 
+			state->pages[npages-1] + 
+			state->lines[nlines];
+	}
+
 	return (t);
 }
 
 double
 par_mem(int len, int warmup, int repetitions, struct mem_state* state)
 {
-	int	i;
+	int	i, j, k, n, __n;
 	double	baseline, max_par, par;
 
+	state->width = 1;
 	state->len = len;
 	state->maxlen = len;
 	max_par = -1.;
-		
+	__n = 1;
+
+	mem_initialize(state);
 	for (i = 0; i < MAX_MEM_PARALLELISM; ++i) {
-		state->width = i + 1;
-		benchmp(mem_initialize, mem_benchmarks[i], mem_cleanup, 
-			0, 1, warmup, repetitions, state);
+		n = len / state->line;
+		for (j = 0; j <= i; j++) {
+			int nlines = len / state->line;
+			int lines_per_chunk = nlines / (i + 1);
+			int lines_per_page = state->pagesize / state->line;
+			int words_per_chunk = state->nwords / (i + 1);
+			int line = j * lines_per_chunk;
+			int word = (j * state->nwords) / (i + 1);
+
+			/*
+			if (state->len == 32768 && i == 7) {
+				fprintf(stderr, "\tj=%d, line=%d, word=%d, page=%d, _line=%d, _word=%d\n", j, line, word, line / lines_per_page, line % lines_per_page, word % state->nwords);
+			}
+			/**/
+			state->p[j] = state->base + 
+				state->pages[line / lines_per_page] + 
+				state->lines[line % lines_per_page] + 
+				state->words[word % state->nwords];
+		}
+		mem_reset();
+		(*mem_benchmarks[i])((len / sizeof(char*) + 100) / 100, state);
+		BENCH((*mem_benchmarks[i])(__n, state); __n = 1;, 0);
 		if (i == 0) {
 			baseline = (double)gettime() / (double)get_n();
 		} else if (gettime() > 0) {
 			par = baseline;
 			par /= (double)gettime() / (double)((i + 1) * get_n());
+			/*
+			fprintf(stderr, "par_mem(%d): i=%d, p=%5.2f, l=%d, lpp=%d, lpc=%d, nl=%d, wpc=%d\n", len, i, par, state->line, state->pagesize / state->line, (len / state->line) / (i + 1), len / state->line, state->nwords / (i + 1));
+			/**/
 			if (par > max_par) {
 				max_par = par;
 			}
 		}
 	}
+	mem_cleanup(state);
 
 	return max_par;
 }
