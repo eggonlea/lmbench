@@ -14,6 +14,16 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
+struct cache_results {
+	int	len;
+	int	line;
+	double	latency;
+	double	variation;
+};
+
+
+int collect_data(int start, int line, int maxlen, 
+		 int warmup, int repetitions, struct cache_results** pdata);
 int find_cache(int start, int line, 
 	       int maxlen, int warmup, int repetitions, double* time);
 double measure(int size, int line, int maxlen, int warmup, 
@@ -38,6 +48,8 @@ main(int ac, char **av)
 	int	maxlen = 32 * 1024 * 1024;
 	double	l1_time, l2_time, l3_time, mem_time, variation;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
+	int	n;
+	struct cache_results* r;
 
 	line = getpagesize() / 8;
 
@@ -66,7 +78,9 @@ main(int ac, char **av)
 		}
 	}
 
-
+#if 1
+	n = collect_data(512, line, maxlen, warmup, repetitions, &r);
+#else
 	l1_cache = find_cache(512, line, maxlen, warmup, repetitions, &l1_time);
 	l2_cache = maxlen;
 	l3_cache = maxlen;
@@ -105,8 +119,53 @@ main(int ac, char **av)
 	}
 
 	fprintf(stderr, "Memory latency: %.2f nanoseconds\n", mem_time);
-
+#endif
 	return(0);
+}
+
+int
+collect_data(int start, int line, int maxlen, 
+	     int warmup, int repetitions, struct cache_results** pdata)
+{
+	int	i;
+	int	idx = 0;
+	int	len = start;
+	int	incr = start / 4;
+	double	latency;
+	double	variation;
+	struct mem_state state;
+	struct cache_results* p;
+
+	state.width = 1;
+	state.pagesize = getpagesize();
+
+	*pdata = (struct cache_results*)malloc(sizeof(struct cache_results));
+
+	for (len = start, incr = start / 4; len <= maxlen; incr<<=1) {
+		for (i = 0; i < 4 && len <= maxlen; ++i, ++idx, len += incr) {
+			state.line = 2;
+			state.len = len;
+
+			*pdata = (struct cache_results*)
+				realloc(*pdata, (idx+1) * sizeof(struct cache_results));
+			p = &((*pdata)[idx]);
+
+			p->latency = measure(len, line, 
+					     (2*len)<maxlen ? (2*len) : maxlen,
+					     warmup, repetitions, &p->variation);
+
+			p->len = len;
+			p->line = line_find(len, 
+					    warmup, repetitions, &state);
+
+			/**/
+			fprintf(stderr, "%.6f\t%d\t%.5f\t%.5f\n", 
+				p->len / (1000. * 1000.), 
+				p->line, p->latency, p->variation);
+			/**/
+		}
+	}
+	return idx;
 }
 
 int
@@ -204,7 +263,7 @@ measure(int size, int line, int maxlen, int warmup,
 	set_results(r_save);
 	free(r);
 
-	/**/
+	/*
 	fprintf(stderr, "%.6f %.2f %.2f\n", state.len / (1000. * 1000.), time, *variation);
 	/**/
 
