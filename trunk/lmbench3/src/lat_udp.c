@@ -16,84 +16,122 @@ char	*id = "$Id$\n";
 #include "bench.h"
 
 void	client_main(int ac, char **av);
-void	server_main(int ac, char **av);
+void	server_main();
+void	init(void *cookie);
+void	cleanup(void *cookie);
+void    doit(uint64 iter, void *cookie);
+
+typedef struct _state {
+	int	sock;
+	int	seq;
+	char	*server;
+} state_t;
 
 
-void
-doit(int sock, int seq)
+void doit(uint64 iterations, void *cookie)
 {
+	state_t *state = (state_t *) cookie;
+	int seq = state->seq;
 	int net = htonl(seq);
+	int sock = state->sock;
 	int ret;
 
-	if (send(sock, &net, sizeof(net), 0) != sizeof(net)) {
-		perror("lat_udp client: send failed");
-		exit(5);
+
+	while (iterations-- > 0) {
+		seq++;
+		if (send(sock, &net, sizeof(net), 0) != sizeof(net)) {
+			perror("lat_udp client: send failed");
+			exit(5);
+		}
+		if (recv(sock, &ret, sizeof(ret), 0) != sizeof(ret)) {
+			perror("lat_udp client: recv failed");
+			exit(5);
+		}
 	}
-	if (recv(sock, &ret, sizeof(ret), 0) != sizeof(ret)) {
-		perror("lat_udp client: recv failed");
-		exit(5);
-	}
+	state->seq = seq;
 }
 
-int
-main(int ac, char **av)
+int main(int ac, char **av)
 {
+	state_t state;
+	int parallel = 1;
+ 	char	buf[256];
+	char	*usage = "-s\n OR [-P <parallelism>] server\n OR [-]serverhost\n";
 	if (sizeof(int) != 4) {
 		fprintf(stderr, "lat_udp: Wrong sequence size\n");
 		return(1);
 	}
-	if (ac != 2 && ac != 3) {
-		fprintf(stderr, "Usage: %s -s OR %s [-]serverhost [proto]\n",
-		    av[0], av[0]);
-		return(1);
-	}
+	if (ac == 1)
+		lmbench_usage(ac, av, usage);
 	if (!strcmp(av[1], "-s")) {
 		if (fork() == 0) {
-			server_main(ac, av);
+			server_main();
 		}
 		return(0);
-	} else {
-		client_main(ac, av);
-	}
-	return(0);
-}
-
-void
-client_main(int ac, char **av)
-{
-	int     sock;
-	int     seq = -1;
-	char   *server;
-	char	buf[256];
-
-	if (ac != 2) {
-		fprintf(stderr, "Usage: %s hostname\n", av[0]);
-		exit(1);
-	}
-
-	server = av[1][0] == '-' ? &av[1][1] : av[1];
-	sock = udp_connect(server, UDP_XACT, SOCKOPT_NONE);
-
-	/*
-	 * Stop server code.
-	 */
-	if (av[1][0] == '-') {
-		while (seq-- > -5) {
-			int	net = htonl(seq);
-
-			(void) send(sock, &net, sizeof(net), 0);
+	} else { /*
+		  * Client args are -server OR [-P <parallelism>] server
+		  */
+		char c;
+		if (ac == 2) {
+			if (!strcmp(av[1],"-"))
+				lmbench_usage(ac, av, usage);
+			if (av[1][0] == '-') { /* shut down server */
+				int seq = -1;
+				int sock = udp_connect(&av[1][1],
+						       UDP_XACT,
+						       SOCKOPT_NONE);
+				while (seq-- > -5) {
+					int	net = htonl(seq);
+					(void) send(sock, &net,
+						    sizeof(net), 0);
+				}
+				close(sock);
+				exit(0);
+			}
 		}
-		exit(0);
+
+		while (( c = getopt(ac, av, "P:")) != EOF) {
+			switch(c) {
+			case 'P':
+				parallel = atoi(optarg);
+				if (parallel <= 0)
+					lmbench_usage(ac, av, usage);
+				break;
+			default:
+				lmbench_usage(ac, av, usage);
+				break;
+			}
+		}
+
+		if (optind + 1 != ac) {
+			lmbench_usage(ac, av, usage);
+		}
+		state.server = av[optind];
 	}
-	BENCH(doit(sock, ++seq), MEDIUM);
-	sprintf(buf, "UDP latency using %s", server);
+
+	benchmp(init, doit, cleanup,
+		SHORT, parallel, &state);
+	sprintf(buf, "UDP latency using %s", state.server);
 	micro(buf, get_n());
-	exit(0);
 }
 
-/* ARGSUSED */
+void init(void * cookie)
+{
+	state_t *state = (state_t *) cookie;
+
+	state->sock = udp_connect(state->server, UDP_XACT, SOCKOPT_NONE);
+	state->seq = 0;
+}
+
+void cleanup(void * cookie)
+{
+	state_t *state = (state_t *) cookie;
+
+	close(state->sock);
+}
+
 void
-server_main(int ac, char **av)
+server_main()
 {
 	int     net, sock, sent, namelen, seq = 0;
 	struct sockaddr_in it;
