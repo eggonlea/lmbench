@@ -1,7 +1,7 @@
 /*
  * bw_pipe.c - pipe bandwidth benchmark.
  *
- * Usage: bw_pipe [-P <parallelism>] [-W <warmup>] [-N <repetitions>]
+ * Usage: bw_pipe [-m <message size>] [-M <total bytes>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>]
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -13,13 +13,14 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-void	reader(iter_t iterations, void * cookie);
-void	writer(int control[2], int pipes[2], char* buf);
+void	reader(iter_t iterations, void* cookie);
+void	writer(int control[2], int pipes[2], char* buf, void* cookie);
 
 int	XFER	= 10*1024*1024;
 
 struct _state {
 	int	pid;
+	int	xfer;	/* bytes to read/write per "packet" */
 	int	bytes;	/* bytes to read/write in one iteration */
 	char	*buf;	/* buffer memory space */
 	int	pipes[2];
@@ -31,8 +32,8 @@ void initialize(void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 
-	state->buf = valloc(XFERSIZE);
-	touch(state->buf, XFERSIZE);
+	state->buf = valloc(state->xfer);
+	touch(state->buf, state->xfer);
 	state->initerr = 0;
 	if (pipe(state->pipes) == -1) {
 		perror("pipe");
@@ -46,7 +47,7 @@ void initialize(void *cookie)
 	}
 	switch (state->pid = fork()) {
 	    case 0:
-		writer(state->control, state->pipes, state->buf);
+		writer(state->control, state->pipes, state->buf, state);
 		return;
 		/*NOTREACHED*/
 	    
@@ -78,7 +79,7 @@ void reader(iter_t iterations, void * cookie)
 	while (iterations-- > 0) {
 		write(state->control[1], &todo, sizeof(todo));
 		for (done = 0; done < todo; done += n) {
-			if ((n = read(state->pipes[0], state->buf, XFERSIZE)) <= 0) {
+			if ((n = read(state->pipes[0], state->buf, state->xfer)) <= 0) {
 				/* error! */
 				break;
 			}
@@ -87,17 +88,18 @@ void reader(iter_t iterations, void * cookie)
 }
 
 void
-writer(int control[2], int pipes[2], char* buf)
+writer(int control[2], int pipes[2], char* buf, void* cookie)
 {
 	int	todo, n;
+	struct _state* state = (struct _state*)cookie;
 
 	for ( ;; ) {
 		read(control[0], &todo, sizeof(todo));
 		while (todo > 0) {
 #ifdef TOUCH
-			touch(buf, XFERSIZE);
+			touch(buf, state->xfer);
 #endif
-			n = write(pipes[1], buf, XFERSIZE);
+			n = write(pipes[1], buf, state->xfer);
 			todo -= n;
 		}
 	}
@@ -111,12 +113,27 @@ main(int ac, char *av[])
 	int warmup = 0;
 	int repetitions = TRIES;
 	int c;
-	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
+	char* usage = "[-m <message size>] [-M <total bytes>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
 
-	state.bytes = XFER;
+	state.xfer = XFERSIZE;	/* per-packet size */
+	state.bytes = XFER;	/* total bytes per call */
 
-	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
+	while (( c = getopt(ac, av, "m:M:P:W:N:")) != EOF) {
 		switch(c) {
+		case 'm':
+			state.xfer = bytes(optarg);
+			/* round up total byte count to a multiple of xfer */
+			if (state.bytes % state.xfer) {
+				state.bytes += state.bytes - state.bytes % state.xfer;
+			}
+			break;
+		case 'M':
+			state.bytes = bytes(optarg);
+			/* round up total byte count to a multiple of xfer */
+			if (state.bytes % state.xfer) {
+				state.bytes += state.bytes - state.bytes % state.xfer;
+			}
+			break;
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
@@ -139,6 +156,6 @@ main(int ac, char *av[])
 		warmup, repetitions, &state);
 
 	fprintf(stderr, "Pipe bandwidth: ");
-	mb(get_n() * parallel * XFER);
+	mb(get_n() * parallel * state.bytes);
 	return(0);
 }
