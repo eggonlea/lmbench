@@ -1,7 +1,7 @@
 /*
  * lat_pagefault.c - time a page fault in
  *
- * Usage: lat_pagefault [-W <warmup>] [-N <repetitions>] file 
+ * Usage: lat_pagefault [-C] [-P <parallel>] [-W <warmup>] [-N <repetitions>] file 
  *
  * Copyright (c) 2000 Carl Staelin.
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
@@ -43,7 +43,7 @@ main(int ac, char **av)
 	struct stat   st;
 	struct _state state;
 	char buf[2048];
-	char* usage = "[-W <warmup>] [-N <repetitions>] file\n";
+	char* usage = "[-C] [-P <parallel>] [-W <warmup>] [-N <repetitions>] file\n";
 
 	state.clone = 0;
 
