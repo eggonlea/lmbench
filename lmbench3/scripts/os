@@ -1,5 +1,10 @@
 #!/bin/sh
 
+if [ "X$OS" != "X" ] && echo "$OS" | grep -q '`'
+then
+    OS=
+fi
+
 if [ "X$OS" = "X" ]
 then	OS=bloat-os
     MACHINE=`uname -m | sed -e 's/ //g' | sed -e 's?/?-?g'`
