@@ -41,15 +41,29 @@ struct _state {
 	int	process_size;
 	double	overhead;
 	int	procs;
-	int*	pids;
+	pid_t*	pids;
 	int	**p;
 	int*	data;
 };
 
+struct _state* pGlobalState;
+static int sigterm_cleanup = 0;
+static int sigterm_received = 0;
+
+void
+sigterm_handler(int n)
+{
+	sigterm_received = 1;
+	if (sigterm_cleanup) {
+		cleanup(pGlobalState);
+		exit(0);
+	}
+}
+
 int
 main(int ac, char **av)
 {
-	int	i;
+	int	i, maxprocs;
 	int	c;
 	int	parallel = 1;
 	int	warmup = 0;
@@ -68,6 +82,7 @@ main(int ac, char **av)
 
 	state.process_size = 0;
 	state.overhead = 0.0;
+	state.pids = NULL;
 
 	/*
 	 * If they specified a context size, or parallelism level, get them.
@@ -78,6 +93,12 @@ main(int ac, char **av)
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
 			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
+			break;
 		case 's':
 			state.process_size = atoi(optarg) * 1024;
 			break;
@@ -87,33 +108,45 @@ main(int ac, char **av)
 		}
 	}
 
-	if (optind >= ac - 1)
+	if (optind > ac - 1)
 		lmbench_usage(ac, av, usage);
 
 #if	defined(sgi) && defined(PIN)
 	ncpus = sysmp(MP_NPROCS);
 	sysmp(MP_MUSTRUN, 0);
 #endif
-	fprintf(stderr, "\n\"size=%dk ovr=%.2f\n", state.process_size/1024, state.overhead);
+
+	pGlobalState = &state;
+
+	/* compute pipe + sumit overhead */
+	maxprocs = atoi(av[optind]);
 	for (i = optind; i < ac; ++i) {
 		state.procs = atoi(av[i]);
-		benchmp(initialize_overhead, benchmark_overhead,
-			cleanup_overhead, 0, parallel, 
-			warmup, repetitions, &state);
-		if (gettime() == 0) continue;
-		state.overhead = gettime();
-		state.overhead /= get_n();
+		if (state.procs > maxprocs)
+			maxprocs = state.procs;
+	}
+	state.procs = maxprocs;
+	benchmp(initialize_overhead, benchmark_overhead, cleanup_overhead, 
+		0, 1, warmup, repetitions, &state);
+	if (gettime() == 0) return(0);
+	state.overhead = gettime();
+	state.overhead /= get_n();
+	fprintf(stderr, "\n\"size=%dk ovr=%.2f\n", 
+		state.process_size/1024, state.overhead);
 
+	/* compute the context switch cost for N processes */
+	for (i = optind; i < ac; ++i) {
+		state.procs = atoi(av[i]);
 		benchmp(initialize, benchmark, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
-		if (gettime() == 0) continue;
 
 		time = gettime();
 		time /= get_n();
 		time /= state.procs;
 		time -= state.overhead;
 
-		fprintf(stderr, "%d %.2f\n", state.procs, time);
+		if (time > 0.0)
+			fprintf(stderr, "%d %.2f\n", state.procs, time);
 	}
 
 	return (0);
@@ -127,6 +160,8 @@ initialize_overhead(void* cookie)
 	int* p;
 	struct _state* pState = (struct _state*)cookie;
 
+	pState->pids = NULL;
+	signal(SIGTERM, sigterm_handler);
 	pState->p = (int**)malloc(pState->procs * (sizeof(int*) + 2 * sizeof(int)));
 	p = (int*)&pState->p[pState->procs];
 	for (i = 0; i < pState->procs; ++i) {
@@ -134,7 +169,6 @@ initialize_overhead(void* cookie)
 		p += 2;
 	}
 
-	pState->pids = (int*)malloc(pState->procs * sizeof(int));
 	pState->data = (pState->process_size > 0) ? malloc(pState->process_size) : NULL;
 	if (pState->data)
 		bzero((void*)pState->data, pState->process_size);
@@ -158,7 +192,6 @@ cleanup_overhead(void* cookie)
 	}
 
 	free(pState->p);
-	free(pState->pids);
 	if (pState->data) free(pState->data);
 }
 
@@ -195,8 +228,14 @@ initialize(void* cookie)
 
 	initialize_overhead(cookie);
 
-	procs = create_daemons(pState->p, pState->pids, pState->procs, pState->process_size);
-	if (procs < pState->procs) {
+	pState->pids = (pid_t*)malloc(pState->procs * sizeof(pid_t));
+	if (pState->pids == NULL)
+		exit(1);
+	bzero((void*)pState->pids, pState->procs * sizeof(pid_t));
+	procs = create_daemons(pState->p, pState->pids, 
+			       pState->procs, pState->process_size);
+	sigterm_cleanup = 1;
+	if (sigterm_received || procs < pState->procs) {
 		pState->procs = procs;
 		cleanup(cookie);
 		exit(1);
@@ -211,12 +250,15 @@ void cleanup(void* cookie)
 	/*
 	 * Close the pipes and kill the children.
 	 */
-     	for (i = 1; i < pState->procs; ++i) {
+     	for (i = 1; pState->pids && i < pState->procs; ++i) {
 		if (pState->pids[i] > 0) {
-			kill(pState->pids[i], SIGTERM);
+			kill(pState->pids[i], SIGKILL);
 			waitpid(pState->pids[i], NULL, 0);
 		}
 	}
+	if (pState->pids)
+		free(pState->pids);
+	pState->pids = NULL;
 	cleanup_overhead(cookie);
 }
 
@@ -286,12 +328,10 @@ create_daemons(int **p, int pids[], int procs, int process_size)
 	 *
 	 * Do the sum in each process and get that time before moving on.
 	 */
-	signal(SIGTERM, SIG_IGN);
      	for (i = 1; i < procs; ++i) {
 		switch (pids[i] = fork()) {
 		    case -1:	/* could not fork, out of processes? */
-			procs = i;
-			break;
+			return i;
 
 		    case 0:	/* child */
 #if	defined(sgi) && defined(PIN)
@@ -303,6 +343,8 @@ create_daemons(int **p, int pids[], int procs, int process_size)
 		    default:	/* parent */
 			;
 	    	}
+		if (sigterm_received)
+			return i + 1;
 	}
 
 	/*
