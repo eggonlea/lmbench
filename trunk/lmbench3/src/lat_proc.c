@@ -1,7 +1,7 @@
 /*
  * lat_proc.c - process creation tests
  *
- * Usage: lat_proc
+ * Usage: lat_proc [-P <parallelism] procedure|fork|exec|shell
  *
  * TODO - linux clone, plan9 rfork, IRIX sproc().
  *
@@ -15,40 +15,94 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
+
 #ifdef STATIC
 #define	PROG "/tmp/hello-s"
+#define STATIC_PREFIX "Static "
 #else
 #define	PROG "/tmp/hello"
+#define STATIC_PREFIX ""
 #endif
 
-void do_shell(void)
+void do_shell(uint64 iterations, void* cookie);
+void do_forkexec(uint64 iterations,void* cookie);
+void do_fork(uint64 iterations, void* cookie);
+void do_procedure(uint64 iterations, void* cookie);
+	
+int
+main(int ac, char **av)
+{
+	int parallel = 1;
+	int c;
+	char* usage = "[-P <parallelism>] procedure|fork|exec|shell\n";
+
+	while (( c = getopt(ac, av, "P:")) != EOF) {
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
+	}
+
+	if (optind + 1 != ac) { /* should have one argument left */
+		lmbench_usage(ac, av, usage);
+	}
+
+#define NOINIT NULL
+#define NOCLEANUP NULL
+
+	if (!strcmp("procedure", av[1])) {
+		benchmp(NOINIT,do_procedure,NOCLEANUP, 0, parallel, &ac);
+		micro("Procedure call", get_n());
+	} else if (!strcmp("fork", av[1])) {
+		benchmp(NOINIT,do_fork,NOCLEANUP, 0, parallel, NULL);
+		micro(STATIC_PREFIX "Process fork+exit", get_n());
+	} else if (!strcmp("exec", av[1])) {
+		benchmp(NOINIT,do_forkexec,NOCLEANUP,0,parallel,NULL);
+		micro(STATIC_PREFIX "Process fork+execve", get_n());
+	} else if (!strcmp("shell", av[1])) {
+		benchmp(NOINIT,do_shell,NOCLEANUP,0,parallel,NULL);
+		micro(STATIC_PREFIX "Process fork+/bin/sh -c", get_n());
+	} else {
+		lmbench_usage(ac, av, usage);
+	}
+	return(0);
+}
+
+void do_shell(uint64 iterations, void* cookie)
 {
 	int	pid;
-
-	switch (pid = fork()) {
+	while (iterations-- > 0) {
+	  switch (pid = fork()) {
 	    case -1:
-		perror("fork");
-		exit(1);
-
+	      perror("fork");
+	      exit(1);
+	    
 	    case 0:	/* child */
-		close(1);
-		execlp("/bin/sh", "sh", "-c", PROG, 0);
-		exit(1);
+	      close(1);
+	      execlp("/bin/sh", "sh", "-c", PROG, 0);
+	      exit(1);
 
 	    default:
-		while (wait(0) != pid)
-			;
+	      while (wait(0) != pid)
+		;
+	  }
 	}
 }
 
-void do_forkexec(void)
+void do_forkexec(uint64 iterations,void* cookie)
 {
 	int	pid;
 	char	*nav[2];
 
-	nav[0] = PROG;
-	nav[1] = 0;
-	switch (pid = fork()) {
+	while (iterations-- > 0) {
+	  nav[0] = PROG;
+	  nav[1] = 0;
+	  switch (pid = fork()) {
 	    case -1:
 		perror("fork");
 		exit(1);
@@ -61,63 +115,34 @@ void do_forkexec(void)
 	    default:
 		while (wait(0) != pid)
 			;
+	  }
 	}
 }
 	
-void do_fork(void)
+void do_fork(uint64 iterations, void* cookie)
 {
-	int	pid;
+	int pid;
+	int i;
 
-	switch (pid = fork()) {
+	while (iterations-- > 0) {
+	  switch (pid = fork()) {
 	    case -1:
-		perror("fork");
-		exit(1);
-
+	      perror("fork");
+	      exit(1);
+	
 	    case 0:	/* child */
-		exit(1);
-
+	      exit(1);
+	
 	    default:
-		while (wait(0) != pid)
-		    ;
+	      while (wait(0) != pid);
+	  }
 	}
 }
 	
-void do_procedure(int r)
+void do_procedure(uint64 iterations, void* cookie)
 {
-	use_int(r);
-}
-	
-int
-main(int ac, char **av)
-{
-	if (ac < 2) goto usage;
-
-	if (!strcmp("procedure", av[1])) {
-		BENCH(do_procedure(ac), 0);
-		micro("Procedure call", get_n());
-	} else if (!strcmp("fork", av[1])) {
-		BENCH(do_fork(), 0);
-#ifdef STATIC
-		micro("Static Process fork+exit", get_n());
-#else
-		micro("Process fork+exit", get_n());
-#endif
-	} else if (!strcmp("exec", av[1])) {
-		BENCH(do_forkexec(), 0);
-#ifdef STATIC
-		micro("Static Process fork+execve", get_n());
-#else
-		micro("Process fork+execve", get_n());
-#endif
-	} else if (!strcmp("shell", av[1])) {
-		BENCH(do_shell(), 0);
-#ifdef STATIC
-		micro("Static Process fork+/bin/sh -c", get_n());
-#else
-		micro("Process fork+/bin/sh -c", get_n());
-#endif
-	} else {
-usage:		printf("Usage: %s fork|exec|shell\n", av[0]);
+	int r = *(int *) cookie;
+	while (iterations-- > 0) {
+		use_int(r);
 	}
-	return(0);
 }
