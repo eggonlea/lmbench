@@ -9,8 +9,8 @@
 .VARPS
 .\" Define a page top that looks cool
 .\" HELLO CARL!  To turn this off, s/PT/oldPT/
-.de draftPT
-.\" .tl '\fBDRAFT\fP'Printed \\*(DY'\fBDRAFT\fP'
+.de PT
+.tl '\fBDRAFT\fP'\\*(DY'\fBDRAFT\fP'
 ..
 .de lmPT
 .if \\n%>1 \{\
@@ -35,14 +35,14 @@
 ..
 .\" Define a page bottom that looks cool
 .\" HELLO CARL!  To turn this off, s/BT/oldBT/
-.de draftBT
-.\" .tl '\fBDRAFT\fP'Page %'\fBDRAFT\fP'
+.de BT
+.tl '\fBDRAFT\fP'Page %'\fBDRAFT\fP'
 ..
 .de lmBT
 .	ps 9
 \v'-1'\\l'\\n(LLu'
 .	sp -1
-.	tl '\(co 2001 \\*[author]'\\*(DY'%'
+.	tl '\(co 2002 \\*[author]'\\*(DY'%'
 .	ps
 ..
 .de SP
@@ -104,36 +104,11 @@
 .ds title Measuring scalability
 .ds author Carl Staelin
 .ds lmbench \f(CWlmbench\fP
+.ds lmbench1 \f(CWlmbench1\fP
 .ds lmbench2 \f(CWlmbench2\fP
 .ds lmbench3 \f(CWlmbench3\fP
-.ds lmdd  \f(CWlmdd\fP
 .ds bcopy \f(CWbcopy\fP
-.ds connect \f(CWconnect\fP
-.ds execlp  \f(CWexeclp\fP
-.ds execve  \f(CWexecve\fP
-.ds exit \f(CWexit\fP
-.ds fcntl \f(CWfcntl\fP
-.ds fork \f(CWfork\fP
-.ds gcc \f(CWgcc\fP
-.ds getpid \f(CWgetpid\fP
-.ds getpid \f(CWgetpid\fP
-.ds gettimeofday \f(CWgettimeofday\fP
-.ds kill \f(CWkill\fP
-.ds memmove \f(CWmemmove\fP
-.ds mmap \f(CWmmap\fP
-.ds popen  \f(CWpopen\fP
-.ds pipe  \f(CWpipe\fP
-.ds read \f(CWread\fP
-.ds semop \f(CWsemop\fP
-.ds stream \f(CWstream\fP
-.ds system  \f(CWsystem\fP
-.ds uiomove \f(CWuiomove\fP
-.ds write \f(CWwrite\fP
-.ds yield  \f(CWyield\fP
-.ds select  \f(CWselect\fP
-.ds sh  \f(CW/bin/sh\fP
 .ds benchmp  \f(CWbenchmp\fP
-.ds mhz  \f(CWmhz\fP
 .ds bw_file_rd \f(CWbw_file_rd\fP
 .ds bw_mem \f(CWbw_mem\fP
 .ds bw_mmap_rd \f(CWbw_mmap_rd\fP
@@ -141,6 +116,19 @@
 .ds bw_tcp \f(CWbw_tcp\fP
 .ds bw_udp \f(CWbw_udp\fP
 .ds bw_unix \f(CWbw_unix\fP
+.ds close \f(CWclose\fP
+.ds connect \f(CWconnect\fP
+.ds execlp  \f(CWexeclp\fP
+.ds execve  \f(CWexecve\fP
+.ds exit \f(CWexit\fP
+.ds fcntl \f(CWfcntl\fP
+.ds fork \f(CWfork\fP
+.ds fstat \f(CWfstat\fP
+.ds gcc \f(CWgcc\fP
+.ds getppid \f(CWgetppid\fP
+.ds getpid \f(CWgetpid\fP
+.ds gettimeofday \f(CWgettimeofday\fP
+.ds kill \f(CWkill\fP
 .ds lat_connect \f(CWlat_connect\fP
 .ds lat_ctx \f(CWlat_ctx\fP
 .ds lat_fcntl \f(CWlat_fcntl\fP
@@ -163,11 +151,27 @@
 .ds lat_unix \f(CWlat_unix\fP
 .ds lat_unix_connect \f(CWlat_unix_connect\fP
 .ds line \f(CWline\fP
-.ds tlb \f(CWtlb\fP
-.ds stream \f(CWstream\fP
+.ds lmdd  \f(CWlmdd\fP
 .ds lmdd \f(CWlmdd\fP
+.ds memmove \f(CWmemmove\fP
+.ds mhz  \f(CWmhz\fP
+.ds mmap \f(CWmmap\fP
+.ds open \f(CWopen\fP
 .ds par_mem  \f(CWpar_mem\fP
 .ds par_ops  \f(CWpar_ops\fP
+.ds pipe  \f(CWpipe\fP
+.ds popen  \f(CWpopen\fP
+.ds read \f(CWread\fP
+.ds select  \f(CWselect\fP
+.ds semop \f(CWsemop\fP
+.ds sh  \f(CW/bin/sh\fP
+.ds stream \f(CWstream\fP
+.ds stat \f(CWstat\fP
+.ds system  \f(CWsystem\fP
+.ds tlb \f(CWtlb\fP
+.ds uiomove \f(CWuiomove\fP
+.ds write \f(CWwrite\fP
+.ds yield  \f(CWyield\fP
 .\" References stuff
 .de RN  \"Reference Name: .RN $1 -- prints the reference prettily
 .\" [\s-2\\$1\s+2]\\$2
@@ -191,20 +195,21 @@ delim $$
 \fI\s+2Hewlett-Packard Laboratories Israel\s0\fP
 .SP
 .AB
-\*[lmbench] is a portable, extensible suite of micro-
-benchmarks which measure a variety of important features
-of system performance.
-\*[lmbench] version 3 incorporates a new timing harness,
-benchmp, designed to measure performance at specific levels 
-of parallel (simultaneous) load.  It also incorporates some
-new micro-benchmarks to measure basic system operations
-and scalability, such as arithmetic operations and the
-basic elements of the memory hierarchy.
-.\" .SP
+\*[lmbench3] extends the \*[lmbench2] system to
+measure a system's performance under scalable load.
+There is a new timing harness, \*[benchmp], designed 
+to measure performance at specific levels of parallel 
+(simultaneous) load, and most existing benchmarks have
+been converted to use the new harness.
+.SP
 \*[lmbench] is a micro-benchmark suite designed to focus
 attention on the basic building blocks of many
 common system applications, such as databases, simulations, 
 software development, and networking.  
+It is also designed to make it easy for users to create
+additional micro-benchmarks that can measure features, 
+algorithms, or subsystems of particular interest to the
+user.
 .AE
 .if t .MC 3.05i
 .NH 1
@@ -238,39 +243,41 @@ benchmarks and process the results.
 .NH 2
 \*[lmbench] history
 .LP
-\*[lmbench] version 1 was written by Larry McVoy
-while he was at Sun Microsystems.  It 
+\*[lmbench1] was written by Larry McVoy
+while he was at Sun Microsystems.  It focussed
+on two measures of system performance: latency
+and bandwidth.  It measured a number of basic
+operating system functions, such as file system
+read/write bandwidth or file creation time.  It
+also focussed a great deal of energy on measuring
+data transfer operations, such as \*[bcopy] and
+\*[pipe] latency and bandwidth as well as raw
+memory latency and bandwidth.
 .LP
-\*[lmbench] version 3 focussed on extending 
+Shortly after 
+.RN McVoy96
+was published, 
+.RN Brown97
+examined the \*[lmbench] benchmarks and published
+a detailed critique of its strengths and weaknesses.
+Largely in response to these remarks, development
+of \*[lmbench2] began with a focus on
+improving the experimental design and statistical
+data analysis.  The primary change was the development
+and adoption across all the benchmarks of a timing 
+harness that incorporated loop-autosizing and clock 
+resolution detection.  In addition, each experiment
+was typically repeated eleven times with the median
+result reported to the user.
+.LP
+\*[lmbench3] focussed on extending 
 \*[lmbench]'s functionality along two dimensions:
 measuring multi-processor scalability and measuring
-basic aspects of processor architecture.
-.LP
-There are any number of aspects of a computer's
-micro-architecture that can impact a program's
-performance, such as the design of the memory
-hierarchy and the basic performance of the various
-arithmetic units.
-.LP
-All of the new benchmarks were added to \*[lmbench]
-because the author needed them to help guide his
-design decisions in one or more projects over the
-last few years.  
-For example, \*[lat_ops] was added because the
-author was trying to decide whether a particular
-image processing algorithm should be implemented
-using integer or floating point arithmetic.
-Floating point arithmetic was preferred for a
-variety of reasons, but it was feared that 
-floating point arithmetic would be prohibitively
-expensive compared to integer operations.
-By quickly building \*[lat_ops] the author was
-able to verify that the floating point performance
-should be no worse than integer performance.
+basic aspects of processor micro-architecture.
 .LP
 An important feature of multi-processor systems is their
-ability to scale their performance.  \*[lmbench] version
-1 was able to measure various important aspects of 
+ability to scale their performance.  \*[lmbench1]
+was able to measure various important aspects of 
 system performance, except that only one client process
 was active at a time
 .RN McVoy96 .
@@ -296,8 +303,8 @@ system performance under parallel, scalable loads.
 McCalpin's STREAM benchmarks.  Essentially the STREAM 
 kernels were placed in the new \*[lmbench] timing harness.
 Since the new timing harness also measures scalability
-under parallel load, the new \*[lmbench] version
-includes this capability automatically.  
+under parallel load, the \*[lmbench3] STREAM
+benchmarks include this capability automatically.  
 .LP
 Finally, \*[lmbench3] includes a number of new
 benchmarks which measure various aspects of the
@@ -447,204 +454,6 @@ processNum.  The benchmark then explores the
 parameter space to measure file system performance
 in a scalable fashion.
 .NH 1
-Computer Architecture Primer
-.LP
-A processor architecture is generally defined by its
-instruction set, but most computer architectures
-incorporate a large number of common building blocks
-and concepts, such as registers, arithmetic logic
-units, and caches.
-.LP
-Of necessity, this primer over-simplifies the
-many details and variations of specific computer
-designs and architectures.  For more information,
-please see 
-.RN Hennessy96 .
-.TSTART 1
-.so lmbench3_arch.pic
-.FEND "Architecture diagram" 1
-.LP
-Figure \n[FIGURE] contains a greatly simplified block diagram
-of a computer.  Various important elements, such as
-the I/O bus and devices, have been left out.  The
-core of the processor are the registers (r0, ..., rn
-and f0, ..., fn) and the arithmetic units (ALU and FPU).
-In general, the arithmetic units can access data in
-registers ''instantly''.  Often data must be explicitly
-loaded from memory into a register before it can be
-manipulated by the arithmetic units.
-.LP
-The ALU handles integer arithmetic, such as bit
-operations (AND, OR, XOR, NOT, and SHIFT) as
-well as ADD, MUL, DIV, and MOD.  Sometimes there
-is specialized hardware to handle one or more
-operations, such as a barrel shifter for SHIFT
-or a multiplier, and sometimes there is no
-hardware support for certain operations, such
-as MUL, DIV, and MOD.  
-.LP
-The FPU handles floating point arithmetic.
-Sometimes there are separate FPUs for single
-and double precision floating point operations.
-.NH 2
-Memory Hierarchy
-.LP
-Nearly all modern, general purpose computers use
-virtual memory with phyically addressed caches.
-As such, there is typically one or more caches
-between the physical memory and the processor,
-and virtual-to-physical address translation
-occurs between the processor and the top-level
-cache.  Cache staging and replacement is done
-in \fIcache line\fR units, which are typically
-several words in length, and caches lower in 
-the hierarchy sometimes have cache lines which
-are larger than those in the higher caches.
-.LP
-Modern processors usually incorporate at least
-an L1 cache on-chip, and some are starting to
-also incorporate the L2 cache on-chip.  In
-addition, most include a translation look-aside
-buffer (TLB) on-chip for fast virtual-to-physical
-address translation.
-.LP
-One key element of any cache design is its
-replacement strategy.  Most caches use either
-direct-mapped or set associative caches.  In
-the first instance any word in physical memory
-has exactly one cache line where into which it
-may be staged, while set associative caches
-allow a given word to be cached into one of a
-set of lines.  Direct-mapped caches have a 
-very simple replacement policy: the contents
-of the line that is needed is discarded.
-Set associative caches usually use LRU or
-some variant within each set, so the least
-recently used line in the set of possible
-cache lines is replaced.  The control logic
-for direct-mapped caches is much cheaper to
-build, but they are generally only as 
-effective as a set-associative cache half
-the size
-.RN Hennessy96 .
-.LP
-Another key element of memory hierarchy design
-is the management of dirty data; at what point
-are writes passed down the memory hierarchy to
-lower caches and main memory?  The two basic
-policies are write-through and write-back.
-A write-through policy means that writes are
-immediately passed through the cache to the
-next level in the hierarchy, so the lower
-levels are updated at the same time as the
-cache.  A write-back policy means that the
-cache line is marked as dirty in the cache,
-and only when the line is ejected from the
-cache is the data passed down the hierarchy.
-Write-through policies are often used in 
-higher (smaller) caches because multi-
-processor systems need to keep a coherent
-view of memory and the writes are often
-propagated to other processors by \fIsnoopy\fR
-caches.
-.LP
-One often overlooked aspect of cache
-performance is cache behavior during
-writes.  Most cache lines contain
-several words, and most instructions
-only update the line a word at a time.
-This means that when the processor
-writes a word to a cache line that is
-not present, the cache will read the
-line from memory before completing the
-write operation.  For \*[bcopy]-like
-operations this means that the overall
-memory bandwidth requirement is actually
-two reads and one write per copied word,
-rather than the expected read and write.
-.LP
-Most modern processors now include some form
-of prefetch in the memory hierarchy.  For
-the most part these are simple systems that
-can recognize fixed strided accesses through
-memory, such as might be seen in many array
-operations.  However, prefetching systems
-appear to be growing in complexity and
-capability.
-.LP
-Additionally, modern memory subsystems can
-usually support multiple outstanding requests;
-the level of parallelism is usually dependent
-on the level of the hierarchy being accessed.
-Top-level caches can sometimes support as 
-many as six or eight outstanding requests,
-while main memory can usually support two
-outstanding requests.  Other elements of 
-the memory hierarchy, such as the TLB, often
-have additional limits on the level of
-achievable parallelism in practice.\**
-.FS 
-For example, if the TLB serializes all
-TLB misses, and if each memory access
-causes a TLB miss, then the memory
-accesses will be serialized even if
-the data was in a cache supporting
-six outstanding requests.
-.FE
-.LP
-For more information and details on memory 
-subsystem design, and computer architecture
-in general, please see
-.RN Hennessy96
-which has an excellent description of these
-and many other issues.
-.NH 2
-Some Recent Innovations
-.LP
-There are a number of modern extensions to computer
-architecture that attempt to increase the processor's
-ability to do several things at once.  Nearly all of
-these enhancements are intended to be invisible to
-programmers using higher-level languages such as
-C or JAVA.
-.IP "\fBSuperscalar processors\fR"
-Superscalar processors have multiple processing
-units which can operate simultaneously.  
-.IP "\fBDynamic instruction reordering\fR"
-Dynamic instruction reordering allows the processor
-to execute instructions whose operands are ready
-before instructions which are stalled waiting for
-memory or other instruction's completion.
-.IP "\fBMemory parallelism\fR"
-By allowing multiple outstanding memory requests,
-processors allow the memory subsystem to service
-multiple (independent) requests in parallel. 
-Since memory accesses are a common performance
-bottleneck, this can greatly improve performance.
-.IP "\fBVector processing\fR"
-Vector processing allows the processor to execute
-arithmetic operations on vector operands in 
-parallel, and in modern commodity processors goes
-by names such as MMX, SSE, and 3DNow.
-.IP "\fBSimultaneous multi-threading (SMT)\fR"
-SMT allows superscalar processors to simulatenously
-execute instructions from several threads (contexts)
-.RN Tullsen96 .
-SMT may include extensions which allow for very
-lightweight inter-thread synchronization primitives
-that enable much finer-grained thread-level 
-parallelism than traditional synchronization
-methods
-.RN Tullsen99 .
-.IP "\fBExplicitly parallel instruction computers (EPIC)\fR"
-EPIC allows the compiler to explicitly issue $N$
-instructions in parallel at each instruction, which
-informs the hardware that these instructions are
-independent and may be executed in parallel
-.RN Schlansker00 .
-It moves much of the burden regarding dependency
-checking from the hardware to the compiler.
-.NH 1
 Timing Harness
 .LP
 The first, and most crucial element in extending
@@ -741,7 +550,7 @@ intervals can as small as a few milli-seconds
 without incurring significant timing errors related
 to clock resolution.
 .LP
-Since there is no interface to query the operating
+Since there is no standard interface to query the operating
 system for the clock resolution, \*[lmbench] must 
 experimentally determine the appropriate timing 
 interval duration which provides results in a timely 
@@ -1024,7 +833,7 @@ In those instances, we are not trying to find the
 There are only a few sources of error which could
 cause a the measured timing result to be shorter 
 than the true elapsed time: the system clock is
-adjusted, and round-off error in the clock resolution.
+adjusted, or round-off error in the clock resolution.
 The timing interval duration is set to ensure that
 the round-off error is bounded to 1% of the timing
 interval, and we blithely assume that people don't
@@ -1103,83 +912,6 @@ benchmp(NULL, benchmark_getppid, NULL,
 	0, 1, 0, NULL);
 micro("getppid", get_n());
 .DE
-.LP
-A more complex example which has "state" and uses the 
-initialization and cleanup capabilities might look something
-like this:
-.DS
-struct bcopy_state {
-	int len;
-	char* src;
-	char* dst;
-};
-.DE
-.DS
-void
-initialize_bcopy(void* cookie)
-{
-	struct bcopy_state* state = 
-		(struct bcopy_state*)cookie;
-
-	state->src = valloc(state->len);
-	state->dst = valloc(state->len);
-
-	bzero(src, state->len);
-	bzero(src, state->len);
-}
-.DE
-.DS
-void
-benchmark_bcopy(uint64 iterations, 
-		void* cookie)
-{
-	struct bcopy_state* state = 
-		(struct bcopy_state*)cookie;
-
-	while (iterations-- > 0) {
-		bcopy(state->src, 
-		      state->dst, state->len);
-	}
-}
-.DE
-.DS
-void
-cleanup_bcopy(void* cookie)
-{
-	struct bcopy_state* state = 
-		(struct bcopy_state*)cookie;
-
-	free(state->src);
-	free(state->dst);
-}
-.DE
-.LP
-and then your program look something like:
-.DS
-#include "bench.h"
-int
-main()
-{
-	struct bcopy_state state;
-
-	state.len = 8 * 1024 * 1024;
-	benchmp(initialize_bcopy, 
-		benchmark_bcopy, 
-		cleanup_bcopy, 
-		0, 1, 0, TRIES, &state);
-	fprintf(stderr, "bcopy: ");
-	mb(state.len * get_n());
-	exit(0);
-}
-.DE
-.LP
-Note that this particular micro-benchmark would measure
-cache-to-cache \*[bcopy] performance unless the amount of
-memory being copied was larger than half the cache size.
-A slightly more sophisticated approach might allocate
-as much memory as possible and then \*[bcopy] from one
-segment to another, changing segments within the allocated
-memory before each \*[bcopy] to defeat the caches.
 .NH 1
 Benchmarks
 .LP
@@ -1195,7 +927,7 @@ c c
 l & l .
 Name&Measures
 _
-&Bandwidth
+&\fBBandwidth\fR
 bw_file_rd&T{
 \*[read] and then load into processor
 T}
@@ -1203,24 +935,22 @@ bw_mem&T{
 read, write, and copy data to/from memory
 T}
 bw_mmap_rd&read from \*[mmap]'ed memory
-bw_pipe&\*[pipe] inter-process
-bw_tcp&TCP inter-process
+bw_pipe&\*[pipe] inter-process data copy
+bw_tcp&TCP inter-process data copy
 bw_unix&UNIX inter-process
 _
-&Latency
-lat_connect&TCP socket connection
+&\fBLatency\fR
 lat_ctx&T{
 context switch via \*[pipe]-based ``hot-potato'' token passing
 T}
-lat_fcntl&\*[fcntl]
+lat_fcntl&\*[fcntl] operation
 lat_fifo&T{
 FIFO ``hot-potato'' token passing
 T}
 lat_fs&file creation and deletion
-lat_http&
+lat_http&http GET request latency
 lat_mem_rd&memory read
-lat_mmap&mmap
-lat_ops&basic operations
+lat_mmap&\*[mmap] operation
 lat_pagefault&page fault handler
 lat_pipe&\*[pipe] ``hot-potato'' token passing
 lat_proc&T{
@@ -1228,43 +958,37 @@ procedure call overhead and process creation using \*[fork],
 \*[fork] and \*[execve], and \*[fork] and \*[sh]
 T}
 lat_rpc&SUN RPC procedure call
-lat_select&\*[select]
+lat_select&\*[select] operation
 lat_sem&T{
 semaphore ``hot-potato'' token passing
 T}
 lat_sig&T{
 signal handle installation and handling
 T}
-lat_syscall&
+lat_syscall&T{
+\*[getppid], 
+\*[write], 
+\*[stat], 
+\*[fstat], 
+\*[open], 
+\*[close]
+T}
 lat_tcp&TCP ``hot-potato'' token passing
 lat_udp&UDP ``hot-potato'' token passing
 lat_unix&UNIX ``hot-potato'' token passing
 lat_unix_connect&UNIX socket connection
 _
-&Parallelism
-par_mem&memory subsystem
-par_ops&T{
-instruction-level parallelism of basic arithmetic operations
-T}
-_
-mhz&CPU clock frequency
-line&cache line size
-tlb&number of pages mapped by TLB
+&\fBOther\fR
 stream&STREAM clones
 lmdd&\fIdd\fR clone
 .TE
 .TEND "\*[lmbench] micro-benchmarks"
 .LP
 Table \n[TABLE] contains the full list of micro-benchmarks
-in \*[lmbench].
-.NH 2
-Bandwidth
-.LP
-description of bandwidth benchmarks with some sample results.
-.NH 2
-Latency
-.LP
-description of latency benchmarks with some sample results.
+in \*[lmbench] that were converted to measure performance
+under scalable load.  A detailed description of each
+benchmark can be found in
+.RN McVoy96 .
 .NH 1
 Scaling Benchmarks
 .LP
@@ -1331,7 +1055,7 @@ directly.
 Context Switching
 .LP
 Measuring context switching accurately is a difficult
-task.  \*[lmbench] versions 1 and 2 measured context
+task.  \*[lmbench1] and \*[lmbench2] measured context
 switch times via a "hot-potato" approach using pipes
 connected in a ring.  However, this experimental
 design heavily favors schedulers that do "hand-off"
@@ -1346,11 +1070,6 @@ switching and scheduler overhead need to be revisited
 so that it can more accurately measure performance
 for multi-processor machines.
 .NH 1
-New Benchmarks
-.LP
-\*[lmbench] version 3 also includes a number of
-new benchmarks.
-.NH 2
 Stream
 .LP
 \*[lmbench3] includes a new micro-benchmark which
@@ -1406,288 +1125,12 @@ from memory and then modify the selected bytes.
 Sometimes vector instructions such as SSE
 and 3DNow can avoid this load by writing an 
 entire cache line at once.
-.NH 2
-Basic operation latency
-.LP
-\*[lmbench3] includes a new micro-benchmark 
-which measures the latency for a variety of basic
-operations, such as addition, multiplication, and
-division of integer, float, and double operands.
-To measure the basic operation latency we construct
-a basic arithmetic statement containing the desired
-operands and operations.  This statement is repeated
-one hundred times and these repetitions are then
-embedded in a loop.  
-.TSTART
-.TS
-center box tab (&);
-c c c
-l & l & l .
-Operand&Operation&Statement
-_
-int&$bit$&r^=i;s^=r;r|=s;
-&$add$&a+=b;b-=a;
-&$mul$&r=(r*i)^r;
-&$div$&r=(r/i)^r;
-&$mod$&r=(r%i)^r;
-_
-float&$add$&f+=f;
-&$mul$&f*=f;
-&$div$&f=g/f;
-_
-double&$add$&f+=f;
-&$mul$&f*=f;
-&$div$&f=g/f;
-.TE
-.TEND "lat_ops statements"
-.LP
-Table \n[TABLE] shows the data type and expressions
-used for each basic operation type.  The variable
-$i$ indicates the loop variable and generally
-changes every ten or hundred evaluations of the
-basic expression.  All other variables are of
-the basic type being measured, and aside from
-being modified by the relevant expressions are
-only initialized once at the beginning of the
-benchmark routine.
-.LP
-Each statement has been designed to ensure that
-the statement instances are \fIinterlocked\fR,
-namely that the processor cannot begin processing
-the next instance of the statement until it has
-completed processing the previous instance.  This
-property is crucial to the correct measurement of
-operation latency.
-.LP
-One important consideration in the design of
-the statements was that they not be optimized
-out of the loop by intelligent compilers.  
-Since the statements are repeated one hundred
-times, the compiler has the option of evaluating
-the sequence of one hundred repetitions of the
-same statement, and sometimes it can find
-optimizations that are not immediately 
-apparent.  For example, the integer statement
-$a=a+a;$ when repeated one hundred times in
-a loop can be replaced with the single statement
-$a=0;$ because the statement $a=a+a;$ is equivalent
-to $a<<=1;$, and one hundred repetitions of that
-statement is equivalent to $a<<=100;$, which for
-32bit (or even 64bit) integers is equivalent to
-$a=0;$.  
-.LP
-It is relatively easy to identify floating
-point statements that interlock, are not
-optimized away, and that only use the operation
-of interest.
-It is much harder to identify integer statements
-meeting the same criterion.  All simple 
-integer bitwise operations can either be optimized
-away, don't interlock, or use operations other
-than one of interest.
-We chose to add operations other than the 
-operation(s) of interest to the statements.
-.LP
-The integer $mul$, $div$, and $mod$ statements all 
-include an added $xor$ operation which prevents
-(current) compilers from optimizing the statements
-away.  Since the $xor$ operation is generally
-completed in a single clock tick, and since
-we can measure the $xor$ operation latency
-separately and subtract that overhead, we can
-still measure the latencies of the other 
-operations of interest.
-.LP
-It is not possible to measure latency for 64bit
-operations on 32bit machines because most
-implementations allow operations on the upper
-and lower bits to overlap.  This means that
-on most 32bit machines, the measured latency
-would appear to be a non-integral multiple of
-the basic clock cycle.  For example, in the
-$add$ statement, the system could first add
-the two lower words.  Then, in parallel it
-could both add the two upper words (along with
-the carry from the lower words), and compute
-the $xor$ of the lower word.  Finally, it
-can overlap the $xor$ of the upper word
-with the addition of the two lower words from
-the next instantiation of the statement.
-.TSTART
-.TS
-center box tab (&);
-c c c c c
-c c c c c
-l & l & r & r & r .
-Operand&Op&HPPA2.0&PIII&AMD
-&&400MHz&667MHz&1.3GHz
-_
-mhz&&2.50&1.50&0.75
-int&$bit$&2.53&1.50&0.75
-&$add$&2.50&1.51&0.75
-&$mul$&14.52&6.07&3.03
-&$div$&109.40&58.52&30.86
-&$mod$&75.14&65.01&32.59
-_
-float&$add$&7.54&4.58&3.0
-&$mul$&7.50&7.50&3.0
-&$div$&45.00&35.26&13.21
-_
-double&$add$&7.52&4.53&3.01
-&$mul$&7.52&7.71&3.01
-&$div$&85.01&35.51&13.16
-.TE
-.TEND "lat_ops results (ns)"
-.LP
-Table \n[TABLE] contains some sample results
-for two processors.  
-It does contain one result which is slightly
-surprising unless you are familiar with the
-PA-RISC architecture: floating point multiply
-and divide are faster than the corresponding
-integer operations!  This is because PA-RISC
-does not contain integer MUL, DIV, or MOD
-instructions and the optimizing compiler
-converts the integers into floating point,
-does the operations in the floating point
-unit, and then converts the result back
-into an integer.
-.NH 2
-Basic operation parallelism
-.LP
-Instruction-level parallelism in commodity processors
-has become commonplace in the last ten years.  
-Modern processors typically have more than one
-operational unit that can be active during a
-given clock cycle, such as an integer arithmetic
-unit and a floating point unit.  In addition, 
-processors may have more than a single instance
-of a given type of operational unit, both of
-which may be active at a given time.  All this
-intra-processor parallelism is used to try and
-reduce the average number of clock cycles per
-executed instruction.  
-.LP
-\*[lmbench3] incorporates a new benchmark \*[par_ops]
-which attempts to quantify the level of available
-instruction-level parallelism provided by the processor.  This 
-benchmark is very similar to \*[lat_ops], and
-in fact uses the same statement kernels, but it
-has been modified and extended.  We create
-different versions of each benchmark; each
-version has $N$ sets of interleaved statements.
-Each set is identical to equivalent \*[lat_ops]
-statements.  In this way multiple independent
-sets can be executing the same operation(s)
-in parallel, if the hardware supports it.
-.LP
-For example, the float $mul$ benchmark to measure
-performance with two parallel streams of statements
-would look like something this:
-.DS
-#define TEN(a) a a a a a a a a a a
-void benchmark_1(iter_t iterations, void* cookie)
-{
-    register iter_t i = iterations;
-    struct _state* state = (struct _state*)cookie;
-    register float f0 = state->float_data[0];
-    register float f1 = state->float_data[1];
-
-    while (i-- > 0) {
-        TEN(f0*=f0; f1*=f1;)
-    }
-    use_int((int)f0);
-    use_int((int)f1);
-}
-.DE
-.LP
-If the processor had two floating point multiply
-units, then both $f0$ and $f1$ multiplies could
-proceed in parallel.
-.LP
-However, there are some potential problems with
-the integer operations, namely the fact that the
-statements contain mixed operations.  In general,
-processors have at least as many integer units
-that can do $xor$ as can do the other operations
-of interest ($mul$, $div$ and $mod$), so the
-inclusion of $xor$ in the statements shouldn't
-be a bottleneck.  
-.LP
-However, since parallelism is measured by comparing 
-the latency of the single-stream with that of 
-multiple interleaved streams, and since the single-stream 
-latency includes the $xor$ latency, the apparent 
-parallelism of $mul$, $div$, $mod$ can be over-stated.
-For example, if a process has one unit that can
-do integer bit operations, such as $xor$, and another
-unit for integer $mul$ operations, then the average
-latency for $a0 = (i * a0) ^ a0$ in the single stream 
-case would be:
-.EQ
-t bar = t sub xor + t sub mul
-.EN
-In the multi-stream case, the execution of the $xor$ 
-operation of one stream can be overlapped with the 
-$mul$ of another stream, so the average latency per 
-stream would simply be $t bar = t sub mul$, assuming 
-that $mul$ operations are not cheaper than $xor$ 
-operations, which results in an apparent parallelism 
-$p tilde$:
-.EQ
-p tilde = {t sub xor + t sub mul} over { t sub mul }
-.EN
-Assuming that $t sub xor << t sub mul$, this
-still gives a reasonable approximation to
-the correct answer.  Unfortunately, this is
-not always a reasonable assumption.
-.LP
-Of course, if it was known ahead of time that
-$xor$ and { $mul$, $div$, and $mod$ } used
-different execution units, then the benchmark
-could simply subtract $t sub xor$ from the
-baseline measurement.  The difficulty lies
-in determining whether the units overlap
-or not.
-.TSTART
-.TS
-center box tab (&);
-c c c c c
-c c c c c
-l & l & r & r & r .
-Operand&Op&HPPA2.0&PIII&AMD
-&&400MHz&667MHz&1.3GHz
-_
-int&$bit$&1.99&1.70&1.87
-&$add$&1.99&1.61&1.90
-&$mul$&6.64&3.81&2.00
-&$div$&2.81&1.20&1.00
-&$mod$&2.78&1.11&1.03
-_
-float&$add$&5.88&1.00&2.66
-&$mul$&5.86&1.14&2.47
-&$div$&2.12&1.03&1.14
-_
-double&$add$&5.68&1.08&2.49
-&$mul$&5.58&1.00&2.53
-&$div$&2.19&1.03&1.14
-.TE
-.TEND "par_ops results"
-.LP
-.NH 1
-Results
-.LP
-Some sample results
-.LP
-bw_mem_rd performance vs. scaling on an SMP machine
-.LP
-
 .NH 1
 Unscalable benchmarks
 .LP
 There are a number of benchmarks which either
 did not make sense for scalable load, such as
-\*[mhz], and other benchmarks which could not
+\*[mhz], or which could not
 be extended to measure scalable load due to
 other constraints, such as \*[lat_connect].
 .LP
@@ -1722,6 +1165,14 @@ guaranteed to run into the TIMEOUT problem.
 Consequently, \*[lat_connect] was not
 enhanced to measure scalable performance.
 .NH 1
+Results
+.LP
+Some sample results
+.LP
+bw_mem_rd performance vs. scaling on an SMP machine
+.LP
+
+.NH 1
 Conclusion
 .LP
 \*[lmbench] is a useful, portable micro-benchmark 
@@ -1729,6 +1180,11 @@ suite designed to measure important aspects of
 system performance.
 \*[lmbench3] adds a number of important extensions,
 such as the ability to measure system scalability.
+.LP
+The benchmarks are available at
+.ft I
+http://ftp.bitmover.com/lmbench
+.ft
 .NH 1
 Acknowledgments
 .LP
@@ -1751,18 +1207,6 @@ all of the free software community for tools that were used during this
 project.
 \*[lmbench] is currently developed on Linux, a copylefted Unix written by 
 Linus Torvalds and his band of happy hackers.
-This paper and all of the 
-\*[lmbench] documentation was produced using
-the \f(CWgroff\fP suite of tools written by James Clark.
-Finally, all of the data processing of the results is done with
-\f(CWperl\fP written by Larry Wall.  
-.NH 1
-Obtaining the benchmarks
-.LP
-The benchmarks are available at
-.ft I
-http://ftp.bitmover.com/lmbench
-.ft
 .\" .R1
 .\" bibliography references-lmbench3
 .\" .R2
