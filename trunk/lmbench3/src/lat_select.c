@@ -62,10 +62,12 @@ int main(int ac, char **av)
 		warmup, repetitions, &state);
 	sprintf(buf, "Select on %d fd's", state.num);
 	micro(buf, get_n());
+	exit(0);
 }
 
 
-void doit(iter_t iterations, void * cookie)
+void
+doit(iter_t iterations, void * cookie)
 {
 	state_t * 	state = (state_t *)cookie;
 	fd_set		nosave;
@@ -81,7 +83,8 @@ void doit(iter_t iterations, void * cookie)
 	}
 }
 
-void initialize(void *cookie)
+void
+initialize(void *cookie)
 {
 	char	c;
 	state_t * state = (state_t *)cookie;
@@ -100,7 +103,8 @@ void initialize(void *cookie)
 	}
 }
 
-void cleanup(void *cookie)
+void
+cleanup(void *cookie)
 {
 	int	i;
 	state_t * state = (state_t *)cookie;
