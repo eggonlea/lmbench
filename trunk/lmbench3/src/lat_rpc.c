@@ -4,10 +4,11 @@
  * Four programs in one -
  *	server usage:	lat_rpc -s
  *	client usage:	lat_rpc hostname
- *	client usage:	lat_rpc hostname tcp
- *	client usage:	lat_rpc hostname udp
- *	shutdown:	lat_rpc -hostname
+ *	client usage:	lat_rpc -p tcp hostname
+ *	client usage:	lat_rpc -p udp hostname
+ *	shutdown:	lat_rpc -S hostname
  *
+ * Copyright (c) 2000 Carl Staelin.
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
  * (1) the benchmark is unmodified, and
@@ -41,7 +42,7 @@ doit(CLIENT *cl, char *server)
 
 
 /* Default timeout can be changed using clnt_control() */
-static struct timeval TIMEOUT = { 0, 2500 };
+static struct timeval TIMEOUT = { 0, 25000 };
 
 char	*proto[] = { "tcp", "udp", 0 };
 
@@ -103,7 +104,7 @@ main(int ac, char **av)
 
 	state.msize = 1;
 
-	while (( c = getopt(ac, av, "sSm:p:P:W:N:")) != EOF) {
+	while (( c = getopt(ac, av, "sS:m:p:P:W:N:")) != EOF) {
 		switch(c) {
 		case 's': /* Server */
 			if (fork() == 0) {
@@ -112,7 +113,7 @@ main(int ac, char **av)
 			exit(0);
 		case 'S': /* shutdown serverhost */
 		{
-			cl = clnt_create(av[ac-1], XACT_PROG, XACT_VERS, "udp");
+			cl = clnt_create(optarg, XACT_PROG, XACT_VERS, "udp");
 			if (!cl) {
 				clnt_pcreateerror(state.server);
 				exit(1);
@@ -150,7 +151,7 @@ main(int ac, char **av)
 
 	state.server = av[optind++];
 
-	if (protocol == NULL || strcasecmp(protocol, proto[0])) {
+	if (protocol == NULL || !strcasecmp(protocol, proto[0])) {
 		state.protocol = proto[0];
 		benchmp(initialize, benchmark, NULL, MEDIUM, parallel, 
 			warmup, repetitions, &state);
@@ -158,7 +159,7 @@ main(int ac, char **av)
 		micro(buf, get_n());
 	}
 
-	if (protocol == NULL || strcasecmp(protocol, proto[1])) {
+	if (protocol == NULL || !strcasecmp(protocol, proto[1])) {
 		state.protocol = proto[1];
 		benchmp(initialize, benchmark, NULL, MEDIUM, parallel, 
 			warmup, repetitions, &state);
