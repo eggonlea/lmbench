@@ -86,6 +86,9 @@ benchmp_sigchld(int signo)
 {
 	signal(SIGCHLD, SIG_IGN);
 	benchmp_sigchld_received = 1;
+#ifdef _DEBUG
+	fprintf(stderr, "benchmp_sigchld handler\n");
+#endif
 }
 
 void
@@ -590,6 +593,8 @@ benchmp_child(support_f initialize,
 	need_warmup = 1;
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 0;
+
+	signal(SIGCHLD, benchmp_sigchld_handler);
 
 	if (initialize)
 		(*initialize)(cookie);
