@@ -15,6 +15,7 @@ struct _state {
 
 #define TEN(a) a a a a a a a a a a
 #define HUNDRED(a) TEN(TEN(a))
+
 void
 do_integer_bitwise(uint64 iterations, void* cookie)
 {
@@ -175,7 +176,11 @@ do_float_add(uint64 iterations, void* cookie)
 
 	while (iterations-- > 0) {
 		for (i = 0; i < 1000; ++i) {
+#ifndef __GNUC__
 			HUNDRED(f+=f;)
+#else
+			TEN(f+=f;)
+#endif
 		}
 	}
 	use_int((int)f);
@@ -192,7 +197,11 @@ do_float_mul(uint64 iterations, void* cookie)
 
 	while (iterations-- > 0) {
 		for (i = 0; i < 1000; ++i) {
+#ifndef __GNUC__
 			HUNDRED(f*=f;)
+#else
+			TEN(f*=f;)
+#endif
 		}
 	}
 	use_int((int)f);
@@ -209,7 +218,11 @@ do_float_div(uint64 iterations, void* cookie)
 
 	while (iterations-- > 0) {
 		for (i = 0; i < 1000; ++i) {
+#ifndef __GNUC__
 			HUNDRED(f=g/f;)
+#else
+			TEN(f=g/f;)
+#endif
 		}
 	}
 	use_int((int)f);
@@ -226,7 +239,11 @@ do_double_add(uint64 iterations, void* cookie)
 
 	while (iterations-- > 0) {
 		for (i = 0; i < 1000; ++i) {
+#ifndef __GNUC__
 			HUNDRED(f+=f;)
+#else
+			TEN(f+=f;)
+#endif
 		}
 	}
 	use_int((int)f);
@@ -243,7 +260,11 @@ do_double_mul(uint64 iterations, void* cookie)
 
 	while (iterations-- > 0) {
 		for (i = 0; i < 1000; ++i) {
+#ifndef __GNUC__
 			HUNDRED(f*=f;)
+#else
+			TEN(f*=f;)
+#endif
 		}
 	}
 	use_int((int)f);
@@ -260,7 +281,11 @@ do_double_div(uint64 iterations, void* cookie)
 
 	while (iterations-- > 0) {
 		for (i = 0; i < 1000; ++i) {
+#ifndef __GNUC__
 			HUNDRED(f=g/f;)
+#else
+			TEN(f=g/f;)
+#endif
 		}
 	}
 	use_int((int)f);
@@ -301,11 +326,11 @@ cleanup(void* cookie)
 }
 
 void
-do_float_bogomips(uint64 iterations, void* cookie)
+do_float_bogomflops(uint64 iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	register int i;
-	register float *x = (double*)pState->data;
+	register float *x = (float*)pState->data;
 
 	while (iterations-- > 0) {
 		for (i = 0; i < pState->N; ++i) {
@@ -315,7 +340,7 @@ do_float_bogomips(uint64 iterations, void* cookie)
 }
 
 void
-do_double_bogomips(uint64 iterations, void* cookie)
+do_double_bogomflops(uint64 iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	register int i;
@@ -382,30 +407,54 @@ main(int ac, char **av)
 	nano("uint64 mod", get_n() * 100000);
 	
 	benchmp(NULL, do_float_add, NULL, 0, 1, 0, TRIES, &state);
+#ifndef __GNUC__
 	nano("float add", get_n() * 100000);
+#else
+	nano("float add", get_n() * 10000);
+#endif
 	
 	benchmp(NULL, do_float_mul, NULL, 0, 1, 0, TRIES, &state);
+#ifndef __GNUC__
 	nano("float mul", get_n() * 100000);
+#else
+	nano("float mul", get_n() * 10000);
+#endif
 	
 	benchmp(NULL, do_float_div, NULL, 0, 1, 0, TRIES, &state);
+#ifndef __GNUC__
 	nano("float div", get_n() * 100000);
+#else
+	nano("float div", get_n() * 10000);
+#endif
 
 	benchmp(NULL, do_double_add, NULL, 0, 1, 0, TRIES, &state);
+#ifndef __GNUC__
 	nano("double add", get_n() * 100000);
+#else
+	nano("double add", get_n() * 10000);
+#endif
 	
 	benchmp(NULL, do_double_mul, NULL, 0, 1, 0, TRIES, &state);
+#ifndef __GNUC__
 	nano("double mul", get_n() * 100000);
+#else
+	nano("double mul", get_n() * 10000);
+#endif
 	
 	benchmp(NULL, do_double_div, NULL, 0, 1, 0, TRIES, &state);
+#ifndef __GNUC__
 	nano("double div", get_n() * 100000);
+#else
+	nano("double div", get_n() * 10000);
+#endif
 
 	benchmp(float_initialize, 
-		do_float_bogomips, cleanup, 0, 1, 0, TRIES, &state);
-	nano("float bogomips", get_n() * state.N);
+		do_float_bogomflops, cleanup, 0, 1, 0, TRIES, &state);
+	nano("float bogomflops", get_n() * state.N);
 
 	benchmp(double_initialize, 
-		do_double_bogomips, cleanup, 0, 1, 0, TRIES, &state);
-	nano("double bogomips", get_n() * state.N);
+		do_double_bogomflops, cleanup, 0, 1, 0, TRIES, &state);
+	nano("double bogomflops", get_n() * state.N);
 
 	return(0);
 }
