@@ -1,0 +1,101 @@
+.\" $Id$
+.TH LMBENCH 8 "$Date$" "(c)1994 Larry McVoy" "LMBENCH"
+.SH NAME
+lmbench \- system benchmarks
+.SH DESCRIPTION
+.B lmbench
+is a series of micro benchmarks intended to measure basic operating
+system and hardware system metrics.  The benchmarks fall into three
+general classes: bandwidth, latency, and ``other''.
+.SH BANDWIDTH MEASUREMENTS
+Data movement is fundemental to the performance on most computer systems.
+The bandwidth measurements are intended to show how the system can move
+data.  The results of the bandwidth metrics can be compared but care
+must be taken to understand what it is that is being compared.  The
+bandwidth benchmarks can be reduced to two main components: operating
+system overhead and memory speeds.  The bandwidth benchmarks report
+their results as megabytes moved per second but please note that the
+data moved is \fBnot\fP necessarily the same as the memory bandwidth 
+used to move the data.  Consult the individual man pages for more 
+information.
+.LP
+Each of the bandwidth benchmarks is listed below with a brief overview of the 
+intent of the benchmark.
+.TP 14
+bw_file_rd
+reading and summing of a file via the read(2) interface.
+.TP 
+bw_mem_cp
+memory copy.
+.TP
+bw_mem_rd
+memory reading and summing.
+.TP
+bw_mem_wr
+memory writing.
+.TP
+bw_mmap_rd
+reading and summing of a file via the memory mapping mmap(2) interface.
+.TP
+bw_pipe
+reading of data via a pipe.
+.TP
+bw_tcp
+reading of data via a TCP/IP socket.
+.SH LATENCY MEASUREMENTS
+Control messages are also fundemental to the performance on most
+computer systems.  The latency measurements are intended to show how fast
+a system can be told to do some operation.  The results of the 
+latency metrics can be compared to each other
+for the most part.  In particular, the
+pipe, rpc, tcp, and udp transactions are all identical benchmarks 
+carried out over different system abstractions.
+.LP
+Latency numbers here should mostly be in microseconds per operation.
+.TP 14
+lat_connect
+the time it takes to establish a TCP/IP connection.
+.TP 
+lat_ctx
+context switching; the number and size of processes is varied.
+.TP 
+lat_fs
+creating and deleting small files.
+.TP 
+lat_pagefault
+the time it takes to fault in a page from a file.
+.TP
+lat_mem_rd
+memory read latency (accurate to the ~2-5 nanosecond range,
+reported in nanoseconds).
+.TP
+lat_mmap
+time to set up a memory mapping.
+.TP
+lat_pipe
+``hot potato'' transaction through a Unix pipe.
+.TP
+lat_proc
+process creation times (various sorts).
+.TP
+lat_rpc
+``hot potato'' transaction through Sun RPC over UDP or TCP.
+.TP
+lat_syscall
+non trivial entry into the system.
+.TP
+lat_tcp
+``hot potato'' transaction through TCP.
+.TP
+lat_udp
+``hot potato'' transaction through UDP.
+.SH OTHER MEASUREMENTS
+.TP 14
+mhz
+processor cycle time
+.SH ACKNOWLEDGEMENT
+Funding for the development of these tools was provided by Sun
+Microsystems Computer Corporation.
+.SH COPYING
+The benchmarking code is distributed under the GPL with additional 
+restrictions, see the COPYING file.
