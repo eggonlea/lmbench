@@ -111,9 +111,13 @@ typedef unsigned char bool_t;
 #define	TRIES		11
 
 typedef struct {
+	uint64 u;
+	uint64 n;
+} value_t;
+
+typedef struct {
 	int	N;
-	uint64	u[TRIES];
-	uint64	n[TRIES];
+	value_t	v[TRIES];
 } result_t;
 void    insertinit(result_t *r);
 void    insertsort(uint64, uint64, result_t *);
@@ -139,8 +143,8 @@ void	get_results(result_t *r);
 			insertsort(gettime(), get_n(), &__r);		\
 	}								\
 	for (__i = 0; __i < __r.N; ++__i) {				\
-		__oh = __overhead.u[__i] / (double)__overhead.n[__i];	\
-		__r.u[__i] -= (uint64)((double)__r.n[__i] * __oh);	\
+		__oh = __overhead.v[__i].u / (double)__overhead.v[__i].n; \
+		__r.v[__i].u -= (uint64)((double)__r.v[__i].n * __oh);	\
 	}								\
 	save_results(&__r);						\
 }
@@ -196,6 +200,31 @@ void	get_results(result_t *r);
 	} /* while */							\
 	save_n((uint64)__iterations); settime((uint64)__result);	\
 }
+
+/* getopt stuff */
+#define getopt	mygetopt
+#define optind	myoptind
+#define optarg	myoptarg
+#define	opterr	myopterr
+#define	optopt	myoptopt
+extern	int	optind;
+extern	int	opterr;
+extern	int	optopt;
+extern	char	*optarg;
+int	getopt(int ac, char **av, char *opts);
+
+typedef void (*bench_f)(uint64 iterations, void* cookie);
+typedef void (*support_f)(void* cookie);
+
+#define NOINIT NULL
+#define NOCLEANUP NULL
+
+extern void benchmp(support_f initialize, 
+		bench_f benchmark,
+		support_f cleanup,
+		int enough, 
+		int parallel,
+		void* cookie);
 
 
 /*
