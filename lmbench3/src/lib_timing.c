@@ -345,17 +345,16 @@ benchmp_parent(	int response,
 	bzero(merged_results, sizeof_result(parallel * repetitions));
 	insertinit(merged_results);
 
-	FD_ZERO(&fds_read);
-	FD_ZERO(&fds_error);
-	timeout.tv_sec = 1;
-	timeout.tv_usec = 0;
-
 	/* Collect 'ready' signals */
 	for (i = 0; i < parallel * sizeof(char); i += bytes_read) {
 		bytes_read = 0;
+		FD_ZERO(&fds_read);
+		FD_ZERO(&fds_error);
 		FD_SET(response, &fds_read);
 		FD_SET(response, &fds_error);
 
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
 		select(response+1, &fds_read, NULL, &fds_error, &timeout);
 		if (benchmp_sigchld_received 
 		    || benchmp_sigterm_received
@@ -381,11 +380,11 @@ benchmp_parent(	int response,
 
 	/* let the children run for warmup microseconds */
 	if (warmup > 0) {
-		struct timeval timeout;
-		timeout.tv_sec = warmup / 1000000;
-		timeout.tv_usec = warmup % 1000000;
+		struct timeval delay;
+		delay.tv_sec = warmup / 100000;
+		delay.tv_usec = warmup % 100000;
 
-		select(0, NULL, NULL, NULL, &timeout);
+		select(0, NULL, NULL, NULL, &delay);
 	}
 
 	/* send 'start' signal */
@@ -394,9 +393,13 @@ benchmp_parent(	int response,
 	/* Collect 'done' signals */
 	for (i = 0; i < parallel * sizeof(char); i += bytes_read) {
 		bytes_read = 0;
+		FD_ZERO(&fds_read);
+		FD_ZERO(&fds_error);
 		FD_SET(response, &fds_read);
 		FD_SET(response, &fds_error);
 
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
 		select(response+1, &fds_read, NULL, &fds_error, &timeout);
 		if (benchmp_sigchld_received 
 		    || benchmp_sigterm_received
@@ -425,6 +428,9 @@ benchmp_parent(	int response,
 		int n = sizeof_result(repetitions);
 		buf = (unsigned char*)results + i * n;
 
+		FD_ZERO(&fds_read);
+		FD_ZERO(&fds_error);
+
 		/* tell one child to report its results */
 		write(result_signal, buf, sizeof(char));
 
@@ -433,6 +439,8 @@ benchmp_parent(	int response,
 			FD_SET(response, &fds_read);
 			FD_SET(response, &fds_error);
 
+			timeout.tv_sec = 1;
+			timeout.tv_usec = 0;
 			select(response+1, &fds_read, NULL, &fds_error, &timeout);
 			if (benchmp_sigchld_received 
 			    || benchmp_sigterm_received
