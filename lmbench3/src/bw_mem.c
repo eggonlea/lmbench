@@ -1,10 +1,8 @@
 /*
- * bw_mem_wr.c - simple memory write bandwidth benchmark
+ * bw_mem.c - simple memory write bandwidth benchmark
  *
- * Usage: bw_mem_wr size
- *
- * This benchmark is directly comparable to the bw_mem_rd benchmark because
- * both do a load/store and an add per word.
+ * Usage: bw_mem [-P <parallelism>] size what
+ *        what: rd wr rdwr cp fwr frd fcp bzero bcopy
  *
  * Copyright (c) 1994-1996 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -31,90 +29,182 @@ char	*id = "$Id$";
  *
  * XXX - do a 64bit version of this.
  */
-void	rd(TYPE *buf, TYPE *lastone);
-void	wr(TYPE *buf, TYPE *lastone);
-void	rdwr(TYPE *buf, TYPE *lastone);
-void	cp(TYPE *buf, TYPE *dst, TYPE *lastone);
-void	fwr(TYPE *buf, TYPE *lastone);
-void	frd(TYPE *buf, TYPE *lastone);
-void	fcp(TYPE *buf, TYPE *dst, TYPE *lastone);
+void	rd(uint64 iterations, void *cookie);
+void	wr(uint64 iterations, void *cookie);
+void	rdwr(uint64 iterations, void *cookie);
+void	cp(uint64 iterations, void *cookie);
+void	fwr(uint64 iterations, void *cookie);
+void	frd(uint64 iterations, void *cookie);
+void	fcp(uint64 iterations, void *cookie);
+void	loop_bzero(uint64 iterations, void *cookie);
+void	loop_bcopy(uint64 iterations, void *cookie);
+void	init_overhead(void *cookie);
+void	init_loop(void *cookie);
+void	cleanup(void *cookie);
 
-int
-main(ac, av)
-        char  **av;
-{
+typedef struct _state {
+	double	overhead;
 	int	nbytes;
-	TYPE   *buf = 0, *buf2 = 0, *lastone;
+	int	need_buf2;
+	int	isOverheadLoop;
+	int	aligned;
+	TYPE	*buf;
+	TYPE	*buf2;
+	TYPE	*lastone;
+} state_t;
 
-	if (ac < 3) {
-usage:		fprintf(stderr, "Usage: %s size what [conflict]\n", av[0]);
-		fprintf(stderr, 
-		    "what: rd wr rdwr cp fwr frd fcp bzero bcopy\n");
+int main(int ac, char **av)
+{
+	int	parallel = 1;
+	int	nbytes;
+	state_t	state;
+	char	c;
+	char	*usage = "size what [conflict]\nwhat: rd wr rdwr cp fwr frd fcp bzero bcopy\n";
+
+	while (( c = getopt(ac, av, "P:")) != EOF) {
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
+	}
+
+	/* should have two, possibly three [indicates align] arguments left */
+	state.aligned = state.need_buf2 = 0;
+	if (optind + 3 == ac) {
+		state.aligned = 1;
+	} else if (optind + 2 != ac) {
+		lmbench_usage(ac, av, usage);
+	}
+
+	nbytes = state.nbytes = bytes(av[optind]);
+	if (state.nbytes < 512) { /* this is the number of bytes in the loop */
 		exit(1);
 	}
-	nbytes = bytes(av[1]);
-	if (nbytes < 512) {	/* this is the number of bytes in the loop */
-		exit(1);
+
+	if (streq(av[optind+1], "cp") ||
+	    streq(av[optind+1], "fcp") || streq(av[optind+1], "bcopy")) {
+		state.need_buf2 = 1;
 	}
-        buf = (TYPE *)valloc(nbytes);
-	lastone = (TYPE*)((char *)buf + nbytes - 512);
-	if (!buf) {
+		
+	if (streq(av[optind+1], "rd")) {
+		benchmp(init_overhead, rd, cleanup, 0, parallel, &state);
+		state.overhead = gettime();
+		state.overhead /= get_n();
+		benchmp(init_loop, rd, cleanup, 0, parallel, &state);
+	} else if (streq(av[optind+1], "wr")) {
+		benchmp(init_overhead, wr, cleanup, 0, parallel, &state);
+		state.overhead = gettime();
+		state.overhead /= get_n();
+		benchmp(init_loop, wr, cleanup, 0, parallel, &state);
+	} else if (streq(av[optind+1], "rdwr")) {
+		benchmp(init_overhead, rdwr, cleanup, 0, parallel, &state);
+		state.overhead = gettime();
+		state.overhead /= get_n();
+		benchmp(init_loop, rdwr, cleanup, 0, parallel, &state);
+	} else if (streq(av[optind+1], "cp")) {
+		benchmp(init_overhead, cp, cleanup, 0, parallel, &state);
+		state.overhead = gettime();
+		state.overhead /= get_n();
+		benchmp(init_loop, cp, cleanup, 0, parallel, &state);
+	} else if (streq(av[optind+1], "frd")) {
+		benchmp(init_overhead, frd, cleanup, 0, parallel, &state);
+		state.overhead = gettime();
+		state.overhead /= get_n();
+		benchmp(init_loop, frd, cleanup, 0, parallel, &state);
+	} else if (streq(av[optind+1], "fwr")) {
+		benchmp(init_overhead, fwr, cleanup, 0, parallel, &state);
+		state.overhead = gettime();
+		state.overhead /= get_n();
+		benchmp(init_loop, fwr, cleanup, 0, parallel, &state);
+	} else if (streq(av[optind+1], "fcp")) {
+		benchmp(init_overhead, fcp, cleanup, 0, parallel, &state);
+		state.overhead = gettime();
+		state.overhead /= get_n();
+		benchmp(init_loop, fcp, cleanup, 0, parallel, &state);
+	} else if (streq(av[optind+1], "bzero")) {
+		benchmp(init_overhead, loop_bzero, cleanup,0,parallel, &state);
+		state.overhead = gettime();
+		state.overhead /= get_n();
+		benchmp(init_loop, loop_bzero, cleanup, 0, parallel, &state);
+	} else if (streq(av[optind+1], "bcopy")) {
+		/* XXX - if gcc inlines this the numbers could be off */
+		/* But they are off in a good way - the bcopy will appear
+		 * to cost around 0...
+		 */
+		benchmp(init_overhead, loop_bcopy, cleanup, 0, parallel, &state);
+		state.overhead = gettime();
+		state.overhead /= get_n();
+		benchmp(init_loop, loop_bcopy, cleanup, 0, parallel, &state);
+	} else {
+		lmbench_usage(ac, av, usage);
+	}
+	bandwidth(nbytes, get_n() * parallel, 0);
+	return(0);
+}
+
+void init_overhead(void *cookie)
+{
+	state_t *state = (state_t *) cookie;
+        state->buf = (TYPE *)valloc(state->nbytes);
+	state->lastone = (TYPE*)((char *)state->buf + state->nbytes - 512);
+	if (!state->buf) {
 		perror("malloc");
 		exit(1);
 	}
-	if (streq(av[2], "cp") ||
-	    streq(av[2], "fcp") || streq(av[2], "bcopy")) {
-        	buf2 = (TYPE *)valloc(nbytes + 2048);
-		if (!buf2) {
+	bzero((void*)state->buf, state->nbytes);
+
+	if (state->need_buf2 == 1) {
+		state->buf2 = (TYPE *)valloc(state->nbytes + 2048);
+		if (!state->buf2) {
 			perror("malloc");
 			exit(1);
 		}
 		/* default is to have stuff unaligned wrt each other */
 		/* XXX - this is not well tested or thought out */
-		if (ac == 3) {
-			char	*tmp = (char *)buf2;
+		if (state->aligned) {
+			char	*tmp = (char *)state->buf2;
 
 			tmp += 2048 - 128;
-			buf2 = (TYPE *)tmp;
+			state->buf2 = (TYPE *)tmp;
 		}
 	}
-		
-	bzero((void*)buf, nbytes);
-	if (streq(av[2], "rd")) {
-		BENCHO(rd(buf, lastone), rd(buf, 0), 0);
-	} else if (streq(av[2], "wr")) {
-		BENCHO(wr(buf, lastone), wr(buf, 0), 0);
-	} else if (streq(av[2], "rdwr")) {
-		BENCHO(rdwr(buf, lastone), rdwr(buf, 0), 0);
-	} else if (streq(av[2], "cp")) {
-		BENCHO(cp(buf, buf2, lastone), cp(buf, buf2, 0), 0);
-	} else if (streq(av[2], "frd")) {
-		BENCHO(frd(buf, lastone), frd(buf, 0), 0);
-	} else if (streq(av[2], "fwr")) {
-		BENCHO(fwr(buf, lastone), fwr(buf, 0), 0);
-	} else if (streq(av[2], "fcp")) {
-		BENCHO(fcp(buf, buf2, lastone), fcp(buf, buf2, 0), 0);
-	} else if (streq(av[2], "bzero")) {
-		BENCHO(bzero((void*)buf, nbytes), bzero((void*)buf, 1), 0);
-	} else if (streq(av[2], "bcopy")) {
-		/* XXX - if gcc inlines this the numbers could be off */
-		/* But they are off in a good way - the bcopy will appear
-		 * to cost around 0...
-		 */
-		BENCHO(bcopy((void*)buf, (void*)buf2, nbytes), bcopy((void*)buf, (void*)buf2, 1), 0);
-	} else {
-		goto usage;
+	state->isOverheadLoop = 1;
+}
+
+void init_loop(void *cookie)
+{
+	state_t *state = (state_t *) cookie;
+	init_overhead(state);
+	state->isOverheadLoop = 0;
+}
+
+void cleanup(void *cookie)
+{
+	state_t *state = (state_t *) cookie;
+	free(state->buf);
+	if (state->need_buf2 == 1) {
+		free(state->buf2);
 	}
-	bandwidth(nbytes, get_n(), 0);
-	return(0);
 }
 
 void
-rd(register TYPE *p, register TYPE *lastone)
+rd(uint64 iterations, void *cookie)
 {	
+	state_t *state = (state_t *) cookie;
+	register TYPE *lastone = state->lastone;
 	register int sum = 0;
 
-	while (p <= lastone) {
+	if (state->isOverheadLoop == 1)
+		lastone = state->buf - 1;
+
+	while (iterations-- > 0) {
+	    register TYPE *p = state->buf;
+	    while (p <= lastone) {
 		sum += 
 #define	DOIT(i)	p[i]+
 		DOIT(0) DOIT(4) DOIT(8) DOIT(12) DOIT(16) DOIT(20) DOIT(24)
@@ -124,15 +214,23 @@ rd(register TYPE *p, register TYPE *lastone)
 		DOIT(104) DOIT(108) DOIT(112) DOIT(116) DOIT(120) 
 		p[124];
 		p +=  128;
+	    }
 	}
 	use_int(sum);
 }
 #undef	DOIT
 
 void
-wr(register TYPE *p, register TYPE *lastone)
+wr(uint64 iterations, void *cookie)
 {	
-	while (p <= lastone) {
+	state_t *state = (state_t *) cookie;
+	register TYPE *lastone = state->lastone;
+	if (state->isOverheadLoop == 1)
+		lastone = state->buf - 1;
+
+	while (iterations-- > 0) {
+	    register TYPE *p = state->buf;
+	    while (p <= lastone) {
 #define	DOIT(i)	p[i] = 1;
 		DOIT(0) DOIT(4) DOIT(8) DOIT(12) DOIT(16) DOIT(20) DOIT(24)
 		DOIT(28) DOIT(32) DOIT(36) DOIT(40) DOIT(44) DOIT(48) DOIT(52)
@@ -140,16 +238,24 @@ wr(register TYPE *p, register TYPE *lastone)
 		DOIT(80) DOIT(84) DOIT(88) DOIT(92) DOIT(96) DOIT(100)
 		DOIT(104) DOIT(108) DOIT(112) DOIT(116) DOIT(120) DOIT(124);
 		p +=  128;
+	    }
 	}
 }
 #undef	DOIT
 
 void
-rdwr(register TYPE *p, register TYPE *lastone)
+rdwr(uint64 iterations, void *cookie)
 {	
+	state_t *state = (state_t *) cookie;
+	register TYPE *lastone = state->lastone;
 	register int sum = 0;
 
-	while (p <= lastone) {
+	if (state->isOverheadLoop == 1)
+		lastone = state->buf - 1;
+
+	while (iterations-- > 0) {
+	    register TYPE *p = state->buf;
+	    while (p <= lastone) {
 #define	DOIT(i)	sum += p[i]; p[i] = 1;
 		DOIT(0) DOIT(4) DOIT(8) DOIT(12) DOIT(16) DOIT(20) DOIT(24)
 		DOIT(28) DOIT(32) DOIT(36) DOIT(40) DOIT(44) DOIT(48) DOIT(52)
@@ -157,15 +263,25 @@ rdwr(register TYPE *p, register TYPE *lastone)
 		DOIT(80) DOIT(84) DOIT(88) DOIT(92) DOIT(96) DOIT(100)
 		DOIT(104) DOIT(108) DOIT(112) DOIT(116) DOIT(120) DOIT(124);
 		p +=  128;
+	    }
 	}
 	use_int(sum);
 }
 #undef	DOIT
 
 void
-cp(register TYPE *p, register TYPE *dst, register TYPE *lastone)
+cp(uint64 iterations, void *cookie)
 {	
-	while (p <= lastone) {
+	state_t *state = (state_t *) cookie;
+	register TYPE *lastone = state->lastone;
+
+	if (state->isOverheadLoop == 1)
+		lastone = state->buf - 1;
+
+	while (iterations-- > 0) {
+	    register TYPE *p = state->buf;
+	    register TYPE *dst = state->buf2;
+	    while (p <= lastone) {
 #define	DOIT(i)	dst[i] = p[i];
 		DOIT(0) DOIT(4) DOIT(8) DOIT(12) DOIT(16) DOIT(20) DOIT(24)
 		DOIT(28) DOIT(32) DOIT(36) DOIT(40) DOIT(44) DOIT(48) DOIT(52)
@@ -174,14 +290,22 @@ cp(register TYPE *p, register TYPE *dst, register TYPE *lastone)
 		DOIT(104) DOIT(108) DOIT(112) DOIT(116) DOIT(120) DOIT(124);
 		p += 128;
 		dst += 128;
+	    }
 	}
 }
 #undef	DOIT
 
 void
-fwr(register TYPE *p, register TYPE *lastone)
+fwr(uint64 iterations, void *cookie)
 {	
-	while (p <= lastone) {
+	state_t *state = (state_t *) cookie;
+	register TYPE *lastone = state->lastone;
+	if (state->isOverheadLoop == 1)
+		lastone = state->buf - 1;
+
+	while (iterations-- > 0) {
+	    register TYPE *p = state->buf;
+	    while (p <= lastone) {
 #define	DOIT(i)	p[i]=
 		DOIT(0) DOIT(1) DOIT(2) DOIT(3) DOIT(4) DOIT(5) DOIT(6)
 		DOIT(7) DOIT(8) DOIT(9) DOIT(10) DOIT(11) DOIT(12)
@@ -206,16 +330,23 @@ fwr(register TYPE *p, register TYPE *lastone)
 		DOIT(118) DOIT(119) DOIT(120) DOIT(121) DOIT(122)
 		DOIT(123) DOIT(124) DOIT(125) DOIT(126) DOIT(127) 1;
 		p += 128;
+	    }
 	}
 }
 #undef	DOIT
 
 void
-frd(register TYPE *p, register TYPE *lastone)
+frd(uint64 iterations, void *cookie)
 {	
+	state_t *state = (state_t *) cookie;
 	register int sum = 0;
+	register TYPE *lastone = state->lastone;
+	if (state->isOverheadLoop == 1)
+		lastone = state->buf - 1;
 
-	while (p <= lastone) {
+	while (iterations-- > 0) {
+	    register TYPE *p = state->buf;
+	    while (p <= lastone) {
 		sum +=
 #define	DOIT(i)	p[i]+
 		DOIT(0) DOIT(1) DOIT(2) DOIT(3) DOIT(4) DOIT(5) DOIT(6)
@@ -241,15 +372,24 @@ frd(register TYPE *p, register TYPE *lastone)
 		DOIT(118) DOIT(119) DOIT(120) DOIT(121) DOIT(122)
 		DOIT(123) DOIT(124) DOIT(125) DOIT(126) p[127];
 		p += 128;
+	    }
 	}
 	use_int(sum);
 }
 #undef	DOIT
 
 void
-fcp(register TYPE *p, register TYPE *dst, register TYPE *lastone)
+fcp(uint64 iterations, void *cookie)
 {	
-	while (p <= lastone) {
+	state_t *state = (state_t *) cookie;
+	register TYPE *lastone = state->lastone;
+	if (state->isOverheadLoop == 1)
+		lastone = state->buf - 1;
+
+	while (iterations-- > 0) {
+	    register TYPE *p = state->buf;
+	    register TYPE *dst = state->buf2;
+	    while (p <= lastone) {
 #define	DOIT(i)	dst[i]=p[i];
 		DOIT(0) DOIT(1) DOIT(2) DOIT(3) DOIT(4) DOIT(5) DOIT(6)
 		DOIT(7) DOIT(8) DOIT(9) DOIT(10) DOIT(11) DOIT(12)
@@ -275,5 +415,34 @@ fcp(register TYPE *p, register TYPE *dst, register TYPE *lastone)
 		DOIT(123) DOIT(124) DOIT(125) DOIT(126) DOIT(127)
 		p += 128;
 		dst += 128;
+	    }
 	}
 }
+
+void
+loop_bzero(uint64 iterations, void *cookie)
+{	
+	state_t *state = (state_t *) cookie;
+	register TYPE *p = state->buf;
+	register TYPE *dst = state->buf2;
+	register int  nbytes = state->nbytes;
+	if (state->isOverheadLoop == 1)
+		nbytes = 1;
+	while (iterations-- > 0) {
+		bzero(p, nbytes);
+	}
+}
+void
+loop_bcopy(uint64 iterations, void *cookie)
+{	
+	state_t *state = (state_t *) cookie;
+	register TYPE *p = state->buf;
+	register TYPE *dst = state->buf2;
+	register int  nbytes = state->nbytes;
+	if (state->isOverheadLoop == 1)
+		nbytes = 1;
+	while (iterations-- > 0) {
+		bcopy(p,dst,nbytes);
+	}
+}
+

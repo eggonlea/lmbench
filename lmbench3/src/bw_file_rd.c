@@ -1,7 +1,7 @@
 /*
  * bw_file_rd.c - time reading & summing of a file
  *
- * Usage: bw_file_rd size file
+ * Usage: bw_file_rd [-P <parallelism] size file
  *
  * The intent is that the file is in memory.
  * Disk benchmarking is done with lmdd.
@@ -16,7 +16,7 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-#define	CHK(x)		if ((int)(x) == -1) { perror("x"); exit(1); }
+#define	CHK(x)		if ((int)(x) == -1) { perror(#x); exit(1); }
 #ifndef	MIN
 #define	MIN(a, b)	((a) < (b) ? (a) : (b))
 #endif
@@ -29,12 +29,15 @@ TYPE	*lastone;	/* I/O ends here + MINSZ */
 int	xfersize;	/* do it in units of this */
 int	count;		/* bytes to move (can't be modified) */
 
-void
-doit(int fd)
+typedef struct _state {
+	char filename[256];
+	int fd;
+} state_t;
+
+void doit(int fd)
 {
 	int	sum = 0, size;
 	register TYPE *p, *end;
-
 
 	size = count;
 	end = lastone;
@@ -70,35 +73,74 @@ doit(int fd)
 	use_int(sum);
 }
 
-void
-time_with_open(char *file)
+void init_open(void * cookie)
 {
-	int	fd = open(file, 0);
+	state_t	*state = (state_t *) cookie;
+	int	ofd;
 
-	doit(fd);
-	close(fd);
+	CHK(ofd = open(state->filename, O_RDONLY));
+	state->fd = ofd;
 }
 
-void
-time_io_only(int fd)
+void cleanup_io(void * cookie)
 {
-	lseek(fd, 0, 0);
-	doit(fd);
+	state_t *state = (state_t *) cookie;
+	close(state->fd);
 }
 
-int
-main(ac, av)
-	char  **av;
+void time_with_open(uint64 iterations, void * cookie)
 {
+	state_t	*state = (state_t *) cookie;
+	char	*filename = state->filename;
 	int	fd;
 
-	if (ac != 4) {
-		fprintf(stderr,
-		    "Usage: %s size open2close|io_only file, min size=%uk\n",
-		    av[0], XFERSIZE>>10);
-		exit(1);
+	while (iterations-- > 0) {
+	  fd= open(filename, O_RDONLY);
+	  doit(fd);
+	  close(fd);
 	}
-	count = bytes(av[1]);
+}
+
+void time_io_only(uint64 iterations,void * cookie)
+{
+	state_t *state = (state_t *) cookie;
+	int fd = state->fd;
+
+	while (iterations-- > 0) {
+	  lseek(fd, 0, 0);
+	  doit(fd);
+	}
+}
+
+int main(int ac, char **av)
+{
+	int	fd;
+	state_t state;
+	int	parallel = 1;
+	int	c;
+	char	usage[132];
+	
+	sprintf(usage,"[-P <parallelism>] <size> open2close|io_only <filename>"
+		"\nmin size=%d\n",(int) (XFERSIZE>>10)) ;
+
+	while (( c = getopt(ac, av, "P:")) != EOF) {
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
+	}
+
+	if (optind + 3 != ac) { /* should have three arguments left */
+		lmbench_usage(ac, av, usage);
+	}
+
+	strcpy(state.filename,av[optind+2]);
+	count = bytes(av[optind]);
 	if (count < MINSZ) {
 		exit(1);	/* I want this to be quiet */
 	}
@@ -110,13 +152,12 @@ main(ac, av)
 	buf = (TYPE *)valloc(XFERSIZE);
 	lastone = (TYPE*)((char*)buf + xfersize - MINSZ);
 	bzero((void*)buf, XFERSIZE);
-	if (!strcmp("open2close", av[2])) {
-		BENCH(time_with_open(av[3]), 0);
-	} else {
-		CHK(fd = open(av[3], 0));
-		BENCH(time_io_only(fd), 0);
-		close(fd);
-	}
-	bandwidth(count, get_n(), 0);
+
+	if (!strcmp("open2close", av[optind+1])) {
+	  benchmp(NULL,time_with_open,NULL,0,parallel,&state);
+	} else if (!strcmp("io_only", av[optind+1])) {
+	  benchmp(init_open,time_io_only,cleanup_io,0,parallel,&state);
+	} else lmbench_usage(ac, av, usage);
+	bandwidth(count, get_n() * parallel, 0);
 	return (0);
 }
