@@ -212,6 +212,7 @@ void benchmp(support_f initialize,
 				      parallel,
 				      cookie
 				);
+			exit(0);
 		default:
 			pids[i] = pid;
 			break;
@@ -328,6 +329,116 @@ double measure(bench_f benchmark, uint64 iterations, void *cookie)
 	return result;
 }
 
+typedef enum { warmup, timing_interval, cooldown } benchmp_state;
+
+typedef struct {
+	benchmp_state	state;
+	support_f	initialize;
+	bench_f		benchmark;
+	support_f	cleanup;
+	int		response;
+	int		start_signal;
+	int		exit_signal;
+	int		enough;
+        uint64		iterations;
+	int		parallel;
+	void*		cookie;
+	int		iterations_batch;
+	int		need_warmup;
+	long		i;
+	result_t	r;
+} benchmp_child_state;
+
+static benchmp_child_state _benchmp_child_state;
+
+void*
+benchmp_getstate()
+{
+	return (void*)&_benchmp_child_state;
+}
+
+uint64
+benchmp_interval(void* _state)
+{
+	uint64		iterations;
+	double		result;
+	fd_set		fds;
+	struct timeval	timeout;
+	benchmp_child_state* state = (benchmp_child_state*)_state;
+
+	result = stop(0,0);
+	save_n(state->iterations);
+	result -= t_overhead() + get_n() * l_overhead();
+	settime(result >= 0. ? (uint64)result : 0.);
+
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 0;
+	FD_ZERO(&fds);
+	iterations = state->iterations;
+
+	switch (state->state) {
+	case warmup:
+		iterations = state->iterations_batch;
+		if (state->need_warmup) {
+			state->need_warmup = 0;
+			/* send 'ready' */
+			write(state->response, &state->i, sizeof(int));
+		}
+		FD_SET(state->start_signal, &fds);
+		select(state->start_signal+1, &fds, NULL,
+		       NULL, &timeout);
+		if (FD_ISSET(state->start_signal, &fds)) {
+			state->state = timing_interval;
+		}
+		break;
+	case timing_interval:
+		if (state->parallel > 1 || result > 0.95 * state->enough) {
+			if (gettime() > 0)
+				insertsort(gettime(), get_n(), &state->r);
+			state->i++;
+			/* we completed all the experiments, return results */
+			if (state->i >= TRIES) {
+				state->state = cooldown;
+			}
+		}
+		if (state->parallel == 1 
+		    && (result < 0.99 * state->enough || result > 1.2 * state->enough)) {
+			if (result > 150.) {
+				double tmp = iterations / result;
+				tmp *= 1.1 * state->enough;
+				iterations = (uint64)(tmp + 1);
+			} else {
+				if (iterations > (uint64)1<<40) {
+					result = 0.;
+					state->state = cooldown;
+				}
+				iterations <<= 3;
+			}
+			state->iterations = iterations;
+		}
+		if (state->state == cooldown) {
+			/* send results and 'done' */
+			write(state->response, (void*)&state->r, sizeof(result_t));
+		} else {
+			break;
+		}
+	case cooldown:
+		iterations = state->iterations_batch;
+		FD_SET(state->exit_signal, &fds);
+		select(state->exit_signal+1, &fds, NULL, NULL, &timeout);
+		if (FD_ISSET(state->exit_signal, &fds)) {
+			/* exit */
+			close(state->response);
+			close(state->start_signal);
+			/* close(exit_signal); */
+			if (state->cleanup)
+				(*state->cleanup)(state->cookie);
+			exit(0);
+		}
+	};
+	start(0);
+	return iterations;
+}
 
 void 
 benchmp_child(support_f initialize, 
@@ -345,11 +456,27 @@ benchmp_child(support_f initialize,
 	uint64		iterations_batch = (parallel > 1) ? get_n() : 1;
 	double		result = 0.;
 	double		usecs;
-	long		i;
+	long		i = 0;
 	result_t 	r;
 	int		need_warmup;
 	fd_set		fds;
 	struct timeval	timeout;
+
+	_benchmp_child_state.state = warmup;
+	_benchmp_child_state.initialize = initialize;
+	_benchmp_child_state.benchmark = benchmark;
+	_benchmp_child_state.cleanup = cleanup;
+	_benchmp_child_state.response = response;
+	_benchmp_child_state.start_signal = start_signal;
+	_benchmp_child_state.exit_signal = exit_signal;
+	_benchmp_child_state.enough = enough;
+	_benchmp_child_state.iterations = iterations;
+	_benchmp_child_state.iterations_batch = iterations_batch;
+	_benchmp_child_state.parallel = parallel;
+	_benchmp_child_state.cookie = cookie;
+	_benchmp_child_state.need_warmup = 1;
+	_benchmp_child_state.i = 0;
+	insertinit(&_benchmp_child_state.r);
 
 	need_warmup = 1;
 	timeout.tv_sec = 0;
@@ -385,7 +512,7 @@ benchmp_child(support_f initialize,
 			insertsort(gettime(), get_n(), &r);
 		}
 	} else {
-		bench(benchmark, iterations,enough, cookie);
+		bench(benchmark, iterations, enough, cookie);
 		get_results(&r);
 	}
 
@@ -443,7 +570,7 @@ benchmp_parent(	int response,
 
 	/* calculate iterations for 1sec runtime */
 	iterations = get_n();
-	if (enough < SHORT) {
+	if (enough < SHORT && parallel > 1) {
 		double tmp = (double)SHORT * (double)get_n();
 		tmp /= (double)gettime();
 		iterations = (uint64)tmp + 1;
@@ -1215,7 +1342,7 @@ time_N(long N)
 			insertsort(usecs, N, &r);
 	}
 	save_results(&r);
-	/*save_minimum();*/
+	save_minimum();
 	return gettime();
 }
 
@@ -1257,17 +1384,18 @@ test_time(int enough)
 {
 	int     i;
 	long	N;
-	uint64	usecs, expected, baseline;
+	uint64	usecs, expected, baseline, diff;
 
 	if ((N = find_N(enough)) <= 0)
 		return 0;
 
-	baseline = time_N(N);
+	baseline = gettime();
 
 	for (i = 0; i < sizeof(test_points) / sizeof(double); ++i) {
 		usecs = time_N((int)((double) N * test_points[i]));
 		expected = (uint64)((double)baseline * test_points[i]);
-		if (ABS(expected - usecs) / (double)expected > 0.0025)
+		diff = expected > usecs ? expected - usecs : usecs - expected;
+		if (diff / (double)expected > 0.0025)
 			return 0;
 	}
 	return 1;
