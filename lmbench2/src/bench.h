@@ -50,6 +50,7 @@ typedef unsigned char bool_t;
 #	define		debug(x)
 #endif
 #ifdef	NO_PORTMAPPER
+#define TCP_SELECT	-31233
 #define	TCP_XACT	-31234
 #define	TCP_CONTROL	-31235
 #define	TCP_DATA	-31236
@@ -57,6 +58,7 @@ typedef unsigned char bool_t;
 #define	UDP_XACT	-31238
 #define	UDP_DATA	-31239
 #else
+#define	TCP_SELECT	(u_long)404038	/* XXX - unregistered */
 #define	TCP_XACT	(u_long)404039	/* XXX - unregistered */
 #define	TCP_CONTROL	(u_long)404040	/* XXX - unregistered */
 #define	TCP_DATA	(u_long)404041	/* XXX - unregistered */
