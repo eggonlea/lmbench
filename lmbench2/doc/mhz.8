@@ -7,9 +7,41 @@ mhz \- calulate processor clock rate
 .I [-c]
 .SH DESCRIPTION
 .B mhz
-calculates the processor clock rate and megahertz.  It uses an
-unrolled, interlocked loop of adds or shifts.  So far, superscalarness
-has been defeated on the tested processors (SuperSPARC, RIOS, Alpha).
+calculates the processor clock rate in megahertz.
+Since it is written in portable ANSI/C, it cannot rely on 
+the operating system to report the clock speed.
+Nor can it measure the time of a single loop to determine 
+the clock rate since this would require that it assume
+the number of clock ticks per instruction, which is not
+constant across architectures.
+.P
+.B mhz
+measures the time to execute a variety of loops, which are
+carefully constructed to minimize the compiler and processor's
+ability to overlap instruction execution so that time total
+time per loop is an integral multiple of clock ticks.
+.B mhz
+then finds the greatest common divisor of the various
+time measurements to identify the clock rate.
+.P
+Of course, things aren't really that simple.  For one thing,
+the measured times are real numbers, not integers, so we must
+convert the real numbers to integers in order for the
+.I "greatest common divisor"
+to make sense.
+In reality, 
+.B mhz
+makes a series of assumptions that the smallest measured
+time is {1, 2, ...} clock ticks.  
+.B mhz
+then computes the number of clock ticks for each measured
+value, and the error between the predicted value and the
+measured value.
+.P
+.B mhz
+also has a variety of mechanisms for reducing the impact
+of measurement error on the reported results, since the
+algorithm is extremely sensitive to measurement error.
 .SH OUTPUT
 Output format is either just the clock rate as a float (-c) or more verbose
 .sp
@@ -17,22 +49,6 @@ Output format is either just the clock rate as a float (-c) or more verbose
 39.80 Mhz, 25 nanosec clock
 .ft
 .SH BUGS
-This program is highly compiler sensitive.  GCC seems to almost always do
-the right thing.  The right thing is this: the main loop is a series of
-dependent integer operations, such as \f(CWa++; a++; a++; ...\fP
-The variable is declared as a register integer and it is hoped that the
-compiler, \fBwithout optimization since optimizing would remove the whole
-loop\fP, will turn that directly into one instruction.
-.LP
-This is not always the case.  If you think that your mhz output is wrong,
-check the compiler output by compiling like so \f(CBcc -S mhz.c\fP and
-then examining mhz.s.  It should have a bunch of identical instructions
-at the bottom of the file.  All of the instructions should be
-adds or shifts of the same registers, over and over.
-If it is loading,
-adding, storing, then it failed to put the variable in a register.
-It probably put the variable on the stack.
-Try gcc if this happens.
 .SH ACKNOWLEDGEMENT
 Funding for the development of
 this tool was provided by Sun Microsystems Computer Corporation.
