@@ -456,6 +456,7 @@ if [ X$BENCHMARK_HARDWARE = XYES -o X$BENCHMARK_MEM = XYES ]; then
 	echo McCalpin\'s STREAM benchmark >> ${OUTPUT}
 	msleep 250
 	stream -M ${MB}M
+	stream -v 2 -M ${MB}M
 
 	date >> ${OUTPUT}
 	echo Calculating memory load latency >> ${OUTPUT}
