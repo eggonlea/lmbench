@@ -25,7 +25,8 @@ struct _state {
 
 int find_cache(int start, int line, 
 	       int maxlen, int warmup, int repetitions, double* time);
-double measure(int size, int line, int maxlen, int warmup, int repetitions);
+double measure(int size, int line, int maxlen, int warmup, 
+	       int repetitions, double* variation);
 void initialize(void* cookie);
 void benchmark(iter_t iterations, void* cookie);
 void cleanup(void* cookie);
@@ -36,7 +37,7 @@ void cleanup(void* cookie);
 #define	FIFTY	TEN TEN TEN TEN TEN
 #define	HUNDRED	FIFTY FIFTY
 
-#define THRESHOLD 1.75
+#define THRESHOLD 2.5
 
 /*
  * Assumptions:
@@ -53,7 +54,7 @@ main(int ac, char **av)
 	int	repetitions = TRIES;
 	int	print_cost = 0;
 	int	maxlen = 32 * 1024 * 1024;
-	double	l1_time, l2_time, mem_time;
+	double	l1_time, l2_time, mem_time, variation;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 
 	line = getpagesize() / 8;
@@ -88,11 +89,14 @@ main(int ac, char **av)
 	l1_cache = find_cache(512, line, maxlen, warmup, repetitions, &l1_time);
 
 	if (l1_cache < maxlen) {
-		l2_cache = find_cache(l1_cache, line, 
+		int	start;
+		for (start = 512; start < l1_cache; start<<=1)
+			;
+		l2_cache = find_cache(start, line, 
 				      maxlen, warmup, repetitions, &l2_time);
 	}
 
-	mem_time = measure(maxlen, line, maxlen, warmup, repetitions);
+	mem_time = measure(maxlen, line, maxlen, warmup, repetitions, &variation);
 
 	if (l1_cache < maxlen) {
 		fprintf(stderr, "L1 cache: %d bytes %.2f nanoseconds\n", 
@@ -116,6 +120,7 @@ find_cache(int start, int line,
 	int	i, len, maxsize, incr;
 	double	baseline = -1.;
 	double	current;
+	double	max_variation, variation;
 
 	/* get the baseline access time */
 	i = 2 * start;
@@ -123,7 +128,7 @@ find_cache(int start, int line,
 search:
 	for (; i <= maxlen; i<<=1) {
 		current = measure(i, line, (2*i) < maxlen ? (2*i) : maxlen, 
-				  warmup, repetitions);
+				  warmup, repetitions, &max_variation);
 
 		if (baseline < 0.)
 			baseline = current;
@@ -132,27 +137,31 @@ search:
 		if (current / baseline > THRESHOLD) {
 			break;
 		}
+		len = i;
 	}
 	if (i >= maxlen)
 		return i;
 
 	incr = i>>3;
 	maxsize = i;
-	i>>=1;
-	len = i;
+	i = (i>>1) + incr;
 
-	/**/
+	/*
 	fprintf(stderr, "find_cache: baseline=%.2f, current=%.2f, ratio=%.2f, i=%d\n", baseline, current, current/baseline, i);
 	/**/
 
 	for (i; i <= maxsize; i+=incr) {
 		current = measure(i, line, (2*i) < maxlen ? (2*i) : maxlen, 
-				  warmup, repetitions);
+				  warmup, repetitions, &variation);
 
 		/* we have crossed a cache boundary */
 		if (current / baseline > THRESHOLD)
 			break;
-		len = i;
+
+		if (variation > max_variation) {
+			len = i;
+			max_variation = variation;
+		}
 	}
 	if (len >= maxsize) {
 		i = len;
@@ -164,10 +173,11 @@ search:
 }
 
 double
-measure(int size, int line, int maxlen, int warmup, int repetitions)
+measure(int size, int line, int maxlen, int warmup, 
+	int repetitions, double* variation)
 {
 	int	i;
-	double	time;
+	double	time, median;
 	result_t *r, *r_save;
 	struct _state state;
 
@@ -199,18 +209,21 @@ measure(int size, int line, int maxlen, int warmup, int repetitions)
 	insertsort(gettime(), get_n(), r);
 
 	set_results(r);
-	save_minimum();
 
-	/* We want nanoseconds / load. */
+	median = (1000. * (double)gettime()) / (100. * (double)get_n());
+
+	save_minimum();
 	time = (1000. * (double)gettime()) / (100. * (double)get_n());
 
-	/**/
-	fprintf(stderr, "%.6f %.2f\n", state.len / (1000. * 1000.), time);
-	print_results();
-	/**/
+	/* Are the results stable, or do they vary? */
+	*variation = median / time;
 
 	set_results(r_save);
 	free(r);
+
+	/**/
+	fprintf(stderr, "%.6f %.2f %.2f\n", state.len / (1000. * 1000.), time, *variation);
+	/**/
 
 	return time;
 }
