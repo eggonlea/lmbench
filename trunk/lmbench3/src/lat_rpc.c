@@ -154,7 +154,7 @@ main(int ac, char **av)
 		state.protocol = proto[0];
 		benchmp(initialize, benchmark, NULL, MEDIUM, parallel, 
 			warmup, repetitions, &state);
-		sprintf(buf, "RPC/%s latency using %s", proto[0], server);
+		sprintf(buf, "RPC/%s latency using %s", proto[0], state.server);
 		micro(buf, get_n());
 	}
 
@@ -162,7 +162,7 @@ main(int ac, char **av)
 		state.protocol = proto[1];
 		benchmp(initialize, benchmark, NULL, MEDIUM, parallel, 
 			warmup, repetitions, &state);
-		sprintf(buf, "RPC/%s latency using %s", proto[1], server);
+		sprintf(buf, "RPC/%s latency using %s", proto[1], state.server);
 		micro(buf, get_n());
 	}
 		
@@ -268,7 +268,7 @@ xact_prog_1(rqstp, transp)
 		return;
 	}
 	bzero((char *)&argument, sizeof(argument));
-	if (!svc_getargs(transp, (void *)xdr_argument, (char*)&argument)) {
+	if (!svc_getargs(transp, (xdrproc_t)xdr_argument, (char*)&argument)) {
 		svcerr_decode(transp);
 		return;
 	}
@@ -276,7 +276,7 @@ xact_prog_1(rqstp, transp)
 	if (result != NULL && !svc_sendreply(transp, (xdrproc_t)xdr_result, result)) {
 		svcerr_systemerr(transp);
 	}
-	if (!svc_freeargs(transp, (void*)xdr_argument, (char*)&argument)) {
+	if (!svc_freeargs(transp, (xdrproc_t)xdr_argument, (char*)&argument)) {
 		fprintf(stderr, "unable to free arguments");
 		exit(1);
 	}
