@@ -26,35 +26,26 @@ int main(int ac, char **av)
 {
 	state_t state;
 	int	parallel = 1;
-	char 	c;
+	int 	c;
 	char	buf[256];
-	char	*usage = "-s\n OR [-P <parallelism>] server\n OR [-]serverhost\n";
+	char	*usage = "-s\n OR [-S] [-P <parallelism>] server\n";
 
-	if (ac == 2 && !strcmp(av[1], "-s")) { /* Server */
-		if (fork() == 0) {
-			server_main();
-		}
-		exit(0);
-	}
-       /*
-	* Client
-	*/
-
-	if (ac == 2) {
-		if (!strcmp(av[1],"-"))
-			lmbench_usage(ac, av, usage);
-		if (av[1][0] == '-') { /* shut down server */
-			int sock = tcp_connect(&av[1][1],
+	while (( c = getopt(ac, av, "sSP:")) != EOF) {
+		switch(c) {
+		case 's': /* Server */
+			if (fork() == 0) {
+				server_main();
+			}
+			exit(0);
+		case 'S': /* shutdown serverhost */
+		{
+			int sock = tcp_connect(av[optind],
 					       TCP_CONNECT,
 					       SOCKOPT_NONE);
 			write(sock, "0", 1);
 			close(sock);
 			exit(0);
 		}
-	}
-
-	while (( c = getopt(ac, av, "P:")) != EOF) {
-		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0)
@@ -69,13 +60,13 @@ int main(int ac, char **av)
 	if (optind + 1 != ac) {
 		lmbench_usage(ac, av, usage);
 	}
-	state.server = av[optind];
 
-	benchmp(NULL, doclient, NULL,
-		REAL_SHORT, parallel, &state);
+	state.server = av[optind];
+	benchmp(NULL, doclient, NULL, REAL_SHORT, parallel, &state);
 
 	sprintf(buf, "TCP/IP connection cost to %s", state.server);
 	micro(buf, get_n());
+	exit(0);
 }
 
 void doclient(uint64 iterations, void *cookie)
@@ -100,8 +91,7 @@ server_main()
 	sock = tcp_server(TCP_CONNECT, SOCKOPT_NONE);
 	for (;;) {
 		newsock = tcp_accept(sock, SOCKOPT_NONE);
-		read(newsock, &c, 1);
-		if (c == '0') {
+		if (read(newsock, &c, 1) > 0) {
 			tcp_done(TCP_CONNECT);
 			exit(0);
 		}
