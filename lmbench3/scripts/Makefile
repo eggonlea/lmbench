@@ -5,4 +5,4 @@ get:
 	get -s 
 
 clean:
-	clean
+	-bk clean
