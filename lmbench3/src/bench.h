@@ -208,7 +208,7 @@ void	print_results();
 	BENCH_INNER(loop_body, enough);  				\
 	__usecs = gettime();						\
 	__usecs -= t_overhead() + get_n() * l_overhead();		\
-	settime(__usecs >= 0. ? (uint64)__usecs : 0.);			\
+	settime(__usecs >= 0. ? (uint64)__usecs : 0);			\
 }
 	
 #define	BENCH_INNER(loop_body, enough) { 				\
