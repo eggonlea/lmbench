@@ -39,6 +39,9 @@ typedef unsigned char bool_t;
 #endif
 #include <rpc/types.h>
 
+#include 	<stdarg.h>
+void TRACE(char* format, ...);
+
 #ifndef HAVE_uint
 typedef unsigned int uint;
 #endif
@@ -215,12 +218,15 @@ void	get_results(result_t *r);
 	u_long		__n;						\
 	double		__result = 0.;					\
 									\
+	TRACE("BENCH_INNER(%s, %s): enter: __iterations=%lu\n", #loop_body, #enough, (unsigned long)__iterations); \
 	while(__result < 0.95 * __enough) {				\
+		TRACE("BENCH_INNER(%s, %s): start: __iterations=%lu\n", #loop_body, #enough, (unsigned long)__iterations); \
 		start(0);						\
 		for (__n = __iterations; __n > 0; __n--) {		\
 			loop_body;					\
 		}							\
 		__result = stop(0,0);					\
+		TRACE("BENCH_INNER(%s, %s): stop: __result=%f, __result / __enough = %f\n", #loop_body, #enough, __result, __result / (double)__enough); \
 		if (__result < 0.99 * __enough 				\
 		    || __result > 1.2 * __enough) {			\
 			if (__result > 150.) {				\
