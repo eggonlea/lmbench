@@ -281,7 +281,7 @@ collect_data(int start, int line, int maxlen,
 	}
 	search(0, samples - 1, repetitions, &state, p);
 
-	/*
+	/**/
 	fprintf(stderr, "%10.10s %8.8s %8.8s %8.8s %8.8s %5.5s %5.5s\n", 
 		"mem size", "latency", "variation", "ratio", "slope", 
 		"line", "mline");
@@ -343,7 +343,7 @@ collect_sample(int repetitions, struct mem_state* state,
 	int	modified, swapped, iters;
 	int	*pages, *pageset;
 	static int	available_index = 0;
-	double	baseline, t, tt, var, nodiff_chunk_baseline;
+	double	baseline, t, tt, low, var, new_baseline, nodiff_chunk_baseline;
 
 	p->latency = measure(p->len, repetitions, &p->variation, state);
 	baseline = p->latency;
@@ -394,6 +394,9 @@ collect_sample(int repetitions, struct mem_state* state,
 
 				if (tt >= 0.995 * baseline) continue;
 
+				low = tt;
+				new_baseline = baseline;
+
 				/* page is no good, find a substitute! */
 				for (k = available_index; k < nsparepages && k - available_index < 2 * npages; ++k) {
 					pages[i + j] = pageset[nsparepages - k - 1];
@@ -402,20 +405,27 @@ collect_sample(int repetitions, struct mem_state* state,
 					/*
 					fprintf(stderr, 
 						"\t\tk = %d\tpage = %d\ttt = %G\tbase = %G\n", 
-						k, pageset[k], tt, baseline);
+						k, pageset[k], tt, new_baseline);
 					/**/
-					if (tt < 0.995 * baseline) {
-						/* pageset[k] is OK */
+
+					/* this is the minimum so far */
+					if (tt < new_baseline) {
 						p->latency = tt;
-						baseline = tt;
-						nodiff_chunk_baseline = tt;
+						new_baseline = tt;
 						p->variation = var;
 						pageset[nsparepages - k - 1] = page;
+						page = pages[i + j];
 						++swapped;
 						++modified;
-						break;
 					}
+
+					/* pageset[k] is OK */
+					if (tt < 0.995 * baseline
+					    && low >= 0.995 * tt)
+						break;
 				}
+				baseline = new_baseline;
+				nodiff_chunk_baseline = new_baseline;
 				available_index = (k < nsparepages) ? k : 0;
 				if (k == nsparepages) 
 					pages[i + j] = page;
