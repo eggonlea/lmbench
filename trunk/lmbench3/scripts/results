@@ -29,15 +29,9 @@ export SYNC_MAX
 
 if [ X$MAIL = Xyes ]
 then	echo Mailing results
-	if [ $SYNC_MAX -gt 1 ]
-	then	(echo ---- $INFO ---; cat $INFO; 
-		for i in ../${RESULTS}_*
-		do	echo ---- $i ----; cat $i
-		done) | mail lmbench2@bitmover.com 
-	else	(echo ---- $INFO ---
-		cat $INFO 
-		echo ---- $RESULTS ---
-		cat ../$RESULTS) | mail lmbench2@bitmover.com 
-	fi
+	(echo ---- $INFO ---
+	cat $INFO 
+	echo ---- $RESULTS ---
+	cat ../$RESULTS) | mail lmbench3@bitmover.com 
 fi
 exit 0
