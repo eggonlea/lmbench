@@ -34,6 +34,7 @@ typedef unsigned char bool_t;
 #include        <sys/socket.h>
 #include        <sys/un.h>
 #include        <sys/resource.h>
+#define PORTMAP
 #include	<rpc/rpc.h>
 #endif
 #define	NO_PORTMAPPER	/* needs to be up here, lib_*.h look at it */
