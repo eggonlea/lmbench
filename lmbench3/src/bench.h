@@ -173,9 +173,11 @@ void	print_results();
 	if (enough < LONGER) {loop_body;} /* warm the cache */		\
 	for (__i = 0; __i < __N; ++__i) {				\
 		BENCH1(overhead_body, enough);				\
-		insertsort(gettime(), get_n(), &__overhead);		\
+		if (gettime() > 0)					\
+			insertsort(gettime(), get_n(), &__overhead);	\
 		BENCH1(loop_body, enough);				\
-		insertsort(gettime(), get_n(), &__r);			\
+		if (gettime() > 0)					\
+			insertsort(gettime(), get_n(), &__r);		\
 	}								\
 	for (__i = 0; __i < __r.N; ++__i) {				\
 		__oh = __overhead.v[__i].u / (double)__overhead.v[__i].n; \
@@ -195,7 +197,8 @@ void	print_results();
 	if (enough < LONGER) {loop_body;} /* warm the cache */		\
 	for (__i = 0; __i < __N; ++__i) {				\
 		BENCH1(loop_body, enough);				\
-		insertsort(gettime(), get_n(), &__r);			\
+		if (gettime() > 0)					\
+			insertsort(gettime(), get_n(), &__r);		\
 	}								\
 	*(get_results()) = __r;						\
 }
