@@ -61,55 +61,6 @@ echo "OK, it looks like your cache line is $LINE_SIZE bytes."
 echo ""
 
 ############################################################################
-# Hardware benchmarks?
-############################################################################
-echo $L
-cat<<EOF;
-
-lmbench can benchmark various aspects of hardware performance, such
-as memory latency and available parallelism in the memory load path.
-
-If you are using lmbench to assess operating system performance, or
-to evaluate operating system modifications, then you probably don't
-need to run the hardware benchmarks each time.
-
-If you are planning on sending in these results, please include the
-hardware benchmarks.
-
-EOF
-
-echo $ECHON "HARDWARE [default yes] $ECHOC"
-read fast
-case "$fast" in
-    [nN]*)  BENCHMARK_HARDWARE=NO;;
-    *)      BENCHMARK_HARDWARE=YES;;
-esac
-
-############################################################################
-# OS benchmarks?
-############################################################################
-echo $L
-cat<<EOF;
-
-lmbench can benchmark various aspects of operating system performance, 
-such as pipe bandwidth or select() latency.
-
-If you are using lmbench to assess hardware performance, then you 
-probably don't need to run the operating system benchmarks.
-
-If you are planning on sending in these results, please include the
-operating system benchmarks.
-
-EOF
-
-echo $ECHON "OS [default yes] $ECHOC"
-read fast
-case "$fast" in
-    [nN]*)  BENCHMARK_OS=NO;;
-    *)      BENCHMARK_OS=YES;;
-esac
-
-############################################################################
 # Multiple copies
 ############################################################################
 echo $L
@@ -521,9 +472,7 @@ EOF
 VERSION=`../scripts/version`
 
 C=../bin/$OS/`../scripts/config`
-echo BENCHMARK_HARDWARE=\"$BENCHMARK_HARDWARE\" > $C
-echo BENCHMARK_OS=\"$BENCHMARK_OS\" >> $C
-echo DISKS=\"$DISKS\" >> $C
+echo DISKS=\"$DISKS\" > $C
 echo DISK_DESC=\"$DISK_DESC\" >> $C
 echo ENOUGH=$ENOUGH >> $C
 echo FASTMEM=\"$FASTMEM\" >> $C
