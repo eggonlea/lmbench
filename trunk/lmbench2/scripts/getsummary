@@ -434,7 +434,7 @@ Memory latencies in nanoseconds - smaller is better
     (WARNING - may not be correct, check graphs)
 ---------------------------------------------------
 Host                 OS   Mhz  L1 \$   L2 \$    Main mem    Guesses
---------- -------------   ---  ----   ----    --------    -------
+--------- -------------  ---- ----- ------    --------    -------
 EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
@@ -446,7 +446,7 @@ for ($i = 0; $i <= $#uname; $i++) {
 		    "-", "-", "-",
 		    "Bad mhz?";
 	} else {
-		printf "%6.0f %6.0f %11.0f",
+		printf "%6.2f %6.2f %11.1f",
 		    $lat_l1[$i], $lat_l2[$i], 
 		    $lat_mem[$i];
 		print $msg if ($msg =~ /L/);
