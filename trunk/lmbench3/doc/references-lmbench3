@@ -35,6 +35,16 @@
 %P 214-224
 %o http://www.eecs.harvard.edu/~vino/perf/hbench/sigmetrics/hbench.html
 
+%z Article
+%A Cristina Hristea
+%A Danial Lenoski
+%A John Keen
+%T Measuring memory hierarchy performance of cache-coherent multiprocessors using microbenchmarks
+%B Proceedings of Supercomputing '97
+%D November 1997
+%C San Jose, CA
+%o http://www.supercomp.org/sc97/proceedings/TECH/HRISTEA/
+
 %z Thesis
 %K Prestor01
 %A Uros Prestor
@@ -222,7 +232,7 @@
 
 %z Book
 %K Toshiba94
-%A Toshiba
+%Q Toshiba
 %T DRAM Components and Modules
 %I Toshiba America Electronic Components, Inc.
 %P A59-A77,C37-C42
@@ -236,10 +246,11 @@
 %D December 1995
 
 %z Article
-%K McCalpin2002
+%K McCalpin02
 %A John D. McCalpin
 %T The STREAM2 home page
 %o http://www.cs.virginia.edu/stream/stream2/
+%D 2002
 
 %z Article
 %K FSF89
@@ -306,7 +317,16 @@
 %D June 1998
 
 %z Article
-%k Seltzer99
+%K Mogul99
+%A Jeffrey C. Mogul
+%T Brittle metrics in operating systems research
+%B Proceedings 7th IEEE Workshop on Hot Topics in Operating Systems (HotOS-VII)
+%C Rio Rico, AZ
+%P 90--95
+%D March 1999
+
+%z Article
+%K Seltzer99
 %A Margo Seltzer
 %A David Krinsky
 %A Keith Smith
@@ -315,6 +335,16 @@
 %B Proceedings of the 1999 Workshop on Hot Topics in Operating Systems
 %C Rico, AZ
 %D 1999
+
+%z Article
+%K Smith97
+%A Keith A. Smith
+%A Margo L. Seltzer
+%T File system aging --- Increasing the relevance of file system benchmarks
+%B Proceedings of the 1997 SIGMETRICS Conference
+%D June 1997
+%C Seattle, WA
+%P 203-213
 
 %z Article
 %K Tullsen96
@@ -342,6 +372,17 @@
 %P 54-58
 %O http://www.cs.washington.edu/research/smt/papers/hpca.ps
 
+%z Report
+%K Whaley97
+%A R. Clint Whaley
+%A Jack Dongarra
+%T Automatically tuned linear algebra software
+%I Department of Computer Science, University of Tennessee
+%C Knoxville, TN
+%R UT-CS-97-366
+%D 1997
+%o http://math-atlas.sourceforge.net/
+
 %z Article
 %K SPEChpc96
 %Q Standard Performance Evaluation Corporation
@@ -367,3 +408,4 @@
 %A Ian Glendinning
 %T GENESIS distributed memory benchmark suite
 %O http://wotug.ukc.ac.uk/parallel/performance/benchmarks/genesis
+%D 1994
