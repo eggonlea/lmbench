@@ -53,13 +53,15 @@ typedef struct _state {
 	TYPE	*lastone;
 } state_t;
 
+void	adjusted_bandwidth(uint64 t, uint64 b, uint64 iter, double ovrhd);
+
 int main(int ac, char **av)
 {
 	int	parallel = 1;
 	int	nbytes;
 	state_t	state;
 	char	c;
-	char	*usage = "size what [conflict]\nwhat: rd wr rdwr cp fwr frd fcp bzero bcopy\n";
+	char	*usage = "[-P <parallelism>] <size> what [conflict]\nwhat: rd wr rdwr cp fwr frd fcp bzero bcopy\n";
 
 	while (( c = getopt(ac, av, "P:")) != EOF) {
 		switch(c) {
@@ -136,14 +138,15 @@ int main(int ac, char **av)
 		/* But they are off in a good way - the bcopy will appear
 		 * to cost around 0...
 		 */
-		benchmp(init_overhead, loop_bcopy, cleanup, 0, parallel, &state);
+		benchmp(init_overhead, loop_bcopy, cleanup,0,parallel, &state);
 		state.overhead = gettime();
 		state.overhead /= get_n();
 		benchmp(init_loop, loop_bcopy, cleanup, 0, parallel, &state);
 	} else {
 		lmbench_usage(ac, av, usage);
 	}
-	bandwidth(nbytes, get_n() * parallel, 0);
+	adjusted_bandwidth(gettime(), nbytes,
+			   get_n() * parallel, state.overhead);
 	return(0);
 }
 
@@ -446,3 +449,30 @@ loop_bcopy(uint64 iterations, void *cookie)
 	}
 }
 
+/*
+ * Almost like bandwidth() in lib_timing.c, but we need to adjust
+ * bandwidth based upon loop overhead.
+ */
+void adjusted_bandwidth(uint64 time, uint64 bytes, uint64 iter, double overhd)
+{
+#define MB	(1000 * 1000.0)
+	extern FILE *ftiming;
+	double secs = time / 1000000.0;
+	double mb;
+	
+	secs /= iter;
+        mb = bytes / MB;
+	secs = secs - ( overhd / 1000000.0 );
+
+        if (!ftiming) ftiming = stderr;
+	if (mb < 1) {
+		(void) fprintf(ftiming, "%.6f ", mb);
+	} else {
+		(void) fprintf(ftiming, "%.2f ", mb);
+	}
+	if (mb / secs < 1) {
+		(void) fprintf(ftiming, "%.6f\n", mb/secs);
+	} else {
+		(void) fprintf(ftiming, "%.2f\n", mb/secs);
+	}
+}
