@@ -80,6 +80,8 @@ initialize(void *cookie)
 	switch (state->pid = fork()) {
 	    case 0:
 		signal(SIGTERM, exit);
+		close(state->p1[1]);
+		close(state->p2[0]);
 		writer(state->p2[1], state->p1[0]);
 		return;
 
@@ -88,6 +90,8 @@ initialize(void *cookie)
 		return;
 
 	    default:
+		close(state->p1[0]);
+		close(state->p2[1]);
 		break;
 	}
 
