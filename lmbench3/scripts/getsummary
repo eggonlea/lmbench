@@ -8,6 +8,10 @@
 eval 'exec perl -Ssw $0 "$@"'
 	if 0;
 
+# Use these constants to same typo-induced bugs later!
+$M = 1000000.;
+$K = 1000.;
+
 $n = 0;
 foreach $file (@ARGV) {
 	open(FD, $file) || die "$0: can't open $file";
@@ -793,10 +797,10 @@ EOF
 			next; 
 		}
 	        printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-		$c0k = $fs_create_0k[$i] <= 0 ? -1 : 100000 / $fs_create_0k[$i];
-		$c10k = $fs_create_10k[$i] <= 0 ? -1 : 100000 / $fs_create_10k[$i];
-		$d0k = $fs_delete_0k[$i] <= 0 ? -1 : 100000 / $fs_delete_0k[$i];
-		$d10k = $fs_delete_10k[$i] <= 0 ? -1 : 100000 / $fs_delete_10k[$i];
+		$c0k = $fs_create_0k[$i] <= 0 ? -1 : $M / $fs_create_0k[$i];
+		$c10k = $fs_create_10k[$i] <= 0 ? -1 : $M / $fs_create_10k[$i];
+		$d0k = $fs_delete_0k[$i] <= 0 ? -1 : $M / $fs_delete_0k[$i];
+		$d10k = $fs_delete_10k[$i] <= 0 ? -1 : $M / $fs_delete_10k[$i];
 		printf "%6.6s %6.6s %6.6s %6.6s %8.8s %6.6s %7.7s\n",
 			&num($c0k, 6),
 			&num($d0k, 6),
@@ -804,7 +808,7 @@ EOF
 			&num($d10k, 6),
 			&num($lat_mappings[$i], 8),
 			&num($lat_protfault[$i], 6),
-			&num($lat_pagefault[$i]/1000, 7);
+			&num($lat_pagefault[$i]/$K, 7);
 	}
 }
 
@@ -925,19 +929,19 @@ sub num
 		}
 		return ($str);
 	}
-	if ($val >= 10000000) {
+	if ($val >= 10 * $M) {
 		$fmt = sprintf("%%%d.0fM", $len - 1);
-		$str = sprintf($fmt, $val / 1000000.);
-	} elsif ($val >= 1000000) {
+		$str = sprintf($fmt, $val / $M);
+	} elsif ($val >= $M) {
 		$fmt = sprintf("%%%d.%dfM", $len - 1, $len - 3);
-		$str = sprintf($fmt, $val / 1000000.);
-	} elsif ($val >= 10000) {
+		$str = sprintf($fmt, $val / $M);
+	} elsif ($val >= 10 * $K) {
 		if ($len <= 4) {
 			$fmt = sprintf("%%%d.0fK", $len - 1);
 		} else {
 			$fmt = sprintf("%%%d.%dfK", $len - 1, $len - 4);
 		}
-		$str = sprintf($fmt, $val / 1000.);
+		$str = sprintf($fmt, $val / $K);
 	} elsif ($val >= 10) {
 		if ($len <= 5) {
 			$fmt = sprintf("%%%d.0f", $len);
