@@ -4,8 +4,20 @@
 lat_mem_rd \- memory read latency benchmark
 .SH SYNOPSIS
 .B lat_mem_rd 
-.I size_in_megabytes
-.I stride [stride stride...]
+[
+.I "-P <parallelism>"
+]
+[
+.I "-W <warmups>"
+]
+[
+.I "-N <repetitions>"
+]
+.I "size_in_megabytes"
+.I "stride"
+[
+.I "stride stride..."
+]
 .SH DESCRIPTION
 .B lat_mem_rd
 measures memory read latency for varying memory sizes and strides.  The
@@ -21,7 +33,7 @@ Only data accesses are measured; the instruction cache is not measured.
 .LP
 The benchmark runs as two nested loops.  The outer loop is the stride size.
 The inner loop is the array size.  For each array size, the benchmark
-creates a ring of pointers that point forward one stride.  Traversing the
+creates a ring of pointers that point backward one stride.  Traversing the
 array is done by
 .sp
 .ft CB
@@ -29,14 +41,22 @@ array is done by
 .ft
 .sp
 in a for loop (the over head of the for loop is not significant; the loop is 
-an unrolled loop 1000 loads long).  The loop stops after doing a million loads.
+an unrolled loop 100 loads long).  
 .LP
 The size of the array varies from 512 bytes to (typically) eight megabytes.
 For the small sizes, the cache will have an effect, and the loads will be
 much faster.  This becomes much more apparent when the data is plotted.
+.LP
+Since this benchmark uses fixed-stride offsets in the pointer chain,
+it may be vulnerable to smart, stride-sensitive cache prefetching
+policies.  Older machines were typically able to prefetch for
+sequential access patterns, and some were able to prefetch for strided
+forward access patterns, but only a few could prefetch for backward
+strided patterns.  These capabilities are becoming more widespread
+in newer processors.
 .SH OUTPUT
 Output format is intended as input to \fBxgraph\fP or some similar program
-(I use a perl script that produces pic input).
+(we use a perl script that produces pic input).
 There is a set of data produced for each stride.  The data set title
 is the stride size and the data points are the array size in megabytes 
 (floating point value) and the load latency over all points in that array.
@@ -70,4 +90,8 @@ is giving you a clock rate that you believe.
 Funding for the development of
 this tool was provided by Sun Microsystems Computer Corporation.
 .SH "SEE ALSO"
-lmbench(8).
+lmbench(8), tlb(8), cache(8), line(8).
+.SH "AUTHOR"
+Carl Staelin and Larry McVoy
+.PP
+Comments, suggestions, and bug reports are always welcome.

@@ -4,6 +4,15 @@
 lat_pagefault \- measure the cost of pagefaulting pages from a file
 .SH SYNOPSIS
 .B lat_pagefault
+[
+.I "-P <parallelism>"
+]
+[
+.I "-W <warmups>"
+]
+[
+.I "-N <repetitions>"
+]
 .I file
 [
 .I file....
@@ -31,3 +40,7 @@ Funding for the development of
 this tool was provided by Sun Microsystems Computer Corporation.
 .SH "SEE ALSO"
 lmbench(8).
+.SH "AUTHOR"
+Carl Staelin and Larry McVoy
+.PP
+Comments, suggestions, and bug reports are always welcome.

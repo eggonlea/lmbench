@@ -6,11 +6,9 @@
 .\"   Copyright (C) 1998  Carl Staelin and Larry McVoy
 .\"   E-mail: staelin@hpl.hp.com
 .\"
-.TH "lmbench reporting" 3 "$Date:" "(c)1998 Larry McVoy" "LMBENCH"
-
+.TH "lmbench reporting" 3 "$Date:" "(c)1998-2000 Larry McVoy and Carl Staelin" "LMBENCH"
 .SH "NAME"
 milli, micro, nano, mb, kb \- the lmbench reporting subsystem
-
 .SH "SYNOPSIS"
 .B "#include ``lmbench.h''"
 .LP
@@ -23,7 +21,6 @@ milli, micro, nano, mb, kb \- the lmbench reporting subsystem
 .B "void	mb(uint64 bytes)"
 .LP
 .B "void	kb(uint64 bytes)"
-
 .SH "DESCRIPTION"
 Creating benchmarks using the 
 .I lmbench 
@@ -38,13 +35,10 @@ and bandwidth, and
 .IR lmbench 's 
 timing harness makes it easy to measure and report results for both.  
 The measurement interface, 
-.B BENCH 
-and 
-.BR BENCH1 , 
-are identical, but the reporting functions are different.
+.B benchmp
+is the same, but the reporting functions are different.
 Latency is usually important for frequently executed operations, and
 bandwidth is usually important when moving large chunks of data.
-
 .TP
 .B "void	milli(char *s, uint64 n)"
 print out the time per operation in milli-seconds.  
@@ -53,31 +47,24 @@ is the number of operations during the timing interval, which is passed
 as a parameter because each
 .I loop_body
 can contain several operations.
-
 .TP
 .B "void	micro(char *s, uint64 n)"
 print the time per opertaion in micro-seconds.
-
 .TP
 .B "void	nano(char *s, uint64 n)"
 print the time per operation in nano-seconds.
-
 .TP
 .B "void	mb(uint64 bytes)"
 print the bandwidth in megabytes per second.
-
 .TP
 .B "void	kb(uint64 bytes)"
 print the bandwidth in kilobytes per second.
-
 .SH "FUTURES"
 Development of 
 .I lmbench 
 is continuing.  
-
 .SH "SEE ALSO"
-lmbench(3), timing(3), results(3)
-
+lmbench(8), lmbench(3), timing(3), results(3)
 .SH "AUTHOR"
 Carl Staelin and Larry McVoy
 .PP

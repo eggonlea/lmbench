@@ -4,6 +4,16 @@
 lat_proc \- process creation tests
 .SH SYNOPSIS
 .B lat_proc
+[
+.I "-P <parallelism>"
+]
+[
+.I "-W <warmups>"
+]
+[
+.I "-N <repetitions>"
+]
+.I "procedure|fork|exec|shell"
 .SH DESCRIPTION
 .B lat_proc
 creates processes in three different forms, each more expensive than the last.
@@ -42,3 +52,7 @@ Funding for the development of
 this tool was provided by Sun Microsystems Computer Corporation.
 .SH "SEE ALSO"
 lmbench(8).
+.SH "AUTHOR"
+Carl Staelin and Larry McVoy
+.PP
+Comments, suggestions, and bug reports are always welcome.

@@ -4,23 +4,42 @@
 bw_tcp \- time data movement through TCP/IP sockets
 .SH SYNOPSIS
 .B bw_tcp
+[
+.I "-m <message size>"
+]
+[
+.I "-M <total bytes>"
+]
+[
+.I "-P <parallelism>"
+]
+[
+.I "-W <warmups>"
+]
+[
+.I "-N <repetitions>"
+]
+.I "server"
+.br or
+.B bw_tcp
 .I -s
-.sp .5
+.br or
 .B bw_tcp
-.I hostname [transfersize]
-.sp .5
-.B bw_tcp
-.I -hostname
+.I "-S <server>"
 .SH DESCRIPTION
 .B bw_tcp
 is a client/server program that moves data over a TCP/IP socket.  Nothing is
-done with the data on either side; the data is moved in 64KB chunks.
+done with the data on either side; 
+.I "total bytes"
+of data is moved in 
+.I "message size"
+chunks.
 .LP
 .B bw_tcp
 has three forms of usage: as a server (-s), as a client (bw_tcp localhost), and
-as a shutdown (bw_tcp -localhost).
+as a shutdown (bw_tcp -S localhost).
 .LP
-The default amount of data is 3MB.  The client form may specify a different
+The default amount of data is 10MB.  The client form may specify a different
 amount of data.  Specifications may end with ``k'' or ``m'' to mean
 kilobytes (* 1024) or megabytes (* 1024 * 1024).
 .SH OUTPUT
@@ -46,3 +65,7 @@ this tool was provided by Sun Microsystems Computer Corporation
 and Silicon Graphics, Inc.
 .SH SEE ALSO
 lmbench(8).
+.SH "AUTHOR"
+Carl Staelin and Larry McVoy
+.PP
+Comments, suggestions, and bug reports are always welcome.
