@@ -141,8 +141,163 @@ fi
 MB=`expr $AVAILMEM / 2`
 
 ############################################################################
+# Benchmarking subsets
+############################################################################
+echo $L
+cat<<EOF;
+
+lmbench measures a wide variety of system performance, and the full suite
+of benchmarks can take a long time on some platforms.  Consequently, we
+offer the capability to run only predefined subsets of benchmarks, one
+for operating system specific benchmarks and one for hardware specific
+benchmarks.  We also offer the option of running only selected benchmarks
+which is useful during operating system development.
+
+Please remember that if you intend to publish the results you either need
+to do a full run or one of the predefined OS or hardware subsets.
+
+EOF
+
+echo $ECHON "SUBSET (ALL|HARWARE|OS|DEVELOPMENT) [default all] $ECHOC"
+read subset
+BENCHMARK_HARDWARE=NO
+BENCHMARK_OS=NO
+BENCHMARK_DEVELOPMENT=NO
+case "$subset" in
+	[hH]*)	BENCHMARK_HARDWARE=YES;;
+	[oO]*)	BENCHMARK_OS=YES;;
+	[dD]*)	BENCHMARK_DEVELOPMENT=YES;;
+	*)	BENCHMARK_HARDWARE=YES;
+		BENCHMARK_OS=YES;;
+esac
+
+if [ X$BENCHMARK_DEVELOPMENT = XYES ]; then
+	echo $L
+
+	echo $ECHON "SYSCALL [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_SYSCALL=NO;;
+	    *)		BENCHMARK_SYSCALL=YES;;
+	esac
+
+	echo $ECHON "SELECT [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_SELECT=NO;;
+	    *) 		BENCHMARK_SELECT=YES;;
+	esac
+
+	echo $ECHON "PROCESS CREATION [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_PROC=NO;;
+	    *)		BENCHMARK_PROC=YES;;
+	esac
+
+	echo $ECHON "PAGEFAULT [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_PAGEFAULT=NO;;
+	    *)		BENCHMARK_PAGEFAULT=YES;;
+	esac
+
+	echo $ECHON "FILE [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_FILE=NO;;
+	    *)		BENCHMARK_FILE=YES;;
+	esac
+
+	echo $ECHON "MMAP [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_MMAP=NO;;
+	    *)		BENCHMARK_MMAP=YES;;
+	esac
+
+	echo $ECHON "CONTEXT SWITCH [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_CTX=NO;;
+	    *)		BENCHMARK_CTX=YES;;
+	esac
+
+	echo $ECHON "PIPE [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_PIPE=NO;;
+	    *)		BENCHMARK_PIPE=YES;;
+	esac
+
+	echo $ECHON "UNIX socket [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_UNIX=NO;;
+	    *)		BENCHMARK_UNIX=YES;;
+	esac
+
+	echo $ECHON "UDP [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_UDP=NO;;
+	    *)		BENCHMARK_UDP=YES;;
+	esac
+
+	echo $ECHON "TCP [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_TCP=NO;;
+	    *)		BENCHMARK_TCP=YES;;
+	esac
+
+	echo $ECHON "TCP CONNECT [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_CONNECT=NO;;
+	    *)		BENCHMARK_CONNECT=YES;;
+	esac
+
+	echo $ECHON "RPC [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_RPC=NO;;
+	    *)		BENCHMARK_RPC=YES;;
+	esac
+
+	echo $ECHON "HTTP [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_HTTP=NO;;
+	    *)		BENCHMARK_HTTP=YES;;
+	esac
+
+	echo $ECHON "BCOPY [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_BCOPY=NO;;
+	    *)		BENCHMARK_BCOPY=YES;;
+	esac
+
+	echo $ECHON "MEMORY HIERARCHY [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_MEM=NO;;
+	    *)		BENCHMARK_MEM=YES;;
+	esac
+
+	echo $ECHON "CPU OPERATIONS [default yes] $ECHOC"
+	read bench
+	case "$bench" in
+	    [nN]*)	BENCHMARK_OPS=NO;;
+	    *)		BENCHMARK_OPS=YES;;
+	esac
+fi
+
+############################################################################
 # Memory strides for lat_mem
 ############################################################################
+FASTMEM=NO
 if [ "$BENCHMARK_HARDWARE" = "YES" ]; then
 	echo $L
 	cat<<EOF;
@@ -514,5 +669,22 @@ echo TIMING_O=$TIMING_O >> $C
 echo RSH=$RSH >> $C
 echo RCP=$RCP >> $C
 echo VERSION=$VERSION >> $C
+echo BENCHMARK_SYSCALL=$BENCHMARK_SYSCALL >> $C
+echo BENCHMARK_SELECT=$BENCHMARK_SELECT >> $C
+echo BENCHMARK_PROC=$BENCHMARK_PROC >> $C
+echo BENCHMARK_CTX=$BENCHMARK_CTX >> $C
+echo BENCHMARK_PAGEFAULT=$BENCHMARK_PAGEFAULT >> $C
+echo BENCHMARK_FILE=$BENCHMARK_FILE >> $C
+echo BENCHMARK_MMAP=$BENCHMARK_MMAP >> $C
+echo BENCHMARK_PIPE=$BENCHMARK_PIPE >> $C
+echo BENCHMARK_UNIX=$BENCHMARK_UNIX >> $C
+echo BENCHMARK_UDP=$BENCHMARK_UDP >> $C
+echo BENCHMARK_TCP=$BENCHMARK_TCP >> $C
+echo BENCHMARK_CONNECT=$BENCHMARK_CONNECT >> $C
+echo BENCHMARK_RPC=$BENCHMARK_RPC >> $C
+echo BENCHMARK_HTTP=$BENCHMARK_HTTP >> $C
+echo BENCHMARK_BCOPY=$BENCHMARK_BCOPY >> $C
+echo BENCHMARK_MEM=$BENCHMARK_MEM >> $C
+echo BENCHMARK_OPS=$BENCHMARK_OPS >> $C
 
 exit 0
