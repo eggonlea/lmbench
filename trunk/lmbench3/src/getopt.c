@@ -21,8 +21,8 @@
  * Another special form is "d;".  This means the option must be right next
  * to the option letter and can not be blank.
  */
-#include "sccs.h"
-WHATSTR("@(#)getopt.c 1.9");
+#include "bench.h"
+char *id = "%@%";
 
 int	optopt;		/* option that is in error, if we return an error */
 int     optind;		/* next arg in argv we process */
