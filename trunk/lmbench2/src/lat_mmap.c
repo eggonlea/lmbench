@@ -28,7 +28,7 @@ char	*id = "$Id$\n";
  * mappings reported.
  */
 void
-mapit(int fd, int size, int random)
+mapit(int fd, size_t size, int random)
 {
 	char	*p, *where, *end;
 	char	c = size & 0xff;
@@ -60,7 +60,7 @@ int
 main(int ac, char **av)
 {
 	int	fd;
-	int	size;
+	size_t	size;
 	int	random = 0;
 	char	*prog = av[0];
 
