@@ -141,6 +141,7 @@ wr(register TYPE *p, register TYPE *lastone)
 		DOIT(104) DOIT(108) DOIT(112) DOIT(116) DOIT(120) DOIT(124);
 		p +=  128;
 	}
+	use_pointer((void*)p);
 }
 #undef	DOIT
 
@@ -175,6 +176,7 @@ cp(register TYPE *p, register TYPE *dst, register TYPE *lastone)
 		p += 128;
 		dst += 128;
 	}
+	use_pointer((void*)p);
 }
 #undef	DOIT
 
@@ -207,6 +209,7 @@ fwr(register TYPE *p, register TYPE *lastone)
 		DOIT(123) DOIT(124) DOIT(125) DOIT(126) DOIT(127) 1;
 		p += 128;
 	}
+	use_pointer((void*)p);
 }
 #undef	DOIT
 
@@ -276,4 +279,5 @@ fcp(register TYPE *p, register TYPE *dst, register TYPE *lastone)
 		p += 128;
 		dst += 128;
 	}
+	use_pointer((void*)p);
 }
