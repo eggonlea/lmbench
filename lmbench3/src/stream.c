@@ -28,14 +28,14 @@ void cleanup(iter_t iterations, void* cookie);
 /* These are from STREAM version 1 */
 void copy(iter_t iterations, void* cookie);
 void scale(iter_t iterations, void* cookie);
-void sum(iter_t iterations, void* cookie);
+void add(iter_t iterations, void* cookie);
 void triad(iter_t iterations, void* cookie);
 
 /* These are from STREAM version 2 */
 void fill(iter_t iterations, void* cookie);
 /* NOTE: copy is the same as in version 1 */
 void daxpy(iter_t iterations, void* cookie);
-void cumsum(iter_t iterations, void* cookie);
+void sum(iter_t iterations, void* cookie);
 
 
 /*
@@ -120,8 +120,8 @@ main(int ac, char **av)
 			0, parallel, warmup, repetitions, &state);
 		if (gettime() > 0) {
 			save_minimum();
-			nano("STREAM sum latency", state.len * get_n());
-			fprintf(stderr, "STREAM sum bandwidth: ");
+			nano("STREAM add latency", state.len * get_n());
+			fprintf(stderr, "STREAM add bandwidth: ");
 			mb(3 * datasize * get_n());
 		}
 
@@ -236,7 +236,7 @@ scale(iter_t iterations, void *cookie)
 }
 
 void
-sum(iter_t iterations, void *cookie)
+add(iter_t iterations, void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 
@@ -281,16 +281,16 @@ daxpy(iter_t iterations, void *cookie)
 }
 
 void
-cumsum(iter_t iterations, void *cookie)
+sum(iter_t iterations, void *cookie)
 {
-	register double	sum;
+	register double	s;
 	struct _state* state = (struct _state*)cookie;
 
-	sum = 0.0;
+	s = 0.0;
 	while (iterations-- > 0) {
-		BODY(sum += a[i];)
+		BODY(s += a[i];)
 	}
-	use_int((int)sum);
+	use_int((int)s);
 }
 
 void
