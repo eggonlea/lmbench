@@ -19,6 +19,7 @@ struct cache_results {
 	int	line;
 	double	latency;
 	double	variation;
+	double	parallelism;
 };
 
 
@@ -143,25 +144,28 @@ collect_data(int start, int line, int maxlen,
 
 	for (len = start, incr = start / 4; len <= maxlen; incr<<=1) {
 		for (i = 0; i < 4 && len <= maxlen; ++i, ++idx, len += incr) {
-			state.line = 2;
+			state.line = sizeof(char*);
 			state.len = len;
+			state.maxlen = len;
 
 			*pdata = (struct cache_results*)
 				realloc(*pdata, (idx+1) * sizeof(struct cache_results));
 			p = &((*pdata)[idx]);
 
-			p->latency = measure(len, line, 
-					     (2*len)<maxlen ? (2*len) : maxlen,
-					     warmup, repetitions, &p->variation);
-
 			p->len = len;
 			p->line = line_find(len, 
 					    warmup, repetitions, &state);
 
+			p->latency = measure(len, line, maxlen, warmup,
+					     repetitions, &p->variation);
+
+			p->parallelism = par_mem(len, 
+						 warmup, repetitions, &state);
+
 			/**/
-			fprintf(stderr, "%.6f\t%d\t%.5f\t%.5f\n", 
-				p->len / (1000. * 1000.), 
-				p->line, p->latency, p->variation);
+			fprintf(stderr, "%.6f\t%d\t%.5f\t%.5f\t%.5f\n", 
+				p->len / (1000. * 1000.), p->line, 
+				p->latency, p->variation, p->parallelism);
 			/**/
 		}
 	}
@@ -238,17 +242,21 @@ measure(int size, int line, int maxlen, int warmup,
 
 	state.width = 1;
 	state.len = size;
+	state.maxlen = size;
 	state.line = line;
 	state.pagesize = getpagesize();
 
 	r_save = get_results();
-	r = (result_t*)malloc(sizeof_result(repetitions + 1));
+	r = (result_t*)malloc(sizeof_result(repetitions));
 	insertinit(r);
 
-	benchmp(mem_initialize, mem_benchmark_0, mem_cleanup, 
-		0, 1, warmup, repetitions, &state);
-	save_minimum();
-	insertsort(gettime(), get_n(), r);
+	for (i = 0; i < repetitions; ++i) {
+		benchmp(mem_initialize, mem_benchmark_0, mem_cleanup, 
+			0, 1, warmup, TRIES, &state);
+		save_minimum();
+		insertsort(gettime(), get_n(), r);
+		state.maxlen = maxlen;
+	}
 
 	set_results(r);
 
