@@ -403,6 +403,12 @@ echo "Memory load parallelism" 1>&2
 loads -L $LINE_SIZE -M ${MB}M
 
 date > ${OUTPUT}
+echo Calculating cache parameters > ${OUTPUT}
+msleep 250
+echo "" 1>&2
+cache -L $LINE_SIZE -M ${MB}M
+
+date > ${OUTPUT}
 echo Calculating memory load latency > ${OUTPUT}
 msleep 250
 echo "" 1>&2
