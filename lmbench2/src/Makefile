@@ -140,10 +140,10 @@ dist: bk.ver
 	cd ..; \
 		SRCDIR=`pwd`; \
 		DIR=`basename $${SRCDIR}`; \
-		VERSION=`cat src/bk.ver`; \
+		VERSION=`cat src/bk.ver| awk '{print $$1;}' | sed -e 's/Version-//g'`; \
 		cd ..; \
-		bk clone $${DIR} /tmp/$${DIR}-$${VERSION}; \
-		cd /tmp/$${DIR}-$${VERSION}; \
+		bk clone $${DIR} /tmp/lmbench-$${VERSION}; \
+		cd /tmp/lmbench-$${VERSION}; \
 		bk sfiles | xargs touch; \
 		sleep 5; \
 		bk get -s; \
@@ -155,8 +155,8 @@ dist: bk.ver
 		make bk.ver; \
 		cd /tmp; \
 		tar czf $${SRCDIR}/../$${DIR}-$${VERSION}.tgz \
-			$${DIR}-$${VERSION}; \
-		rm -rf /tmp/$${DIR}-$${VERSION};
+			lmbench-$${VERSION}; \
+		rm -rf /tmp/lmbench-$${VERSION};
 
 get $(SRCS):
 	get -s $(SRCS)
