@@ -88,6 +88,16 @@ else
 fi
 rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
 
+# check for -lrt (solaris)
+echo "extern int nanosleep(); main() { nanosleep(); }" >${BASE}$$.c
+if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
+       true;
+else
+       ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c -lrt 1>${NULL} 2>${NULL} \
+               && LDLIBS="${LDLIBS} -lrt"
+fi
+rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
+
 # check for OSs that have S_IFFIFO instead of S_IFIFO
 echo "#include <sys/stat.h>" > ${BASE}$$.c
 echo "main() { return (S_IFIFO); }" >> ${BASE}$$.c
