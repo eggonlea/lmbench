@@ -324,9 +324,7 @@ if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_HARDWARE = XYES ]; then
 
 	echo "Memory bzero bandwidth" 1>&2
 	for i in $ALL; do bw_mem -P $SYNC_MAX $i bzero; done; echo "" 1>&2
-fi
 
-if [ X$BENCHMARK_HARDWARE = XYES ]; then
 	echo \"unrolled bcopy unaligned 1>&2
 	for i in $HALF; do bw_mem -P $SYNC_MAX $i fcp; done; echo "" 1>&2
 
