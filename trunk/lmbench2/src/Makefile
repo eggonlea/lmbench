@@ -140,7 +140,7 @@ dist: bk.ver
 	cd ..; \
 		SRCDIR=`pwd`; \
 		DIR=`basename $${SRCDIR}`; \
-		VERSION=`cat bk.ver`; \
+		VERSION=`cat src/bk.ver`; \
 		cd ..; \
 		bk clone $${DIR} /tmp/$${DIR}-$${VERSION}; \
 		cd /tmp/$${DIR}-$${VERSION}; \
