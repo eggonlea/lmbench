@@ -96,8 +96,8 @@ void
 do_integer_add(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register int a = pState->N;
-	register int b = pState->N;
+	register int a = pState->N + 57;
+	register int b = pState->N + 31;
 
 	while (iterations-- > 0) {
 		HUNDRED(a += b; b -= a;)
@@ -109,12 +109,13 @@ void
 do_integer_mul(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register int r = pState->N;
-	register int s = (pState->N + 1) ^ r;
+	register int r = pState->N + 37431;
+	register int s = pState->N + 4;
+	register int t = r * s * s * s * s * s * s * s * s * s * s - r;
 
 	while (iterations-- > 0) {
-		TEN(r *= r; r *= s;); r ^= s;
-		TEN(r *= r; r *= s;); r ^= s;
+		TEN(r *= s;); r -= t;
+		TEN(r *= s;); r -= t;
 	}
 	use_int(r);
 }
@@ -136,8 +137,8 @@ void
 do_integer_mod(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register int r = pState->N;
-	register int s = pState->N + iterations;
+	register int r = pState->N + iterations;
+	register int s = pState->N;
 
 	while (iterations-- > 0) {
 		HUNDRED(r %= s; r |= s;)
@@ -149,9 +150,9 @@ void
 do_int64_bitwise(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register int64 r = pState->N;
-	register int64 s = (int64)iterations;
-	register int64 i = (int64)iterations;
+	register int64 r = (int64)pState->N | (int64)pState->N<<32;
+	register int64 s = (int64)iterations | (int64)iterations<<32;
+	register int64 i = (int64)iterations<<34 - 1;
 
 	while (iterations-- > 0) {
 		HUNDRED(r ^= i; s ^= r; r |= s;)
@@ -164,8 +165,11 @@ void
 do_int64_add(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register int64 a = pState->N;
-	register int64 b = pState->N;
+	register int64 a = (int64)pState->N + 37420;
+	register int64 b = (int64)pState->N + 21698324;
+
+	a += (int64)(0xFE + pState->N)<<30;
+	b += (int64)(0xFFFE + pState->N)<<29;
 
 	while (iterations-- > 0) {
 		HUNDRED(a += b; b -= a;)
@@ -177,12 +181,16 @@ void
 do_int64_mul(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register int64 r = pState->N;
-	register int64 s = (pState->N + 1) ^ r;
+	register int64 r = (int64)pState->N + 37420;
+	register int64 s = (int64)pState->N + 4;
+	register int64 t;
+
+	r += (int64)(pState->N + 6)<<32;
+	t = r * s * s * s * s * s * s * s * s * s * s - r;
 
 	while (iterations-- > 0) {
-		TEN(r *= r; r *= s;); r ^= s;
-		TEN(r *= r; r *= s;); r ^= s;
+		TEN(r *= s;); r -= t;
+		TEN(r *= s;); r -= t;
 	}
 	use_int((int)r);
 }
@@ -191,8 +199,8 @@ void
 do_int64_div(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register int64 r = pState->N;
-	register int64 s = (r + 1) << 20;
+	register int64 r = (int64)pState->N + (int64)pState->N<<32;
+	register int64 s = (r + 1) << 13;
 
 	while (iterations-- > 0) {
 		HUNDRED(r = s / r;)
@@ -204,8 +212,8 @@ void
 do_int64_mod(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register int64 r = pState->N;
-	register int64 s = pState->N + iterations;
+	register int64 r = iterations + (int64)iterations<<32;
+	register int64 s = (int64)pState->N + (int64)pState->N<<56;
 
 	while (iterations-- > 0) {
 		HUNDRED(r %= s; r |= s;);
@@ -390,17 +398,17 @@ main(int ac, char **av)
 	benchmp(NULL, do_integer_bitwise, NULL, 
 		0, 1, warmup, repetitions, &state);
 	nano("integer bit", get_n() * 100 * 3);
-	iop_time = gettime();
-	iop_N = get_n() * 100 * 3;
 	
 	benchmp(NULL, do_integer_add, NULL, 
 		0, 1, warmup, repetitions, &state);
 	nano("integer add", get_n() * 100 * 2);
+	iop_time = gettime();
+	iop_N = get_n() * 100 * 2;
 	
 	benchmp(NULL, do_integer_mul, NULL, 
 		0, 1, warmup, repetitions, &state);
 	settime(gettime() - (get_n() * 2 * iop_time) / iop_N);
-	nano("integer mul", get_n() * 10 * 2 * 2);
+	nano("integer mul", get_n() * 10 * 2);
 	
 	benchmp(NULL, do_integer_div, NULL, 
 		0, 1, warmup, repetitions, &state);
@@ -424,7 +432,7 @@ main(int ac, char **av)
 	benchmp(NULL, do_int64_mul, NULL, 
 		0, 1, warmup, repetitions, &state);
 	settime(gettime() - (get_n() * 2 * iop_time) / iop_N);
-	nano("int64 mul", get_n() * 10 * 2 * 2);
+	nano("int64 mul", get_n() * 10 * 2);
 	
 	benchmp(NULL, do_int64_div, NULL, 
 		0, 1, warmup, repetitions, &state);
