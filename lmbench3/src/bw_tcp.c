@@ -237,4 +237,5 @@ void source(int data)
 		}
 		nbytes -= n;
 	}
+	free(buf);
 }
