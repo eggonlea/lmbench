@@ -24,7 +24,7 @@ foreach $file (@files) {
 	open(FD, $file) || next;
 	next unless defined($_ = <FD>);
 	close(FD);
-	next unless /^\[lmbench1.[01]/;
+	next unless /^\[lmbench3.[01]/;
 	print "$file ";
 }
 print "\n";
