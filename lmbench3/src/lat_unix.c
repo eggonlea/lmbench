@@ -26,9 +26,27 @@ void	cleanup(void* cookie);
 int
 main(int ac, char **av)
 {
+	int parallel = 1;
 	struct _state state;
+	int c;
+	char* usage = "[-P <parallelism>]\n";
 
-	benchmp(initialize, benchmark, cleanup, 0, 1, &state);
+	while (( c = getopt(ac, av, "P:")) != EOF) {
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
+	}
+	if (optind < ac) {
+		lmbench_usage(ac, av, usage);
+	}
+	benchmp(initialize, benchmark, cleanup, 0, parallel, &state);
+
 	micro("AF_UNIX sock stream latency", get_n());
 	return(0);
 }
