@@ -44,6 +44,8 @@ int_median(int *values, int size)
 {
 	qsort(values, size, sizeof(int), int_compare);
 
+	if (size == 0) return 0.;
+
 	if (size % 2) {
 	    return values[size/2];
 	}
@@ -59,6 +61,8 @@ uint64_median(uint64 *values, int size)
 {
 	qsort(values, size, sizeof(uint64), uint64_compare);
 
+	if (size == 0) return 0.;
+
 	if (size % 2) {
 	    return values[size/2];
 	}
@@ -73,6 +77,8 @@ double
 double_median(double *values, int size)
 {
 	qsort(values, size, sizeof(double), double_compare);
+
+	if (size == 0) return 0.;
 
 	if (size % 2) {
 	    return values[size/2];
