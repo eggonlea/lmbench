@@ -42,9 +42,6 @@ char	*id = "$Id: lmdd.c,v 1.23 1997/12/01 23:47:59 lm Exp $\n";
 #include	<unistd.h>
 #include	<sys/types.h>
 #include	<sys/wait.h>
-#ifdef	USE_BDS
-#include	"bds.h"
-#endif
 #include	<sys/time.h>
 #include	"bench.h"
 
