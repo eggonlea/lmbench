@@ -88,7 +88,7 @@ LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o 	\
 	$O/lib_mem.o $O/lib_stats.o $O/getopt.o
 
 lmbench: $(UTILS)
-	@env CFLAGS=-O ../scripts/build all
+	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
 
 results: lmbench
 	@../scripts/config-run
@@ -107,7 +107,7 @@ os: lmbench
 	@BENCHMARK_HARDWARE=NO  BENCHMARK_OS=YES ../scripts/results
 
 install: lmbench
-	@env CFLAGS=-O ../scripts/build install-target
+	@env CFLAGS=-O MAKE="$(MAKE)"  MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build install-target
 
 install-target:
 	if [ ! -d $(BASE) ]; then mkdir $(BASE); fi
@@ -130,10 +130,10 @@ install-target:
 all: $(EXES)
 
 Wall:
-	@env CFLAGS="-Wall -ansi" ../scripts/build all
+	@env CFLAGS="-Wall -ansi" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
 
 debug:
-	@env CFLAGS=-g ../scripts/build all
+	@env CFLAGS=-g MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
 
 bk.ver: ../SCCS/s.ChangeSet
 	-echo `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` > bk.ver
@@ -155,6 +155,7 @@ dist:
 	make bk.ver
 	cp -rp .. ../../lmbench-3dist
 	rm -rf ../../lmbench-3dist/bin/*
+	rm -rf ../../lmbench-3dist/results/[a-su-z]*
 
 get $(SRCS):
 	-get -s $(SRCS)
@@ -176,17 +177,25 @@ shar:
 depend: ../scripts/depend
 	../scripts/depend
 
-$O/lmbench.a: lib_mem.c lib_timing.c lib_tcp.c lib_udp.c lib_unix.c lib_stats.c getopt.c bench.h timing.h stats.h lib_mem.h lib_tcp.h lib_udp.h names.h
-	$(COMPILE) -c lib_timing.c -o $O/lib_timing.o
-	$(COMPILE) -c lib_mem.c -o $O/lib_mem.o
-	$(COMPILE) -c lib_tcp.c -o $O/lib_tcp.o
-	$(COMPILE) -c lib_udp.c -o $O/lib_udp.o
-	$(COMPILE) -c lib_unix.c -o $O/lib_unix.o
-	$(COMPILE) -c lib_stats.c -o $O/lib_stats.o
-	$(COMPILE) -c getopt.c -o $O/getopt.o
+$O/lmbench.a: $(LIBOBJS)
 	/bin/rm -f $O/lmbench.a
 	$(AR) $(ARCREATE) $O/lmbench.a $(LIBOBJS)
 	-ranlib $O/lmbench.a
+
+$O/lib_timing.o : lib_timing.c $(INCS)
+	$(COMPILE) -c lib_timing.c -o $O/lib_timing.o
+$O/lib_mem.o : lib_mem.c $(INCS)
+	$(COMPILE) -c lib_mem.c -o $O/lib_mem.o
+$O/lib_tcp.o : lib_tcp.c $(INCS)
+	$(COMPILE) -c lib_tcp.c -o $O/lib_tcp.o
+$O/lib_udp.o : lib_udp.c $(INCS)
+	$(COMPILE) -c lib_udp.c -o $O/lib_udp.o
+$O/lib_unix.o : lib_unix.c $(INCS)
+	$(COMPILE) -c lib_unix.c -o $O/lib_unix.o
+$O/lib_stats.o : lib_stats.c $(INCS)
+	$(COMPILE) -c lib_stats.c -o $O/lib_stats.o
+$O/getopt.o : getopt.c $(INCS)
+	$(COMPILE) -c getopt.c -o $O/getopt.o
 
 $(UTILS) :
 	-cd ../scripts; make get
