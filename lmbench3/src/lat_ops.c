@@ -304,7 +304,7 @@ do_float_bogomflops(iter_t iterations, void* cookie)
 
 	while (iterations-- > 0) {
 		for (i = 0; i < pState->M; ++i) {
-			x[i] = (1.0 + x[i]) * (1.5 - x[i]) / x[i];
+			x[i] = (1.0f + x[i]) * (1.5f - x[i]) / x[i];
 		}
 	}
 }
