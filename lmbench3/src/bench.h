@@ -120,12 +120,13 @@ typedef struct {
 	int	N;
 	value_t	v[TRIES];
 } result_t;
+int	sizeof_result(int N);
 void    insertinit(result_t *r);
 void    insertsort(uint64, uint64, result_t *);
 void	save_median();
 void	save_minimum();
-void	save_results(result_t *r);
-void	get_results(result_t *r);
+void	set_results(result_t *r);
+result_t* get_results();
 
 
 #define	BENCHO(loop_body, overhead_body, enough) { 			\
@@ -145,9 +146,12 @@ void	get_results(result_t *r);
 	}								\
 	for (__i = 0; __i < __r.N; ++__i) {				\
 		__oh = __overhead.v[__i].u / (double)__overhead.v[__i].n; \
-		__r.v[__i].u -= (uint64)((double)__r.v[__i].n * __oh);	\
+		if (__r.v[__i].u > (uint64)((double)__r.v[__i].n * __oh)) \
+			__r.v[__i].u -= (uint64)((double)__r.v[__i].n * __oh);	\
+		else							\
+			__r.v[__i].u = 0;				\
 	}								\
-	save_results(&__r);						\
+	*(get_results()) = __r;						\
 }
 
 #define	BENCH(loop_body, enough) { 					\
@@ -161,7 +165,7 @@ void	get_results(result_t *r);
 		if (gettime() > 0) 					\
 			insertsort(gettime(), get_n(), &__r);		\
 	}								\
-	save_results(&__r);						\
+	*(get_results()) = __r;						\
 }
 
 #define	BENCH1(loop_body, enough) { 					\
@@ -222,6 +226,8 @@ extern void benchmp(support_f initialize,
 		    support_f cleanup,
 		    int enough, 
 		    int parallel,
+		    int warmup,
+		    int repetitions,
 		    void* cookie
 	);
 
