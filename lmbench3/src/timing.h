@@ -39,7 +39,7 @@ void	use_int(int result);
 void	use_pointer(void *result);
 uint64	usecs_spent(void);
 void	touch(char *buf, int size);
-int*	permutation(int max);
+int*	permutation(int max, int scale);
 
 #if defined(hpux) || defined(__hpux)
 int	getpagesize();
