@@ -155,7 +155,9 @@ main(int ac, char *av[])
 	benchmp(initialize, reader, cleanup, MEDIUM, parallel, 
 		warmup, repetitions, &state);
 
-	fprintf(stderr, "Pipe bandwidth: ");
-	mb(get_n() * parallel * state.bytes);
+	if (gettime() > 0) {
+		fprintf(stderr, "Pipe bandwidth: ");
+		mb(get_n() * parallel * state.bytes);
+	}
 	return(0);
 }
