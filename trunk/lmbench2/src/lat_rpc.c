@@ -22,14 +22,16 @@ void	benchmark(char *server, char* protocol);
 char	*client_rpc_xact_1(char *argp, CLIENT *clnt);
 
 void
-doit(CLIENT *cl, char *server)
+doit(CLIENT *cl, char *server, char *protocol)
 {
 	char	c = 1;
 	char	*resp;
+	char	buf[1024];
 	
 	resp = client_rpc_xact_1(&c, cl);
 	if (!resp) {
-		clnt_perror(cl, server);
+		sprintf(buf, "%s/%s", server, protocol);
+		clnt_perror(cl, buf);
 		exit(1);
 	}
 	if (*resp != 123) {
@@ -39,7 +41,7 @@ doit(CLIENT *cl, char *server)
 }
 
 /* Default timeout can be changed using clnt_control() */
-static struct timeval TIMEOUT = { 0, 2500 };
+static struct timeval TIMEOUT = { 0, 25000 };
 
 char	*proto[] = { "tcp", "udp", 0 };
 
@@ -107,7 +109,7 @@ benchmark(char *server, char* protocol)
 			exit(1);
 		}
 	}
-	BENCH(doit(cl, server), MEDIUM);
+	BENCH(doit(cl, server, protocol), MEDIUM);
 	sprintf(buf, "RPC/%s latency using %s", protocol, server);
 	micro(buf, get_n());
 }
