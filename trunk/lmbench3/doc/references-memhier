@@ -238,3 +238,14 @@
 %T General Public License
 %D 1989
 %O Included with \*[lmbench]
+
+%z Article
+%K Min01
+%A Rui Min
+%A Yiming Hu
+%T Improving performance of large physically indexed caches by decoupling memory addresses from cache addresses
+%J IEEE Transactions on Computers
+%V 50
+%N 11
+%D November 2001
+%P 1191-1201
