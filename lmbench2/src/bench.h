@@ -29,6 +29,7 @@ typedef unsigned char bool_t;
 #include        <sys/stat.h>
 #ifndef WIN32
 #include        <sys/wait.h>
+#include	<time.h>
 #include        <sys/time.h>
 #include        <sys/socket.h>
 #include        <sys/un.h>
