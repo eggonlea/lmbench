@@ -58,7 +58,7 @@ int main(int ac, char **av)
 			repetitions = atoi(optarg);
 			break;
 		case 'n':
-			state.num = bytes(av[optind]);
+			state.num = bytes(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -177,7 +177,7 @@ initialize(void *cookie)
 	char	c;
 	state_t * state = (state_t *)cookie;
 
-	int	i, last = 0 /* lint */;
+	int	n, last = 0 /* lint */;
 	int	N = state->num, fid, fd;
 
 	fid = (*state->fid_f)(cookie);
@@ -187,14 +187,17 @@ initialize(void *cookie)
 	}
 	state->max = 0;
 	FD_ZERO(&(state->set));
-	for (fd = 0; fd < N; fd++) {
-		i = dup(fid);
-		if (i == -1) break;
-		if (i > state->max)
-			state->max = i;
-		FD_SET(i, &(state->set));
+	for (n = 0; n < N; n++) {
+		fd = dup(fid);
+		if (fd == -1) break;
+		if (fd > state->max)
+			state->max = fd;
+		FD_SET(fd, &(state->set));
 	}
+	state->max++;
 	close(fid);
+	if (n != N)
+		exit(1);
 }
 
 void
