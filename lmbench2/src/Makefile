@@ -127,7 +127,7 @@ dist:
 	@if [ "X`cd ..; bk sfiles -c`" != "X" ]; then echo "modified files!"; false; fi
 	@if [ "X`cd ..; bk pending`" != "X" ]; then echo "pending changes!"; false; fi
 	cd ..; for d in . doc results scripts src; do \
-		(cd $d; bk clean; bk get -s); \
+		(cd $$d; bk clean; bk get -s); \
 	done
 	rm -f bk.ver
 	make bk.ver
