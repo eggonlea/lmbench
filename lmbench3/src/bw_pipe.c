@@ -60,6 +60,7 @@ void initialize(void *cookie)
 		break;
 	}
 }
+
 void cleanup(void * cookie)
 {
 	struct _state* state = (struct _state*)cookie;
@@ -103,32 +104,32 @@ writer(int control[2], int pipes[2], char* buf)
 }
 
 int
-main(int argc, char *argv[])
+main(int ac, char *av[])
 {
-    struct _state state;
-    int parallel = 1;
-    int c;
-    char* usage = "[-P <parallelism>]\n";
+	struct _state state;
+	int parallel = 1;
+	int c;
+	char* usage = "[-P <parallelism>]\n";
 
-    state.bytes = XFER;
+	state.bytes = XFER;
 
-    while (( c = getopt(argc,argv,"P:")) != EOF) {
-	switch(c) {
-	case 'P':
-	    parallel = atoi(optarg);
-	    if (parallel <= 0) lmbench_usage(argc, argv, usage);
-	    break;
-	default:
-	    lmbench_usage(argc, argv, usage);
-	    break;
+	while (( c = getopt(ac, av, "P:")) != EOF) {
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
 	}
-    }
-    if (optind < argc) {
-	lmbench_usage(argc, argv, usage);
-    }
-    benchmp(initialize, reader, cleanup, MEDIUM, parallel, &state);
+	if (optind < ac) {
+		lmbench_usage(ac, av, usage);
+	}
+	benchmp(initialize, reader, cleanup, MEDIUM, parallel, &state);
 
-    fprintf(stderr, "Pipe bandwidth: ");
-    mb(get_n() * parallel * XFER);
-    return(0);
+	fprintf(stderr, "Pipe bandwidth: ");
+	mb(get_n() * parallel * XFER);
+	return(0);
 }
