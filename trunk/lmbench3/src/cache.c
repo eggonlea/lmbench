@@ -614,7 +614,7 @@ fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 		}
 	}
 
-	for (k = 0; j < chunk && k < npages; ++k) {
+	for (k = 0; j < chunk && k < 2 * npages; ++k) {
 		original = npages - chunk + j;
 		substitute = nsparepages - 1;
 		substitute -= (k + available_index) % (nsparepages - 1);
