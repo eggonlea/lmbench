@@ -3,10 +3,11 @@
  *
  * Three programs in one -
  *	server usage:	bw_tcp -s
- *	client usage:	bw_tcp hostname
+ *	client usage:	bw_tcp hostname [msgsize]
  *	shutdown:	bw_tcp -hostname
  *
- * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
+ * Copyright (c) 1994 Larry McVoy.  
+ * Copyright (c) 2002 Carl Staelin.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
  * (1) the benchmark is unmodified, and
  * (2) the version in the sccsid below is included in the report.
@@ -15,99 +16,80 @@
 char	*id = "$Id$\n";
 #include "bench.h"
 
-#define	MINMOVE	(10<<20)
-
 int	server_main(int ac, char **av);
 int	client_main(int ac, char **av);
 void	source(int data);
 
-char	*buf;
-
 void
-transfer(uint64 move, char *server)
+transfer(uint64 msgsize, int server, char *buf)
 {
-	int	data, c;
-	uint64	todo;
+	int	c;
 
-	todo = move;
-	data = tcp_connect(server, TCP_DATA, SOCKOPT_READ|SOCKOPT_WRITE|SOCKOPT_REUSE);
-	if (data < 0) {
-		perror("bw_tcp: transfer: could not open socket");
-		return;
+	while ((c = read(server, buf, msgsize)) > 0) {
+		msgsize -= c;
 	}
-	(void)sprintf(buf, "%llu", move);
-	if (write(data, buf, strlen(buf) + 1) != strlen(buf) + 1) {
-		perror("control write");
-		exit(1);
+	if (c < 0) {
+		perror("bw_tcp: transfer: read failed");
+		exit(4);
 	}
-	for (; (c = read(data, buf, XFERSIZE)) > 0 && todo > c; todo -= c)
-		;
-	(void)close(data);
 }
 
 /* ARGSUSED */
 int
 client_main(int ac, char **av)
 {
-	uint64	move;
-	char   *server;
+	int	server;
+	uint64	msgsize = XFERSIZE;
 	uint64	usecs;
+	char	t[512];
+	char*	buf;
+	char*	usage = "usage: %s -remotehost OR %s remotehost [msgsize]\n";
 
 	if (ac != 2 && ac != 3) {
-		(void)fprintf(stderr, "usage: %s remotehost [bytes]\n",
-		    av[0]);
+		(void)fprintf(stderr, usage, av[0], av[0]);
 		exit(0);
 	}
-	if (!buf) {
-		perror("valloc");
-		exit(1);
-	}
 	if (ac == 3) {
-		move = bytes(av[2]);
-	} else {
-		move = MINMOVE;
+		msgsize = bytes(av[2]);
 	}
 	/*
 	 * Disabler message to other side.
 	 */
 	if (av[1][0] == '-') {
-		int	data;
-
-		move = 0;
-		server = &av[1][1];
-		data = tcp_connect(server, TCP_DATA, SOCKOPT_REUSE);
-		write(data, "0", 1);
+		server = tcp_connect(&av[1][1], TCP_DATA, SOCKOPT_REUSE);
+		write(server, "0", 1);
 		exit(0);
-	} else {
-		server = av[1];
 	}
+
+	buf = valloc(msgsize);
+	touch(buf, msgsize);
+	if (!buf) {
+		perror("valloc");
+		exit(1);
+	}
+
+	server = tcp_connect(av[1], TCP_DATA, SOCKOPT_READ|SOCKOPT_REUSE);
+	if (server < 0) {
+		perror("bw_tcp: could not open socket to server");
+		exit(2);
+	}
+
+	(void)sprintf(t, "%llu", msgsize);
+	if (write(server, t, strlen(t) + 1) != strlen(t) + 1) {
+		perror("control write");
+		exit(3);
+	}
+
 	/*
-	 * Make one run take at least 5 seconds.
-	 * This minimizes the effect of connect & reopening TCP windows.
+	 * Send data over socket for at least 7 seconds.
+	 * This minimizes the effect of connect & opening TCP windows.
 	 */
-	start(0);
-	transfer(move, server);
-	usecs = stop(0,0);
-	save_n(1);
-	settime(usecs);
-	/*
-	fprintf(stderr, "initial bandwidth measurement: move=%llu, usecs=%llu: ", move, usecs);
-	mb(move);
-	/* XXX */
-	if (usecs >= LONGER) {	/* must be 10Mbit ether or sloooow box */
-		save_n(1);
-		goto out;
-	}
-	usecs = LONGER / usecs + 1;
-	move *= usecs * 1.05;
-	if (move < MINMOVE) move = MINMOVE;
-	if (move % XFERSIZE) move += XFERSIZE - (move % XFERSIZE);
-	BENCH(transfer(move, server), 0);
-	/*
-	fprintf(stderr, "move=%llu, n=%llu, usecs=%llu, XFERSIZE=%d\n", move, get_n(), gettime(), XFERSIZE);
-	/* XXX */
-out:	(void)fprintf(stderr, "Socket bandwidth using %s: ", server);
-	mb(move * get_n());
+	BENCH1(transfer(msgsize, server, buf), LONGER);
+
+	BENCH(transfer(msgsize, server, buf), 0);
+out:	(void)fprintf(stderr, "Socket bandwidth using %s: ", av[1]);
+	mb(msgsize * get_n());
+	close(server);
 	exit(0);
 	/*NOTREACHED*/
 }
@@ -154,50 +136,54 @@ void
 source(int data)
 {
 	int	n;
-	uint64	nbytes;
+	char	t[512];
+	char*	buf;
+	uint64	msgsize;
 
+	bzero((void*)t, 512);
+	if (read(data, t, 511) <= 0) {
+		perror("control nbytes");
+		exit(7);
+	}
+	sscanf(t, "%llu", &msgsize);
+
+	buf = valloc(msgsize);
+	touch(buf, msgsize);
 	if (!buf) {
 		perror("valloc");
 		exit(1);
 	}
-	bzero((void*)buf, XFERSIZE);
-	if (read(data, buf, XFERSIZE) <= 0) {
-		perror("control nbytes");
-		exit(7);
-	}
-	sscanf(buf, "%llu", &nbytes);
 
 	/*
 	 * A hack to allow turning off the absorb daemon.
 	 */
-     	if (nbytes == 0) {
+     	if (msgsize == 0) {
 		tcp_done(TCP_DATA);
 		kill(getppid(), SIGTERM);
 		exit(0);
 	}
 	/*
-	fprintf(stderr, "server: nbytes=%llu, buf=%s\n", nbytes, buf); fflush(stderr);
+	fprintf(stderr, "server: msgsize=%llu, t=%s\n", msgsize, t); fflush(stderr);
 	/* XXX */
-	for (; (n = write(data, buf, XFERSIZE)) > 0 && nbytes > n; nbytes-=n) {
+	while ((n = write(data, buf, msgsize)) > 0) {
 #ifdef	TOUCH
-		touch(buf, XFERSIZE);
+		touch(buf, msgsize);
 #endif
 		;
 	}
+	free(buf);
 }
 
 
 int
 main(int ac, char **av)
 {
-	if (ac != 2 && ac != 3) {
-		fprintf(stderr, "Usage: %s -s OR %s [-]serverhost\n",
-		    av[0], av[0]);
+	char*	usage = "Usage: %s -s OR %s -serverhost OR %s serverhost [msgsize]\n";
+	if (ac < 2 || 3 < ac) {
+		fprintf(stderr, usage, av[0], av[0], av[0]);
 		exit(1);
 	}
-	buf = valloc(XFERSIZE);
-	touch(buf, XFERSIZE);
-	if (!strcmp(av[1], "-s")) {
+	if (ac == 2 && !strcmp(av[1], "-s")) {
 		if (fork() == 0) {
 			server_main(ac, av);
 		}
