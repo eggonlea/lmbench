@@ -166,9 +166,12 @@ benchmp(benchmp_f initialize,
 	struct timeval	timeout;
 
 #ifdef _DEBUG
-	fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): entering\n", (unsigned int)initialize, (unsigned int)benchmark, (unsigned int)cleanup, enough, parallel, (unsigned int)cookie);
+	fprintf(stderr, "benchmp(%p, %p, %p, %d, %d, %d, %d, %p): entering\n", initialize, benchmark, cleanup, enough, parallel, warmup, repetitions, cookie);
 #endif
 	enough = get_enough(enough);
+#ifdef _DEBUG
+	fprintf(stderr, "\tenough=%d\n", enough);
+#endif
 
 	/* initialize results */
 	settime(0);
@@ -218,7 +221,7 @@ benchmp(benchmp_f initialize,
 		if (benchmp_sigterm_received)
 			goto error_exit;
 #ifdef _DEBUG
-		fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): creating child %d\n", (unsigned int)initialize, (unsigned int)benchmark, (unsigned int)cleanup, enough, parallel, (unsigned int)cookie, i);
+		fprintf(stderr, "benchmp(%p, %p, %p, %d, %d, %d, %d, %p): creating child %d\n", initialize, benchmark, cleanup, enough, parallel, warmup, repetitions, cookie, i);
 #endif
 		switch(pids[i] = fork()) {
 		case -1:
@@ -382,8 +385,8 @@ benchmp_parent(	int response,
 	/* let the children run for warmup microseconds */
 	if (warmup > 0) {
 		struct timeval delay;
-		delay.tv_sec = warmup / 100000;
-		delay.tv_usec = warmup % 100000;
+		delay.tv_sec = warmup / 1000000;
+		delay.tv_usec = warmup % 1000000;
 
 		select(0, NULL, NULL, NULL, &delay);
 	}
@@ -1189,6 +1192,9 @@ insertsort(uint64 u, uint64 n, result_t *r)
 
 	if (u == 0) return;
 
+#ifdef _DEBUG
+	fprintf(stderr, "\tinsertsort(%llu, %llu, %p)\n", u, n, r);
+#endif /* _DEBUG */
 	for (i = 0; i < r->N; ++i) {
 		if (u/(double)n > r->v[i].u/(double)r->v[i].n) {
 			for (j = r->N; j > i; --j) {
