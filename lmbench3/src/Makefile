@@ -46,7 +46,7 @@ COMPILE=$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
 INCS =	bench.h lib_mem.h lib_tcp.h lib_udp.h stats.h timing.h
 
 SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
-	bw_unix.c bw_shm.c	\
+	bw_unix.c \
 	cache.c clock.c disk.c enough.c flushdisk.c getopt.c hello.c	\
 	lat_connect.c lat_ctx.c	lat_fcntl.c lat_fifo.c lat_fs.c 	\
 	lat_mem_rd.c lat_mmap.c lat_ops.c lat_pagefault.c lat_pipe.c 	\
@@ -189,9 +189,12 @@ shar:
 depend: ../scripts/depend
 	../scripts/depend
 
+testmake: $(SRCS) $(UTILS) # used by scripts/make to test gmake
+	@true
+
 .PHONY: lmbench results rerun hardware os install all Wall debug \
 	install install-target dist get edit get-e clean clobber \
-	share depend
+	share depend testmake
 
 $O/lmbench.a: $(LIBOBJS)
 	/bin/rm -f $O/lmbench.a
@@ -382,9 +385,6 @@ $O/stream:  stream.c timing.h stats.h bench.h $O/lmbench.a
 
 $O/lat_sem:  lat_sem.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/lat_sem lat_sem.c $O/lmbench.a $(LDLIBS)
-
-$O/bw_shm:  bw_shm.c timing.h stats.h bench.h $O/lmbench.a
-	$(COMPILE) -o $O/bw_shm bw_shm.c $O/lmbench.a $(LDLIBS)
 
 $O/par_list:  par_list.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/par_list par_list.c $O/lmbench.a $(LDLIBS)
