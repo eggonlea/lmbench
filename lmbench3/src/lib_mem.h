@@ -40,6 +40,8 @@ void mem_cleanup(void* cookie);
 REPEAT_15(MEM_BENCHMARK_DECL)
 extern bench_f mem_benchmarks[];
 
+int	line_find(int l, int warmup, int repetitions, struct mem_state* state);
+double	line_test(int l, int warmup, int repetitions, struct mem_state* state);
 
 #endif LMBENCH_MEM_H
 
