@@ -45,7 +45,7 @@ clobber clean:
 get: 
 	for i in doc src results scripts; do \
 		echo ===== $$i =====; \
-		(cd $$i && co -q); \
+		(cd $$i && bk get -q); \
 	done
 	@co -q
 
