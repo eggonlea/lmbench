@@ -12,6 +12,7 @@
 #include	<unistd.h>
 #include	<stdlib.h>
 #include	"bench.h"
+#include	"flushdisk.c"
 
 #ifndef sgi
 #define	NO_LSEEK64
@@ -24,9 +25,6 @@ uint64	disksize(char *);
 int	seekto(int, uint64);
 int	zone(char *disk, int oflag, int bsize);
 int	seek(char *disk, int oflag);
-#ifdef	linux
-int	flushdisk(int);
-#endif
 
 int
 main(int ac, char **av)
