@@ -20,25 +20,27 @@ typedef struct _state {
 	int fd;
 	int size;
 	int npages;
-	int page;
 	int clone;
 	char* file;
 	char* where;
-	char** pages;
+	int* pages;
 } state_t;
 
 void	initialize(void *cookie);
 void	cleanup(void *cookie);
 void	benchmark(iter_t iterations, void * cookie);
+void	benchmark_mmap(iter_t iterations, void * cookie);
 
 int
 main(int ac, char **av)
 {
-#ifdef	MS_INVALIDATE
 	int parallel = 1;
 	int warmup = 0;
 	int repetitions = TRIES;
 	int c;
+	double t_mmap;
+	double t_combined;
+	struct stat   st;
 	struct _state state;
 	char buf[2048];
 	char* usage = "[-W <warmup>] [-N <repetitions>] file\n";
@@ -70,19 +72,31 @@ main(int ac, char **av)
 	}
 	
 	state.file = av[optind];
+	CHK(stat(state.file, &st));
+	state.npages = st.st_size / (size_t)getpagesize();
+
+#ifdef	MS_INVALIDATE
+	benchmp(initialize, benchmark_mmap, cleanup, 0, parallel, 
+		warmup, repetitions, &state);
+	t_mmap = gettime() / (double)get_n();
+
 	benchmp(initialize, benchmark, cleanup, 0, parallel, 
 		warmup, repetitions, &state);
+	t_combined = gettime() / (double)get_n();
+	settime(get_n() * (t_combined - t_mmap));
+
 	sprintf(buf, "Pagefaults on %s", state.file);
-	micro(buf, get_n());
+	micro(buf, state.npages * get_n());
 #endif
+	return(0);
 }
 
 void
 initialize(void* cookie)
 {
 	int 		i, npages, pagesize;
+	int		*p;
 	unsigned int	r;
-	char		*p;
 	struct stat 	sbuf;
 	state_t 	*state = (state_t *) cookie;
 
@@ -110,31 +124,14 @@ initialize(void* cookie)
 	state->size = sbuf.st_size;
 	state->size -= state->size % pagesize;
 	state->npages = state->size / pagesize;
-	state->pages = (char**)malloc(state->npages * sizeof(char*));
-	state->page = 0;
+	state->pages = permutation(state->npages, pagesize);
 
 	if (state->size < 1024*1024) {
 		fprintf(stderr, "lat_pagefault: %s too small\n", state->file);
 		exit(1);
 	}
-	state->where = mmap(0, state->size, PROT_READ, MAP_SHARED, state->fd, 0);
-
-	/* first, layout the sequence of page accesses */
-	p = state->where;
-	for (i = 0; i < state->npages; ++i) {
-		state->pages[i] = (char*)p;
-		p += pagesize;
-	}
-
-	/* randomize the page sequences */
-	r = (rand() << 15) ^ rand();
-	for (i = state->npages - 1; i > 0; --i) {
-		char *l;
-		r = (r << 1) ^ (rand() >> 4);
-		l = state->pages[r % i];
-		state->pages[r % i] = state->pages[i];
-		state->pages[i] = l;
-	}
+	state->where = mmap(0, state->size, 
+			    PROT_READ, MAP_SHARED, state->fd, 0);
 
 #ifdef	MS_INVALIDATE
 	if (msync(state->where, state->size, MS_INVALIDATE) != 0) {
@@ -157,20 +154,44 @@ cleanup(void* cookie)
 void
 benchmark(iter_t iterations, void* cookie)
 {
+	int	i;
 	int	sum = 0;
 	state_t *state = (state_t *) cookie;
 
 	while (iterations-- > 0) {
-		sum += *(state->pages[state->page++]);
-		if (state->page >= state->npages) {
-			state->page = 0;
-#ifdef	MS_INVALIDATE
-			if (msync(state->where, state->size, MS_INVALIDATE) != 0) {
-				perror("msync");
-				exit(1);
-			}
-#endif
+		for (i = 0; i < state->npages; ++i) {
+			sum += *(state->where + state->pages[i]);
 		}
+		munmap(state->where, state->size);
+		state->where = mmap(0, state->size, 
+				    PROT_READ, MAP_SHARED, state->fd, 0);
+#ifdef	MS_INVALIDATE
+		if (msync(state->where, state->size, MS_INVALIDATE) != 0) {
+			perror("msync");
+			exit(1);
+		}
+#endif
+	}
+	use_int(sum);
+}
+
+void
+benchmark_mmap(iter_t iterations, void* cookie)
+{
+	int	i;
+	int	sum = 0;
+	state_t *state = (state_t *) cookie;
+
+	while (iterations-- > 0) {
+		munmap(state->where, state->size);
+		state->where = mmap(0, state->size, 
+				    PROT_READ, MAP_SHARED, state->fd, 0);
+#ifdef	MS_INVALIDATE
+		if (msync(state->where, state->size, MS_INVALIDATE) != 0) {
+			perror("msync");
+			exit(1);
+		}
+#endif
 	}
 	use_int(sum);
 }
