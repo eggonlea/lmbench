@@ -38,7 +38,7 @@ main()
 	    case 0:
 		close(control[1]);
 		close(pipes[0]);
-		buf = valloc(XFERSIZE);
+		buf = (char*)valloc(XFERSIZE);
 		if (buf == NULL) {
 			perror("no memory");
 			return(1);
@@ -58,7 +58,7 @@ main()
 	}
 	close(control[0]);
 	close(pipes[1]);
-	buf = valloc(XFERSIZE + getpagesize());
+	buf = (char*)valloc(XFERSIZE + getpagesize());
 	if (buf == NULL) {
 		perror("no memory");
 		return(1);
