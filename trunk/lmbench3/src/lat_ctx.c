@@ -74,23 +74,19 @@ main(int ac, char **av)
 	 * If they specified a context size, or parallelism level, get them.
 	 */
 	while (( c = getopt(ac, av, "s:P:")) != EOF) {
-	printf("<%c>-index next %d : <%s>\n",c,optind,av[optind]);
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
-	printf("index next %d : <%s>.  %d,%d\n",optind,av[optind],parallel,state.process_size);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
 			break;
 		case 's':
 			state.process_size = atoi(optarg) * 1024;
-	printf("index next %d : <%s>.  %d,%d\n",optind,av[optind],parallel,state.process_size);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
 			break;
 		}
 	}
-	printf("index next %d : <%s>.  %d,%d\n",optind,av[optind],parallel,state.process_size);
 
 #if	defined(sgi) && defined(PIN)
 	ncpus = sysmp(MP_NPROCS);
@@ -113,7 +109,7 @@ main(int ac, char **av)
 		time /= state.procs;
 		time -= state.overhead;
 
-		fprintf(stderr, "%d %.2f %d\n", state.procs, time, parallel);
+		fprintf(stderr, "%d %.2f\n", state.procs, time);
 	}
 
 	return (0);
