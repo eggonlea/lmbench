@@ -442,10 +442,11 @@ print_data(double mhz, result_t* data)
 int
 main(int ac, char **av)
 {
-	int	i, j, k, mhz = -1;
+	int	c, i, j, k, mhz = -1;
 	double	runtime;
 	result_t data[NTESTS];
 	result_t data_save[NTESTS];
+	char   *usage = "[-d] [-c]\n";
 
 	putenv("LOOP_O=0.0"); /* should be at most 1% */
 
@@ -476,25 +477,30 @@ main(int ac, char **av)
 	    mhz = compute_mhz(data);
 	}
 
-	if (ac > 1 && !strcmp(av[1], "-d")) {
-		if (ac > 1) {
-			ac --;
-			for (i = 1; i < ac; ++i) {
-				av[i] = av[i+1];
+	while (( c = getopt(ac, av, "cd")) != EOF) {
+		switch(c) {
+		case 'c':
+			if (mhz > 0) {
+				printf("%.4f\n", 1000. / (double)mhz);
+				mhz = 0;
 			}
+			break;
+		case 'd':
+			print_data(mhz, data_save);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
 		}
-		print_data(mhz, data_save);
 	}
 
-	if (mhz < 0.) {
+	if (mhz < 0) {
 		printf("-1 System too busy\n");
 		exit(1);
 	}
 
-	if (ac == 2 && !strcmp(av[1], "-c")) {
-		printf("%.4f\n", 1000. / (double)mhz);
-	} else {
-		printf("%d MHz, %.2f nanosec clock\n", 
+	if (mhz > 0) {
+		printf("%d MHz, %.4f nanosec clock\n", 
 		       mhz, 1000. / (double)mhz);
 	}
 	exit(0);
