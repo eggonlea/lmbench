@@ -43,7 +43,7 @@ int
 main(ac, av)
         char  **av;
 {
-	int	nbytes;
+	size_t	nbytes;
 	TYPE   *buf = 0, *buf2 = 0, *lastone;
 
 	if (ac < 3) {

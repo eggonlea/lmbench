@@ -11,10 +11,10 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-void	reader(int control[2], int pipes[2], int bytes);
-void	writer(int control[2], int pipes[2]);
+void	reader(int controlfd, int pipefd, size_t bytes);
+void	writer(int controlfd, int pipefd);
 
-int	XFER	= 10*1024*1024;
+size_t	XFER	= 10*1024*1024;
 int	pid;
 char	*buf;
 
@@ -36,7 +36,9 @@ main()
 	}
 	switch (pid = fork()) {
 	    case 0:
-		writer(control, pipes);
+		close(control[1]);
+		close(pipes[0]);
+		writer(control[0], pipes[1]);
 		return(0);
 		/*NOTREACHED*/
 	    
@@ -48,7 +50,9 @@ main()
 	    default:
 		break;
 	}
-	BENCH(reader(control, pipes, XFER), MEDIUM);
+	close(control[0]);
+	close(pipes[1]);
+	BENCH(reader(control[1], pipes[0], XFER), MEDIUM);
 	fprintf(stderr, "AF_UNIX sock stream bandwidth: ");
 	mb(get_n() * XFER);
 	kill(pid, 15);
@@ -56,29 +60,47 @@ main()
 }
 
 void
-writer(int control[2], int pipes[2])
+writer(int controlfd, int pipefd)
 {
-	int	todo, n;
+	size_t	todo;
+	size_t	bufsize = XFERSIZE;
+	ssize_t	n;
 
 	for ( ;; ) {
-		read(control[0], &todo, sizeof(todo));
+		bufsize = XFERSIZE;
+		n = read(controlfd, &todo, sizeof(todo));
+		if (n < 0) perror("writer::read");
 		while (todo > 0) {
-#ifdef TOUCH
-			touch(buf, XFERSIZE);
+			if (todo < bufsize) bufsize = todo;
+#ifdef	TOUCH
+			touch(buf, bufsize);
 #endif
-			n = write(pipes[1], buf, XFERSIZE);
+			n = write(pipefd, buf, bufsize);
+			if (n <= 0) {
+				perror("writer::write");
+				break;
+			}
 			todo -= n;
 		}
 	}
 }
 
 void
-reader(int control[2], int pipes[2], int bytes)
+reader(int controlfd, int pipefd, size_t bytes)
 {
-	int	todo = XFER, done = 0, n;
+	int	done = 0;
+	size_t	todo = bytes;
+	size_t	bufsize = XFERSIZE;
+	ssize_t	n;
 
-	write(control[1], &bytes, sizeof(bytes));
-	while ((done < todo) && ((n = read(pipes[0], buf, XFERSIZE)) > 0)) {
+	n = write(controlfd, &bytes, sizeof(bytes));
+	if (n < 0) perror("reader::write");
+	while ((done < todo) && ((n = read(pipefd, buf, bufsize)) > 0)) {
 		done += n;
+		if (todo - done < bufsize) bufsize = todo - done;
+	}
+	if (n < 0) perror("reader::write");
+	if (done < bytes) {
+		fprintf(stderr, "reader: bytes=%d, done=%d, todo=%d\n", bytes, done, todo);
 	}
 }

@@ -16,15 +16,15 @@ char	*id = "$Id$\n";
 #define STRIDE  (512/sizeof(char *))
 #define	MEMTRIES	4
 #define	LOWER	512
-void	loads(char *addr, int range, int stride);
+void	loads(char *addr, size_t range, size_t stride);
 int	step(int k);
 
 int
 main(int ac, char **av)
 {
-        int     len;
-	int	range;
-	int	stride;
+	size_t	len;
+	size_t	range;
+	size_t	stride;
 	int	i;
         char   *addr;
 
@@ -50,10 +50,10 @@ main(int ac, char **av)
 }
 
 void
-loads(char *addr, int range, int stride)
+loads(char *addr, size_t range, size_t stride)
 {
 	register char **p = 0 /* lint */;
-        int     i;
+	size_t	i;
 	int	tries = 0;
 	int	result = 0x7fffffff;
 	double	time;
@@ -100,7 +100,7 @@ loads(char *addr, int range, int stride)
 #define	HUNDRED	FIFTY FIFTY
 		i = N;
                 start(0);
-                while (i > 0) {
+                while (i >= 1000) {
 			HUNDRED
 			HUNDRED
 			HUNDRED

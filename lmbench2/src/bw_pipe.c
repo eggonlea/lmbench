@@ -13,10 +13,10 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-void	reader(int controlfd, int pipefd, int bytes);
+void	reader(int controlfd, int pipefd, size_t bytes);
 void	writer(int controlfd, int pipefd);
 
-int	XFER	= 10*1024*1024;
+size_t	XFER	= 10*1024*1024;
 int	pid;
 char	*buf;
 
@@ -65,7 +65,7 @@ main()
 	}
 	touch(buf, XFERSIZE + getpagesize());
 	buf += 128;	/* destroy page alignment */
-	BENCH(reader(control[1], pipes[0], XFER), 0);
+	BENCH(reader(control[1], pipes[0], XFER), MEDIUM);
 	fprintf(stderr, "Pipe bandwidth: ");
 	mb(get_n() * XFER);
 	kill(pid, 15);
@@ -75,39 +75,46 @@ main()
 void
 writer(int controlfd, int pipefd)
 {
-	int	todo, n;
+	size_t	todo;
+	size_t	bufsize = XFERSIZE;
+	ssize_t	n;
 
 	for ( ;; ) {
+		bufsize = XFERSIZE;
 		n = read(controlfd, &todo, sizeof(todo));
 		if (n < 0) perror("writer::read");
 		while (todo > 0) {
+			if (todo < bufsize) bufsize = todo;
 #ifdef	TOUCH
-			touch(buf, XFERSIZE);
+			touch(buf, bufsize);
 #endif
-			n = write(pipefd, buf, XFERSIZE);
+			n = write(pipefd, buf, bufsize);
 			if (n <= 0) {
 				perror("writer::write");
 				break;
 			}
-			else {
-				todo -= n;
-			}
+			todo -= n;
 		}
 	}
 }
 
 void
-reader(int controlfd, int pipefd, int bytes)
+reader(int controlfd, int pipefd, size_t bytes)
 {
-	int	todo = bytes, done = 0, n;
+	int	done = 0;
+	size_t	todo = bytes;
+	size_t	bufsize = XFERSIZE;
+	ssize_t	n;
 
 	n = write(controlfd, &bytes, sizeof(bytes));
 	if (n < 0) perror("reader::write");
-	while ((done < todo) && ((n = read(pipefd, buf, XFERSIZE)) > 0)) {
+	while ((done < todo) && ((n = read(pipefd, buf, bufsize)) > 0)) {
 		done += n;
+		if (todo - done < bufsize) bufsize = todo - done;
 	}
 	if (n < 0) perror("reader::write");
 	if (done < bytes) {
 		fprintf(stderr, "reader: bytes=%d, done=%d, todo=%d\n", bytes, done, todo);
 	}
 }
+

@@ -462,16 +462,18 @@ last(char *s)
 	return (s[-2]);
 }
 
-int
+size_t
 bytes(char *s)
 {
-	int	n = atoi(s);
+	uint64	n;
+
+	sscanf(s, "%llu", &n);
 
 	if ((last(s) == 'k') || (last(s) == 'K'))
 		n *= 1024;
 	if ((last(s) == 'm') || (last(s) == 'M'))
 		n *= (1024 * 1024);
-	return (n);
+	return ((size_t)n);
 }
 
 void
@@ -854,19 +856,20 @@ morefds(void)
 }
 
 void
-touch(char *buf, int nbytes)
+touch(char *buf, size_t nbytes)
 {
-	static	psize;
+	static size_t	psize;
 
 	if (!psize) {
 		psize = getpagesize();
 	}
-	while (nbytes > 0) {
+	while (nbytes > psize - 1) {
 		*buf = 1;
 		buf += psize;
 		nbytes -= psize;
 	}
 }
+
 
 #if defined(hpux) || defined(__hpux)
 int
