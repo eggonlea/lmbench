@@ -3,7 +3,7 @@
  *
  * Three programs in one -
  *	server usage:	bw_tcp -s
- *	client usage:	bw_tcp [-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] hostname [bytes]
+ *	client usage:	bw_tcp [-m <message size>] [-M <total bytes>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] hostname 
  *	shutdown:	bw_tcp -hostname
  *
  * Copyright (c) 2000 Carl Staelin.

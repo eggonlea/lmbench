@@ -125,7 +125,7 @@ main(int argc, char *argv[])
 	int warmup = 0;
 	int repetitions = TRIES;
 	int c;
-	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
+	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] [size]\n";
 
 	state.bytes = XFER;
 
@@ -146,7 +146,9 @@ main(int argc, char *argv[])
 			break;
 		}
 	}
-	if (optind < argc) {
+	if (optind == argc - 1) {
+		state.bytes = bytes(argv[optind]);
+	} else {
 		lmbench_usage(argc, argv);
 	}
 
