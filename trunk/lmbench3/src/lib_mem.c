@@ -202,16 +202,13 @@ stride_initialize(iter_t iterations, void* cookie)
 void
 thrash_initialize(iter_t iterations, void* cookie)
 {
-	int	npages;
 	struct mem_state* state = (struct mem_state*)cookie;
-	size_t *pages;
 	size_t	i;
 	size_t	j;
 	size_t	cur;
 	size_t	next;
-	size_t	start;
-	size_t	range = state->len;
-	size_t	stride = state->line;
+	size_t	cpage;
+	size_t	npage;
 	char*	addr;
 
 	base_initialize(iterations, cookie);
@@ -231,20 +228,36 @@ thrash_initialize(iter_t iterations, void* cookie)
 	 * thrashing in the cache between the user data stream and
 	 * the page table entries.
 	 */
-	pages = state->pages;
-	cur = pages[0];
-	for (i = 0; i < state->nlines; ++i) {
-	    for (j = 0; j < state->npages; ++j) {
-		if (j < state->npages - 1) {
-		    next = pages[j + 1] + ((i + j + 1) % state->nlines) * state->line;
-		} else {
-		    next = pages[0] + ((i + 1) % state->nlines) * state->line;
+	if (state->len % state->pagesize) {
+		state->nwords = state->len / state->line;
+		state->words = words_initialize(state->nwords, state->line);
+		for (i = 0; i < state->nwords - 1; ++i) {
+			*(char **)&addr[state->words[i]] = (char*)&addr[state->words[i+1]];
 		}
-		*(char **)&addr[cur] = (char*)&addr[next];
-		cur = next;
-	    }
+		*(char **)&addr[state->words[i]] = addr;
+		state->p[0] = addr;
+	} else {
+		state->nwords = state->pagesize / state->line;
+		state->words = words_initialize(state->nwords, state->line);
+
+		for (i = 0; i < state->npages - 1; ++i) {
+			cpage = state->pages[i];
+			npage = state->pages[i + 1];
+			for (j = 0; j < state->nwords; ++j) {
+				cur = cpage + state->words[(i + j) % state->nwords];
+				next = npage + state->words[(i + j + 1) % state->nwords];
+				*(char **)&addr[cur] = (char*)&addr[next];
+			}
+		}
+		cpage = state->pages[i];
+		npage = state->pages[0];
+		for (j = 0; j < state->nwords; ++j) {
+			cur = cpage + state->words[(i + j) % state->nwords];
+			next = npage + state->words[(j + 1) % state->nwords];
+			*(char **)&addr[cur] = (char*)&addr[next];
+		}
+		state->p[0] = (char*)&addr[state->pages[0]];
 	}
-	state->p[0] = (char*)&addr[pages[0]];
 	mem_reset();
 }
 
