@@ -17,8 +17,10 @@ char	*id = "$Id$\n";
 #include "bench.h"
 
 typedef struct _state {
+	int	msize;
 	int	sock;
 	char	*server;
+	char	*buf;
 } state_t;
 
 void	init(void *cookie);
@@ -34,32 +36,26 @@ main(int ac, char **av)
 	int	parallel = 1;
 	int 	c;
 	char	buf[256];
-	char	*usage = "-s\n OR [-P <parallelism>] server\n OR [-]serverhost\n";
+	char	*usage = "-s\n OR [-m <message size>] [-P <parallelism>] server\n OR -S server\n";
 
-	if (ac == 2 && !strcmp(av[1], "-s")) { /* Server */
-		if (fork() == 0) {
-			server_main();
-		}
-		exit(0);
-	}
+	state.msize = 1;
 
-       /*
-	* Client args are -server OR [-P <parallelism>] server
-	*/
-	if (ac == 2) {
-		if (!strcmp(av[1],"-"))
-			lmbench_usage(ac, av, usage);
-		if (av[1][0] == '-') { /* shut down server */
-			state.sock = tcp_connect(&av[1][1],
+	while (( c = getopt(ac, av, "sSP:m:")) != EOF) {
+		switch(c) {
+		case 's': /* Server */
+			if (fork() == 0) {
+				server_main();
+			}
+			exit(0);
+		case 'S': /* shutdown serverhost */
+			state.sock = tcp_connect(av[ac - 1],
 						 TCP_XACT,
 						 SOCKOPT_NONE);
 			close(state.sock);
 			exit(0);
-		}
-	}
-
-	while (( c = getopt(ac, av, "P:")) != EOF) {
-		switch(c) {
+		case 'm':
+			state.msize = atoi(optarg);
+			break;
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0)
@@ -71,22 +67,28 @@ main(int ac, char **av)
 		}
 	}
 
-	if (optind + 1 != ac) {
+	if (optind != ac - 1) {
 		lmbench_usage(ac, av, usage);
 	}
-	state.server = av[optind];
 
+	state.server = av[optind];
 	benchmp(init, doclient, cleanup, MEDIUM, parallel, &state);
 
 	sprintf(buf, "TCP latency using %s", state.server);
 	micro(buf, get_n());
+
+	exit(0);
 }
 
 void init(void * cookie)
 {
 	state_t *state = (state_t *) cookie;
+	int	msize  = htonl(state->msize);
 
 	state->sock = tcp_connect(state->server, TCP_XACT, SOCKOPT_NONE);
+	state->buf = malloc(state->msize);
+
+	write(state->sock, &msize, sizeof(int));
 }
 
 void cleanup(void * cookie)
@@ -94,6 +96,7 @@ void cleanup(void * cookie)
 	state_t *state = (state_t *) cookie;
 
 	close(state->sock);
+	free(state->buf);
 }
 
 void
@@ -101,11 +104,10 @@ doclient(uint64 iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	int 	sock   = state->sock;
-	char    c;
 
 	while (iterations-- > 0) {
-		write(sock, &c, 1);
-		read(sock, &c, 1);
+		write(sock, state->buf, state->msize);
+		read(sock, state->buf, state->msize);
 	}
 }
 
@@ -144,18 +146,20 @@ server_main()
 void
 doserver(int sock)
 {
-	char    c;
-	int	n = 0;
+	int	n;
 
-	while (read(sock, &c, 1) == 1) {
-		write(sock, &c, 1);
-		n++;
-	}
+	if (read(sock, &n, sizeof(int)) == sizeof(int)) {
+		int	msize = ntohl(n);
+		char*   buf = (char*)malloc(msize);
 
-	/*
-	 * A connection with no data means shut down.
-	 */
-	if (n == 0) {
+		for (n = 0; read(sock, buf, msize) > 0; n++) {
+			write(sock, buf, msize);
+		}
+		free(buf);
+	} else {
+		/*
+		 * A connection with no data means shut down.
+		 */
 		tcp_done(TCP_XACT);
 		kill(getppid(), SIGTERM);
 		exit(0);
