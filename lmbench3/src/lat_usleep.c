@@ -110,10 +110,12 @@ interval()
 }
 
 void
-initialize(void *cookie)
+initialize(iter_t iterations, void *cookie)
 {
     state_t        *state = (state_t*)cookie;
     struct sigaction sa;
+
+    if (iterations) return;
 
     value.it_interval.tv_sec = 0;
     value.it_interval.tv_usec = state->usecs;
