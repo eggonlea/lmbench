@@ -67,13 +67,14 @@ EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
 	$O/lat_select $O/lat_pipe $O/lat_rpc $O/lat_syscall $O/lat_tcp	\
 	$O/lat_udp $O/lat_mmap $O/mhz $O/lat_proc $O/lat_pagefault	\
 	$O/lat_connect $O/lat_fs $O/lat_sig $O/lat_mem_rd $O/lat_ctx	\
-	$O/lat_sem $O/lat_pmake						\
+	$O/lat_sem 							\
 	$O/memsize $O/lat_unix $O/lmdd $O/timing_o $O/enough		\
 	$O/msleep $O/loop_o $O/lat_fifo $O/lmhttp $O/lat_http		\
 	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk		\
 	$O/lat_ops $O/line $O/tlb $O/par_mem $O/par_ops 		\
 	$O/stream 
-OPT_EXES=$O/lat_dram_page $O/lat_usleep $O/cache 
+OPT_EXES=$O/cache $O/lat_dram_page $O/lat_pmake $O/lat_rand 		\
+	$O/lat_usleep 
 
 MAN1 =	lmdd.1 $D/bargraph.1 $D/graph.1 $D/pgraph.1 $D/rccs.1
 
@@ -411,3 +412,6 @@ $O/lat_usleep:  lat_usleep.c timing.h stats.h bench.h $O/lmbench.a
 
 $O/lat_pmake:  lat_pmake.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/lat_pmake lat_pmake.c $O/lmbench.a $(LDLIBS)
+
+$O/lat_rand:  lat_rand.c timing.h stats.h bench.h $O/lmbench.a
+	$(COMPILE) -o $O/lat_rand lat_rand.c $O/lmbench.a $(LDLIBS)
