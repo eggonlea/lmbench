@@ -104,13 +104,13 @@ foreach $file (@ARGV) {
 			@_ = split;
 			push(@double_div, $_[2]);
 		}
-		if (/^float bogomips:/) {
+		if (/^float bogomflops:/) {
 			@_ = split;
-			push(@float_bogomips, $_[2]);
+			push(@float_bogomflops, $_[2]);
 		}
-		if (/^double bogomips:/) {
+		if (/^double bogomflops:/) {
 			@_ = split;
-			push(@double_bogomips, $_[2]);
+			push(@double_bogomflops, $_[2]);
 		}
 		if (/LINE_SIZE/) {
 			@_ = split;
@@ -185,9 +185,9 @@ foreach $file (@ARGV) {
 			@_ = split;
 			push(@lat_tcp_connect_local, $_[5]);
 		}
-		if (/^Socket bandwidth using localhost:/) {
-			@_ = split;
-			push(@bw_tcp_local, $_[4]);
+		if (/^Socket bandwidth using localhost/) {
+			$value = &getbiggest("memory write timing");
+			push(@bw_tcp_local, $value);
 		}
 		if (/^AF_UNIX sock stream bandwidth:/) {
 			@_ = split;
@@ -354,8 +354,8 @@ foreach $file (@ARGV) {
 		'integer_bit', 'integer_add', 'integer_mul', 'integer_div', 
 		'integer_mod', 'uint64_bit', 'uint64_add', 'uint64_mul', 
 		'uint64_div', 'uint64_mod', 
-		'float_add', 'float_mul', 'float_div', 'float_bogomips',
-		'double_add', 'double_mul', 'double_div', 'double_bogomips',
+		'float_add', 'float_mul', 'float_div', 'float_bogomflops',
+		'double_add', 'double_mul', 'double_div', 'double_bogomflops',
 		'tlb', 'line_size', 'mem_load_par',
 	) {
 		$last = eval '$#' . $array;
@@ -466,7 +466,7 @@ for ($i = 0; $i <= $#uname; $i++) {
             &num($float_add[$i], "%4.2f"),
             &num($float_mul[$i], "%4.2f"),
             &num($float_div[$i], "%4.2f"),
-            &num($float_bogomips[$i], "%4.2f"),
+            &num($float_bogomflops[$i], "%4.2f"),
 	    0;
 }
 
@@ -503,7 +503,7 @@ for ($i = 0; $i <= $#uname; $i++) {
             &num($double_add[$i], "%4.2f"),
             &num($double_mul[$i], "%4.2f"),
             &num($double_div[$i], "%4.2f"),
-            &num($double_bogomips[$i], "%4.2f"),
+            &num($double_bogomflops[$i], "%4.2f"),
 	    0;
 }
 
