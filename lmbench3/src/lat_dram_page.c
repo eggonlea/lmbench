@@ -104,7 +104,7 @@ benchmark_loads(iter_t iterations, void *cookie)
 }
 
 void
-regroup(int* pages, int groupsize, void* cookie)
+regroup(size_t* pages, int groupsize, void* cookie)
 {
 	register int i, j;
 	register char* ptr;
