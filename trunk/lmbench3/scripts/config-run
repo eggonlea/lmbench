@@ -104,7 +104,8 @@ then	TMP=`grep 'Mem:' /proc/meminfo | awk '{print $2}'`
 fi
 if [ X$TMP != X ]
 then	MB=$TMP
-else	MB=`../bin/$OS/memsize 1024`
+else	$ECHON "Probing system for available memory: $ECHOC"
+	MB=`../bin/$OS/memsize 1024`
 fi
 
 echo $L
