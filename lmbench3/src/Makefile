@@ -58,6 +58,7 @@ SRCS =  bench.h bw_file_rd.c bw_mmap_rd.c 				\
 	timing.h stats.h lib_tcp.h lib_udp.h  enough.c lat_select.c	\
 	msleep.c bw_mem.c lat_fifo.c lmhttp.c lat_http.c	\
 	disk.c flushdisk.c lat_unix_connect.c lat_fcntl.c \
+	line.c tlb.c cache.c \
 	lib_unix.c lib_stats.c lib_unix.h names.h version.h
 
 EXES =	$O/bw_file_rd $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp $O/hello	\
@@ -66,7 +67,8 @@ EXES =	$O/bw_file_rd $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp $O/hello	\
 	$O/lat_connect $O/lat_fs $O/lat_sig $O/lat_mem_rd $O/lat_ctx	\
 	$O/memsize $O/lat_unix $O/bw_unix $O/lmdd $O/timing_o $O/enough	\
 	$O/msleep $O/loop_o $O/bw_mem $O/lat_fifo $O/lmhttp $O/lat_http	\
-	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk
+	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk		\
+	$O/line $O/tlb $O/cache
 
 MAN1 =	lmdd.1 $D/bargraph.1 $D/graph.1 $D/pgraph.1 $D/rccs.1
 
@@ -294,3 +296,12 @@ $O/memsize:  memsize.c timing.h stats.h bench.h $O/lmbench.a
 
 $O/msleep:  msleep.c timing.h stats.h bench.h 
 	$(COMPILE) -o $O/msleep msleep.c
+
+$O/line:  line.c timing.h stats.h bench.h 
+	$(COMPILE) -o $O/line line.c $O/lmbench.a $(LDLIBS)
+
+$O/tlb:  tlb.c timing.h stats.h bench.h 
+	$(COMPILE) -o $O/tlb tlb.c $O/lmbench.a $(LDLIBS)
+
+$O/cache:  cache.c timing.h stats.h bench.h 
+	$(COMPILE) -o $O/cache cache.c $O/lmbench.a $(LDLIBS)
