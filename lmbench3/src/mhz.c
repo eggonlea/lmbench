@@ -370,7 +370,7 @@ compute_mhz(result_t *r)
 		for (subset = 0, ntests = 0; subset < (1<<NTESTS); ++subset) {
 			for (j = 0, n = 0; j < NTESTS; ++j)
 				if (BIT_SET(subset, j) && r[j].N > TRIES/2)
-					data[n++] = r[j].u[r[j].N-1-i] / (double)r[j].n[r[j].N-1-i];
+					data[n++] = r[j].v[r[j].N-1-i].u / (double)r[j].v[r[j].N-1-i].n;
 			n = filter_data(data, n);
 			if (n < 2 || classes(data, n) < 2) continue;
 			results[ntests++] = 1.0 / gcd(data, n);
