@@ -7,13 +7,15 @@ USENIX = tmac.usenix usenix96.ms
 PIC = ctx.pic mem.pic 
 SCRIPTS = ../scripts/
 
-MAN = lmbench.8 \
-	lat_proc.8 lat_mmap.8 lat_ctx.8 lat_syscall.8 lat_pipe.8 	\
-	lat_tcp.8 lat_udp.8 lat_rpc.8 lat_connect.8 lat_fs.8		\
-	lat_pagefault.8 lat_mem_rd.8 \
-	bw_file_rd.8 bw_mem_cp.8 bw_mem_rd.8 bw_mem_wr.8 bw_mmap_rd.8	\
-	bw_pipe.8 bw_tcp.8 \
-	mhz.8 lmdd.8 \
+MAN =	bargraph.1 graph.1 pgraph.1 rccs.1				\
+	lmbench.3 reporting.3 results.3 timing.3			\
+	bw_file_rd.8 bw_mem.8 bw_pipe.8 bw_pipe.8 bw_tcp.8 bw_unix.8	\
+	lat_connect.8 lat_ctx.8 lat_fcntl.8 lat_fifo.8 lat_fs.8 	\
+	lat_http.8 lat_mem_rd.8 lat_mmap.8 lat_pagefault.8 lat_pipe.8 	\
+	lat_proc.8 lat_rpc.8 lat_select.8 lat_sig.8 lat_syscall.8 	\
+	lat_tcp.8 lat_udp.8 lat_unix.8 lat_unix_connect.8		\
+	lmbench.8 disk.8 lmdd.8 mhz.8 					\
+	clock.8 enough.8 loop_o.8 timing_o.8				\
 	bargraph.1 graph.1
 
 ALL = $(DESC) $(USENIX) $(PIC) $(MAN) $(REFER) references
