@@ -177,9 +177,9 @@ result_t* get_results();
 }
 	
 #define	BENCH_INNER(loop_body, enough) { 				\
-	static uint64	__iterations = 1;				\
+	static long	__iterations = 1;				\
 	int		__enough = get_enough(enough);			\
-	uint64		__n;						\
+	long		__n;						\
 	double		__result = 0.;					\
 									\
 	while(__result < 0.95 * __enough) {				\
@@ -193,9 +193,9 @@ result_t* get_results();
 			if (__result > 150.) {				\
 				double	tmp = __iterations / __result;	\
 				tmp *= 1.1 * __enough;			\
-				__iterations = (uint64)(tmp + 1);	\
+				__iterations = (long)(tmp + 1);		\
 			} else {					\
-				if (__iterations > (uint64)1<<40) {	\
+				if (__iterations > 1<<27) {		\
 					__result = 0.;			\
 					break;				\
 				}					\
