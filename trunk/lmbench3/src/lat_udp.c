@@ -19,6 +19,7 @@ char	*id = "$Id$\n";
 
 void	client_main(int ac, char **av);
 void	server_main();
+void	timeout();
 void	init(void *cookie);
 void	cleanup(void *cookie);
 void    doit(iter_t iterations, void *cookie);
@@ -111,16 +112,21 @@ int main(int ac, char **av)
 	exit(0);
 }
 
-void init(void * cookie)
+void
+init(void * cookie)
 {
 	state_t *state = (state_t *) cookie;
 
 	state->sock = udp_connect(state->server, UDP_XACT, SOCKOPT_NONE);
 	state->seq = 0;
 	state->buf = (char*)malloc(state->msize);
+	
+	signal(SIGALRM, timeout);
+	alarm(15);
 }
 
-void doit(iter_t iterations, void *cookie)
+void
+doit(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	int seq = state->seq;
@@ -142,12 +148,20 @@ void doit(iter_t iterations, void *cookie)
 	state->seq = seq;
 }
 
-void cleanup(void * cookie)
+void
+cleanup(void * cookie)
 {
 	state_t *state = (state_t *) cookie;
 
 	close(state->sock);
 	free(state->buf);
+}
+
+void
+timeout()
+{
+	fprintf(stderr, "Recv timed out\n");
+	exit(1);
 }
 
 void
