@@ -62,7 +62,7 @@ then	if [ X$SYNC_PID = X ]
 	fi
 	MP=Y
 fi
-if [ X`os` = Xhpux ]
+if [ -x /bin/remsh ]
 then	RSH=remsh
 else	RSH=rsh
 fi
@@ -233,18 +233,20 @@ then	date > /dev/tty
 	for i in localhost
 	do
 		lat_udp $i
-		lat_udp -$i
+		lat_udp -S $i
 		lat_tcp $i
-		lat_tcp -$i
-		lat_rpc $i;			 # Internal kill on this one.
+		lat_tcp -S $i
+		lat_rpc -p udp $i
+		lat_rpc -p tcp $i
+		lat_rpc -S $i
 		lat_connect $i
-		lat_connect -$i
+		lat_connect -S $i
 		bw_tcp $i
-		bw_tcp -$i
+		bw_tcp -S $i
 		# I want a hot cache number
 		lat_http $i 8008 < ../../src/webpage-lm/URLS > /dev/null 2>&1
 		lat_http $i 8008 < ../../src/webpage-lm/URLS
-		lat_http -$i 8008
+		lat_http -S $i 8008
 	done
 
 	for remote in $REMOTE 
@@ -256,15 +258,21 @@ then	date > /dev/tty
 		$RSH $remote -n 'cd /tmp; tar xf webpage-lm.tar; cd webpage-lm; ../lmhttp 8008' &
 		sleep 10
 		echo "[ Networking remote to $remote: `$RSH $remote uname -a` ]" 1>&2
-		lat_udp $remote; lat_udp -$remote;
-		lat_tcp $remote; lat_tcp -$remote;
-		lat_rpc $remote udp; lat_rpc $remote tcp; 
-		lat_connect $remote; lat_connect -$remote;
-		bw_tcp $remote; bw_tcp -$remote 
+		lat_udp $remote; 
+		lat_udp -S $remote;
+		lat_tcp $remote; 
+		lat_tcp -S $remote;
+		lat_rpc -p udp $remote; 
+		lat_rpc -p tcp $remote; 
+		lat_rpc -S $remote; 
+		lat_connect $remote; 
+		lat_connect -S $remote;
+		bw_tcp $remote; 
+		bw_tcp -S $remote 
 		# I want a hot cache number
 		lat_http $remote 8008 < ../../src/webpage-lm/URLS > /dev/null 2>&1
 		lat_http $remote 8008 < ../../src/webpage-lm/URLS
-		lat_http -$remote 8008
+		lat_http -S $remote 8008
 		RM=
 		for server in $SERVERS
 		do	RM="/tmp/$server $RM"
