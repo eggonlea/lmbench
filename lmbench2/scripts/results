@@ -24,6 +24,7 @@ do      EXT=`expr $EXT + 1`
 done
 
 cd ../bin/$OS 
+export OUTPUT
 echo Results going to ${RESULTS}
 ../../scripts/lmbench $CONFIG 2>../${RESULTS}
 
