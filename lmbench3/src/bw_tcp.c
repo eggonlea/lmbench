@@ -111,7 +111,7 @@ int main(int ac, char **av)
 	 * connections.
 	 */
 	benchmp(initialize, loop_transfer, cleanup, 
-		SHORT, parallel, LONGER + warmup, repetitions, &state );
+		SHORT, parallel, SHORT + warmup, repetitions, &state );
 	/* (void)fprintf(stderr, "Socket bandwidth using %s\n", state.server); */
 	fprintf(stderr, "%.6f ", state.msize / (1000. * 1000.));
 	mb(state.move * get_n() * parallel);
