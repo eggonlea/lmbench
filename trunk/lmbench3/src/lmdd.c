@@ -47,7 +47,7 @@ char	*id = "$Id: lmdd.c,v 1.23 1997/12/01 23:47:59 lm Exp $\n";
 #include	"bds.h"
 #endif
 #include	<sys/time.h>
-#include	"timing.h"
+#include	"bench.h"
 
 #define ALIGN(x, bs)    ((x + (bs - 1)) & ~(bs - 1))
 
