@@ -372,20 +372,40 @@ do_double_bogomflops(iter_t iterations, void* cookie)
 int
 main(int ac, char **av)
 {
-	int i, j;
-	uint64 iop_time;
-	uint64 iop_N;
+	int	c, i, j;
+	int	warmup = 0;
+	int	repetitions = TRIES;
+	uint64	iop_time;
+	uint64	iop_N;
 	struct _state state;
+	char   *usage = "[-W <warmup>] [-N <repetitions>]\n";
 
 	state.N = 1000;
 	state.M = 1;
 
-	benchmp(NULL, do_integer_bitwise, NULL, 0, 1, 0, TRIES, &state);
+	while (( c = getopt(ac, av, "W:N:")) != EOF) {
+		switch(c) {
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
+	}
+
+	state.N = 1000;
+	state.M = 1;
+
+	benchmp(NULL, do_integer_bitwise, NULL, 0, 1, warmup, repetitions, &state);
 	nano("integer bit", get_n() * 100000 * 2);
 	iop_time = gettime();
 	iop_N = get_n() * 100000 * 2;
 	
-	benchmp(NULL, do_integer_add, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_integer_add, NULL, 0, 1, warmup, repetitions, &state);
 #ifndef __GNUC__
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("integer add", get_n() * 100000);
@@ -393,24 +413,24 @@ main(int ac, char **av)
 	nano("integer add", get_n() * 10000 * 2);
 #endif
 	
-	benchmp(NULL, do_integer_mul, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_integer_mul, NULL, 0, 1, warmup, repetitions, &state);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("integer mul", get_n() * 100000);
 	
-	benchmp(NULL, do_integer_div, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_integer_div, NULL, 0, 1, warmup, repetitions, &state);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("integer div", get_n() * 100000);
 	
-	benchmp(NULL, do_integer_mod, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_integer_mod, NULL, 0, 1, warmup, repetitions, &state);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("integer mod", get_n() * 100000);
 	
-	benchmp(NULL, do_uint64_bitwise, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_uint64_bitwise, NULL, 0, 1, warmup, repetitions, &state);
 	nano("uint64 bit", get_n() * 100000 * 2);
 	iop_time = gettime();
 	iop_N = get_n() * 100000 * 2;
 
-	benchmp(NULL, do_uint64_add, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_uint64_add, NULL, 0, 1, warmup, repetitions, &state);
 #ifndef __GNUC__
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("uint64 add", get_n() * 100000);
@@ -418,54 +438,54 @@ main(int ac, char **av)
 	nano("uint64 add", get_n() * 10000 * 2);
 #endif
 	
-	benchmp(NULL, do_uint64_mul, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_uint64_mul, NULL, 0, 1, warmup, repetitions, &state);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("uint64 mul", get_n() * 100000);
 	
-	benchmp(NULL, do_uint64_div, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_uint64_div, NULL, 0, 1, warmup, repetitions, &state);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("uint64 div", get_n() * 100000);
 	
-	benchmp(NULL, do_uint64_mod, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_uint64_mod, NULL, 0, 1, warmup, repetitions, &state);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("uint64 mod", get_n() * 100000);
 	
-	benchmp(NULL, do_float_add, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_float_add, NULL, 0, 1, warmup, repetitions, &state);
 #ifndef __GNUC__
 	nano("float add", get_n() * 100000);
 #else
 	nano("float add", get_n() * 10000);
 #endif
 	
-	benchmp(NULL, do_float_mul, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_float_mul, NULL, 0, 1, warmup, repetitions, &state);
 #ifndef __GNUC__
 	nano("float mul", get_n() * 100000);
 #else
 	nano("float mul", get_n() * 10000);
 #endif
 	
-	benchmp(NULL, do_float_div, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_float_div, NULL, 0, 1, warmup, repetitions, &state);
 #ifndef __GNUC__
 	nano("float div", get_n() * 100000);
 #else
 	nano("float div", get_n() * 10000);
 #endif
 
-	benchmp(NULL, do_double_add, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_double_add, NULL, 0, 1, warmup, repetitions, &state);
 #ifndef __GNUC__
 	nano("double add", get_n() * 100000);
 #else
 	nano("double add", get_n() * 10000);
 #endif
 	
-	benchmp(NULL, do_double_mul, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_double_mul, NULL, 0, 1, warmup, repetitions, &state);
 #ifndef __GNUC__
 	nano("double mul", get_n() * 100000);
 #else
 	nano("double mul", get_n() * 10000);
 #endif
 	
-	benchmp(NULL, do_double_div, NULL, 0, 1, 0, TRIES, &state);
+	benchmp(NULL, do_double_div, NULL, 0, 1, warmup, repetitions, &state);
 #ifndef __GNUC__
 	nano("double div", get_n() * 100000);
 #else
@@ -473,11 +493,11 @@ main(int ac, char **av)
 #endif
 
 	benchmp(float_initialize, 
-		do_float_bogomflops, cleanup, 0, 1, 0, TRIES, &state);
+		do_float_bogomflops, cleanup, 0, 1, warmup, repetitions, &state);
 	nano("float bogomflops", get_n() * state.N);
 
 	benchmp(double_initialize, 
-		do_double_bogomflops, cleanup, 0, 1, 0, TRIES, &state);
+		do_double_bogomflops, cleanup, 0, 1, warmup, repetitions, &state);
 	nano("double bogomflops", get_n() * state.N);
 
 	return(0);
