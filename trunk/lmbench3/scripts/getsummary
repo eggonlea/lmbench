@@ -365,27 +365,28 @@ foreach $file (@ARGV) {
 	foreach $array (
 		'bw_bcopy_libc', 'bw_bcopy_unrolled', 'bw_file',
 		'bw_mem_rdsum', 'bw_mem_wr', 'bw_mmap', 'bw_pipe',
-		'bw_reread', 'bw_tcp_local', 'bw_unix', 'fs_create_0k',
-		'fs_create_10k', 'fs_delete_0k', 'fs_delete_10k',
-		'lat_ctx0_16', 'lat_ctx0_2', 'lat_ctx0_8',
-		'lat_ctx16_16', 'lat_ctx16_2', 'lat_ctx16_8',
-		'lat_ctx64_16', 'lat_ctx64_2', 'lat_ctx64_8', 'lat_l1',
-		'lat_l2', 'lat_mappings', 'lat_mem', 'lat_nullproc',
+		'bw_reread', 'bw_tcp_local', 'bw_tcp_remote', 'bw_unix', 
+		'double_add', 'double_bogomflops', 'double_div', 'double_mul',
+		'float_add', 'float_bogomflops', 'float_div', 'float_mul',
+		'fs_create_0k', 'fs_create_1k', 'fs_create_4k',
+		'fs_create_10k', 'fs_delete_0k', 'fs_delete_1k',
+		'fs_delete_4k', 'fs_delete_10k', 'integer_add',
+		'integer_bit', 'integer_div', 'integer_mod', 'integer_mul',
+		'lat_ctx0_2', 'lat_ctx0_8', 'lat_ctx0_16',
+		'lat_ctx16_2', 'lat_ctx16_8', 'lat_ctx16_16',
+		'lat_ctx64_2', 'lat_ctx64_8', 'lat_ctx64_16', 
+		'lat_l1', 'lat_l2', 'lat_mappings', 'lat_mem', 'lat_nullproc',
 		'lat_openclose', 'lat_pagefault', 'lat_pipe',
 		'lat_protfault', 'lat_read', 'lat_rpc_tcp_local', 
 		'lat_rpc_tcp_remote', 'lat_rpc_udp_local', 
-		'lat_rpc_udp_remote','lat_select', 'lat_shproc', 
+		'lat_rpc_udp_remote', 'lat_select', 'lat_shproc', 
 		'lat_sigcatch',	'lat_siginstall', 'lat_simpleproc', 'lat_stat',
 		'lat_syscall', 'lat_tcp_connect_local', 
 		'lat_tcp_connect_remote', 'lat_tcp_local', 'lat_tcp_remote',
 		'lat_udp_local', 'lat_udp_remote', 'lat_unix', 'lat_write', 
-		'misc_mhz',
-		'integer_bit', 'integer_add', 'integer_mul', 'integer_div', 
-		'integer_mod', 'uint64_bit', 'uint64_add', 'uint64_mul', 
-		'uint64_div', 'uint64_mod', 
-		'float_add', 'float_mul', 'float_div', 'float_bogomflops',
-		'double_add', 'double_mul', 'double_div', 'double_bogomflops',
-		'tlb', 'line_size', 'mem_load_par',
+		'line_size', 'mem_load_par', 'misc_mhz', 'tlb',
+		'uint64_add', 'uint64_bit', 'uint64_div', 'uint64_mod',
+		'uint64_mul'
 	) {
 		$last = eval '$#' . $array;
 		if ($last != $n) {
@@ -394,9 +395,9 @@ foreach $file (@ARGV) {
 			eval 'push(@' . $array . ', -1);';
 		}
 	}
-	if ($#warn != -1) {
-		warn "Missing data in $file: @warn\n";
-	}
+#	if ($#warn != -1) {
+#		warn "Missing data in $file: @warn\n";
+#	}
 	$n++;
 }
 
@@ -419,8 +420,7 @@ for ($i = 0; $i <= $#uname; $i++) {
             $misc_mhz[$i],
             &num($tlb[$i], "%4d"),
             &num($line_size[$i], "%4d"),
-            &num($mem_load_par[$i], "%4.2f"),
-	    0;
+            &num($mem_load_par[$i], "%4.2f");
 }
 
 print<<EOF;
@@ -455,8 +455,7 @@ for ($i = 0; $i <= $#uname; $i++) {
             &num($lat_sigcatch[$i], "%4.1f"),
             &num($lat_nullproc[$i]/1000., "%4.2f"),
             &num($lat_simpleproc[$i]/1000., "%4.2f"),
-            &num($lat_shproc[$i]/1000., "%4.2f"),
-	    0;
+            &num($lat_shproc[$i]/1000., "%4.2f");
 }
 
 print<<EOF;
@@ -475,8 +474,7 @@ for ($i = 0; $i <= $#uname; $i++) {
             &num($integer_add[$i], "%5.2f"),
             &num($integer_mul[$i], "%5.1f"),
             &num($integer_div[$i], "%5.1f"),
-            &num($integer_mod[$i], "%5.1f"),
-	    0;
+            &num($integer_mod[$i], "%5.1f");
 }
 
 print<<EOF;
@@ -495,8 +493,7 @@ for ($i = 0; $i <= $#uname; $i++) {
             &num($uint64_add[$i], "%5.2f"),
             &num($uint64_mul[$i], "%5.1f"),
             &num($uint64_div[$i], "%5.1f"),
-            &num($uint64_mod[$i], "%5.1f"),
-	    0;
+            &num($uint64_mod[$i], "%5.1f");
 }
 
 print<<EOF;
@@ -514,8 +511,7 @@ for ($i = 0; $i <= $#uname; $i++) {
             &num($float_add[$i], "%6.2f"),
             &num($float_mul[$i], "%6.1f"),
             &num($float_div[$i], "%6.1f"),
-            &num($float_bogomflops[$i], "%6.1f"),
-	    0;
+            &num($float_bogomflops[$i], "%6.1f");
 }
 
 print<<EOF;
@@ -533,8 +529,7 @@ for ($i = 0; $i <= $#uname; $i++) {
             &num($double_add[$i], "%6.2f"),
             &num($double_mul[$i], "%6.1f"),
             &num($double_div[$i], "%6.1f"),
-            &num($double_bogomflops[$i], "%6.1f"),
-	    0;
+            &num($double_bogomflops[$i], "%6.1f");
 }
 
 print<<EOF;
@@ -555,8 +550,7 @@ for ($i = 0; $i <= $#uname; $i++) {
             &num($lat_ctx16_8[$i], "%4d"),
             &num($lat_ctx64_8[$i], "%4d"),
             &num($lat_ctx16_16[$i], "%4d"),
-            &num($lat_ctx64_16[$i], "%4d"),
-	    0;
+            &num($lat_ctx64_16[$i], "%4d");
 }
 
 print<<EOF;
@@ -578,9 +572,7 @@ for ($i = 0; $i <= $#uname; $i++) {
             &num($lat_rpc_udp_local[$i], "%5d"),
             &num($lat_tcp_local[$i], "%5d"),
             &num($lat_rpc_tcp_local[$i], "%5d"),
-	    &num($lat_tcp_connect_local[$i], "%4d"),
-	    -999;
-
+	    &num($lat_tcp_connect_local[$i], "%4d");
 }
 
 print<<EOF;
@@ -599,9 +591,7 @@ for ($i = 0; $i <= $#uname; $i++) {
             &num($lat_rpc_udp_remote[$i], "%5d"),
             &num($lat_tcp_remote[$i], "%5d"),
             &num($lat_rpc_tcp_remote[$i], "%5d"),
-	    &num($lat_tcp_connect_remote[$i], "%4d"),
-	    -999;
-
+	    &num($lat_tcp_connect_remote[$i], "%4d");
 }
 
 print<<EOF;
@@ -640,12 +630,16 @@ EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
         printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-        printf "%4.0f %4s %4.0f %6.0f %6.0f %6.0f %6.0f %4.0f %5.0f\n",
-            $bw_pipe[$i], &num($bw_unix[$i], "%4.0f"), $bw_tcp_local[$i], 
-            $bw_reread[$i], $bw_mmap[$i], $bw_bcopy_libc[$i],
-            $bw_bcopy_unrolled[$i],
-            $bw_mem_rdsum[$i],
-            $bw_mem_wr[$i];
+        printf "%4s %4s %4s %6s %6s %6s %6s %4s %5s\n",
+            &num($bw_pipe[$i], "%4.0f"),
+	    &num($bw_unix[$i], "%4.0f"),
+	    &num($bw_tcp_local[$i], "%4.0f"),
+            &num($bw_reread[$i], "%6.0f"),
+	    &num($bw_mmap[$i], "%6.0f"),
+	    &num($bw_bcopy_libc[$i], "%6.0f"),
+            &num($bw_bcopy_unrolled[$i], "%6.0f"),
+            &num($bw_mem_rdsum[$i], "%4.0f"),
+            &num($bw_mem_wr[$i], "%5.0f");
 }
 
 print<<EOF;
@@ -685,6 +679,9 @@ sub num
 	local($str) = "";
 	local($i);
 
+	if (!defined($val) || !($val =~ /^[ 	]*[0-9.]+[ 	]*$/)) {
+		$val = -1;
+	}
 	if ($val <= 0) {
 		$fmt =~ s/^.//;
 		while (length($fmt) > 1) { chop($fmt); }
