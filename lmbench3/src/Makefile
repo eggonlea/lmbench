@@ -48,18 +48,18 @@ COMPILE=$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
 INCS =	bench.h lib_mem.h lib_tcp.h lib_udp.h stats.h timing.h
 
 SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
-	bw_unix.c \
+	bw_unix.c bw_shm.c\
 	cache.c clock.c disk.c enough.c flushdisk.c getopt.c hello.c	\
 	lat_connect.c lat_ctx.c	lat_fcntl.c lat_fifo.c lat_fs.c 	\
 	lat_mem_rd.c lat_mmap.c lat_ops.c lat_pagefault.c lat_pipe.c 	\
 	lat_proc.c lat_rpc.c lat_select.c lat_sig.c lat_syscall.c	\
 	lat_tcp.c lat_udp.c lat_unix.c lat_unix_connect.c lat_sem.c	\
-	lib_mem.c lib_stats.c lib_tcp.c lib_timing.c lib_udp.c 		\
-	lib_unix.c		\
+	lib_debug.c lib_mem.c lib_stats.c lib_tcp.c lib_timing.c 	\
+	lib_udp.c lib_unix.c		\
 	line.c lmdd.c lmhttp.c par_mem.c par_ops.c loop_o.c memsize.c 	\
 	mhz.c msleep.c rhttp.c seek.c timing_o.c tlb.c stream.c		\
-	bench.h lib_tcp.h lib_udp.h lib_unix.h names.h stats.h		\
-	timing.h version.h
+	bench.h lib_debug.h lib_tcp.h lib_udp.h lib_unix.h names.h 	\
+	stats.h timing.h version.h
 
 EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
 	$O/bw_unix $O/hello	\
@@ -71,7 +71,7 @@ EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
 	$O/msleep $O/loop_o $O/lat_fifo $O/lmhttp $O/lat_http	\
 	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk		\
 	$O/lat_ops $O/line $O/tlb $O/cache $O/par_mem $O/par_ops 	\
-	$O/stream
+	$O/stream $O/lat_dram_page $O/bw_shm
 
 MAN1 =	lmdd.1 $D/bargraph.1 $D/graph.1 $D/pgraph.1 $D/rccs.1
 
@@ -87,7 +87,7 @@ MAN8 =	$D/bw_file_rd.8 $D/bw_mem.8 $D/bw_mmap_rd.8 \
 	$D/lat_ops.8 $D/par_ops.8 $D/par_mem.8				\
 	$D/lmdd.8 $D/mhz.8 $D/cache.8 $D/tlb.8 $D/line.8
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o 	\
-	$O/lib_mem.o $O/lib_stats.o $O/getopt.o
+	$O/lib_mem.o $O/lib_stats.o $O/lib_debug.o $O/getopt.o
 
 lmbench: $(UTILS)
 	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
@@ -218,6 +218,8 @@ $O/lib_udp.o : lib_udp.c $(INCS)
 	$(COMPILE) -c lib_udp.c -o $O/lib_udp.o
 $O/lib_unix.o : lib_unix.c $(INCS)
 	$(COMPILE) -c lib_unix.c -o $O/lib_unix.o
+$O/lib_debug.o : lib_debug.c $(INCS)
+	$(COMPILE) -c lib_debug.c -o $O/lib_debug.o
 $O/lib_stats.o : lib_stats.c $(INCS)
 	$(COMPILE) -c lib_stats.c -o $O/lib_stats.o
 $O/getopt.o : getopt.c $(INCS)
@@ -260,6 +262,9 @@ $O/bw_mmap_rd:  bw_mmap_rd.c timing.h stats.h bench.h $O/lmbench.a
 
 $O/bw_pipe:  bw_pipe.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/bw_pipe bw_pipe.c $O/lmbench.a $(LDLIBS)
+
+$O/bw_shm:  bw_shm.c timing.h stats.h bench.h $O/lmbench.a
+	$(COMPILE) -o $O/bw_shm bw_shm.c $O/lmbench.a $(LDLIBS)
 
 $O/bw_tcp:  bw_tcp.c bench.h timing.h stats.h lib_tcp.h $O/lmbench.a
 	$(COMPILE) -o $O/bw_tcp bw_tcp.c $O/lmbench.a $(LDLIBS)
@@ -395,3 +400,6 @@ $O/lat_sem:  lat_sem.c timing.h stats.h bench.h $O/lmbench.a
 
 $O/par_list:  par_list.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/par_list par_list.c $O/lmbench.a $(LDLIBS)
+
+$O/lat_dram_page:  lat_dram_page.c timing.h stats.h bench.h $O/lmbench.a
+	$(COMPILE) -o $O/lat_dram_page lat_dram_page.c $O/lmbench.a $(LDLIBS)
