@@ -145,7 +145,10 @@ find_cache(int start, int n, struct cache_results* p)
 	int	i, j, prev;
 	double	max = -1.;
 
-	prev = (start == 0 ? start : start - 1);
+	for (prev = (start == 0 ? start : start - 1); prev > 0; prev--) {
+		if (p[prev].ratio > 0.0) break;
+	}
+
 	for (i = start; i < n; ++i) {
 		if (p[i].latency < 0.) continue;
 		if (p[prev].ratio <= p[i].ratio) {
@@ -229,7 +232,6 @@ search(int left, int right,
 	if (p[left].latency != 0.0) {
 		p[left].ratio = p[right].latency / p[left].latency;
 		/* we probably have a bad data point, so re-test it */
-fprintf(stderr, "search(%d, %d, ...): ratio[%d]=%f\n", p[left].len, p[right].len, p[left].len, p[left].ratio);
 		if (p[left].ratio < 0.98) {
 			fprintf(stderr, "search: retesting %d\n", p[left].len);
 			p[left].ratio = -1.;
