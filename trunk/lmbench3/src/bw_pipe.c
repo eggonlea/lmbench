@@ -1,7 +1,7 @@
 /*
  * bw_pipe.c - pipe bandwidth benchmark.
  *
- * Usage: bw_pipe
+ * Usage: bw_pipe [-P <parallelism>]
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -13,59 +13,87 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-void	reader(int control[2], int pipes[2], int bytes);
-void	writer(int control[2], int pipes[2]);
+void	reader(uint64 iterations, void * cookie);
+void	writer(int control[2], int pipes[2], char* buf);
 
 int	XFER	= 10*1024*1024;
-int	pid;
-char	*buf;
 
-int
-main()
-{
+struct _state {
+	int	pid;
+	int	bytes;	/* bytes to read/write in one iteration */
+	char	*buf;	/* buffer memory space */
 	int	pipes[2];
 	int	control[2];
+	int	initerr;
+};
 
-	buf = valloc(XFERSIZE);
-	touch(buf, XFERSIZE);
-	if (pipe(pipes) == -1) {
+void initialize(void *cookie)
+{
+	struct _state* state = (struct _state*)cookie;
+
+	state->buf = valloc(XFERSIZE);
+	touch(state->buf, XFERSIZE);
+	state->initerr = 0;
+	if (pipe(state->pipes) == -1) {
 		perror("pipe");
-		return(1);
+		state->initerr = 1;
+		return;
 	}
-	if (pipe(control) == -1) {
+	if (pipe(state->control) == -1) {
 		perror("pipe");
-		return(1);
+		state->initerr = 2;
+		return;
 	}
-	switch (pid = fork()) {
+	switch (state->pid = fork()) {
 	    case 0:
-		writer(control, pipes);
-		return(0);
+		writer(state->control, state->pipes, state->buf);
+		return;
 		/*NOTREACHED*/
 	    
 	    case -1:
 		perror("fork");
-		return(1);
+		state->initerr = 3;
+		return;
 		/*NOTREACHED*/
 
 	    default:
 		break;
 	}
-	BENCH(reader(control, pipes, XFER), MEDIUM);
-	fprintf(stderr, "Pipe bandwidth: ");
-	mb(get_n() * XFER);
-	kill(pid, 15);
-	return(0);
+}
+void cleanup(void * cookie)
+{
+	struct _state* state = (struct _state*)cookie;
+
+	signal(SIGCHLD,SIG_IGN);
+	kill(state->pid, 9);
+}
+
+void reader(uint64 iterations, void * cookie)
+{
+	struct _state* state = (struct _state*)cookie;
+	int	done, n;
+	int	todo = state->bytes;
+
+	while (iterations-- > 0) {
+		write(state->control[1], &todo, sizeof(todo));
+		for (done = 0; done < todo; done += n) {
+			if ((n = read(state->pipes[0], state->buf, XFERSIZE)) <= 0) {
+				/* error! */
+				break;
+			}
+		}
+	}
 }
 
 void
-writer(int control[2], int pipes[2])
+writer(int control[2], int pipes[2], char* buf)
 {
 	int	todo, n;
 
 	for ( ;; ) {
 		read(control[0], &todo, sizeof(todo));
 		while (todo > 0) {
-#ifdef	TOUCH
+#ifdef TOUCH
 			touch(buf, XFERSIZE);
 #endif
 			n = write(pipes[1], buf, XFERSIZE);
@@ -74,13 +102,25 @@ writer(int control[2], int pipes[2])
 	}
 }
 
-void
-reader(int control[2], int pipes[2], int bytes)
+int
+main(int argc, char *argv[])
 {
-	int	todo = XFER, done = 0, n;
+	struct _state state;
+	int parallel = 1;
+	int c;
 
-	write(control[1], &bytes, sizeof(bytes));
-	while ((done < todo) && ((n = read(pipes[0], buf, XFERSIZE)) > 0)) {
-		done += n;
+	state.bytes = XFER;
+
+	while (( c = getopt(argc,argv,"P:")) != EOF) {
+	  if (c == 'P') parallel = atoi(optarg);
 	}
+	if (optind < argc || parallel <= 0) {
+	  fprintf(stderr,"Usage : %s [-P <parallelism>]\n",argv[0]);
+	  exit(-1);
+	}
+	benchmp(initialize, reader, cleanup, MEDIUM, parallel, &state);
+
+	fprintf(stderr, "Pipe bandwidth: ");
+	mb(get_n() * parallel * XFER);
+	return(0);
 }
