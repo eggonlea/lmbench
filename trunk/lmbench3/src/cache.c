@@ -43,6 +43,7 @@ int	test_chunk(int i, int chunk, int npages, int* pages, int len,
 int	fixup_chunk(int i, int chunk, int npages, int* pages, int len, 
 		    double *baseline, double chunk_baseline,
 		    int repetitions, struct mem_state* state);
+void	check_memory(int size, struct mem_state* state);
 
 #ifdef ABS
 #undef ABS
@@ -359,7 +360,7 @@ search(int left, int right, int repetitions,
 	fprintf(stderr, "search(%d, %d, ...): middle=%d\n", p[left].len, p[right].len, p[middle].len);
 	/**/
 
-	if (p[left].ratio > 1.05 || p[left].ratio < 0.97) {
+	if (p[left].ratio > 1.35 || p[left].ratio < 0.97) {
 		collect_sample(repetitions, state, &p[middle]);
 		search(middle, right, repetitions, state, p);
 		search(left, middle, repetitions, state, p);
@@ -375,14 +376,14 @@ collect_sample(int repetitions, struct mem_state* state,
 	int	*pages;
 	double	baseline;
 
-	npages = p->len / getpagesize();
+	npages = (p->len + getpagesize() - 1) / getpagesize();
         baseline = measure(p->len, repetitions, &p->variation, state);
 	
 	/**/
-	fprintf(stderr, "collect_sample(...): entering: baseline=%G, len=%d\n", baseline, p->len);
+	fprintf(stderr, "collect_sample(...): entering: baseline=%G, len=%d, pagesize=%d\n", baseline, p->len, getpagesize());
 	/**/
 
-	if (npages >= 2) {
+	if (npages > 1) {
 		for (i = 0, modified = 1; i < 8 && modified; ++i) {
 			modified = test_chunk(0, npages, npages, 
 					      state->pages, p->len, 
@@ -393,6 +394,7 @@ collect_sample(int repetitions, struct mem_state* state,
 			/**/
 		}
 	}
+	baseline = measure(p->len, repetitions, &p->variation, state);
 	p->latency = baseline;
 
 	/**/
@@ -437,6 +439,10 @@ measure(int size, int repetitions,
 		*(char**)(p + pages[npages - 1] + state->lines[nlines - 1] + state->words[j]) = 
 			p + pages[0] + state->lines[0] + state->words[(j+1)%state->nwords];
 	}
+
+	/*
+	check_memory(size, state);
+	/**/
 
 	addr_save = NULL;
 	state->p[0] = p + pages[0] + state->lines[0] + state->words[0];
@@ -508,7 +514,7 @@ test_chunk(int i, int chunk, int npages, int* pages, int len,
 {
 	int	j, k, subchunk;
 	int	modified = 0;
-	int	changed[20];
+	int	changed;
 	double	t, tt, nodiff_chunk_baseline;
 
 	if (chunk <= 20) {
@@ -518,10 +524,7 @@ test_chunk(int i, int chunk, int npages, int* pages, int len,
 
 	nodiff_chunk_baseline = *baseline;
 	subchunk = (chunk + 19) / 20;
-	bzero(&changed[0], 20 * sizeof(int));
 	for (j = i, k = 0; j < i + chunk; j+=subchunk, k++) {
-		if (changed[k]) continue;
-
 		if (j + subchunk > i + chunk) subchunk = i + chunk - j;
 
 		t = remove_chunk(j, subchunk, npages, pages, 
@@ -546,10 +549,10 @@ test_chunk(int i, int chunk, int npages, int* pages, int len,
 		fprintf(stderr, "test_chunk(...): faster chunk: baseline=%G, t=%G, len=%d, chunk=%d, i=%d\n", *baseline, t, len, subchunk, j);
 		/**/
 
-		changed[k] = test_chunk(j, subchunk, npages, pages, len,
+		changed = test_chunk(j, subchunk, npages, pages, len,
 				     baseline, t, repetitions, state);
 
-		if (changed[k]) {
+		if (changed) {
 			modified = 1;
 		} else {
 			nodiff_chunk_baseline = t;
@@ -614,8 +617,10 @@ fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 		t = measure((npages - chunk + j + 1) * getpagesize(), 
 			    repetitions, &var, state);
 
-		if (0.995 * t <= chunk_baseline) {	
+		if (0.995 * t <= chunk_baseline) {
 			++j;	/* keep this page */
+			if (chunk >= npages && t < chunk_baseline)
+				chunk_baseline = t;
 			new_baseline = t;
 		} else {	
 			--k;	/* this page is probably no good */
@@ -627,7 +632,7 @@ fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 	/*
 	 * sort the "bad" pages by increasing latency
 	 */
-	fprintf(stderr, "\tbefore sort\n");
+	fprintf(stderr, "\tbefore sort: keeping %d of %d pages\n", j, chunk);
 	for (l = j; l < chunk; ++l) {
 		fprintf(stderr, "\t\tlatencies[%d] = %G\tpages[%d] = %d\n", l, latencies[l], i + l, pages[npages - chunk + l]);
 	}
@@ -667,7 +672,7 @@ fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 		 * try to keep pages ordered by increasing latency
 		 */
 		for (l = j; l < chunk; ++l) {
-			if (latencies[l] > t) {
+			if (t < latencies[l]) {
 				++swapped;
 				SWAP(pages[npages - 1], pageset[substitute]);
 				latencies[chunk - 1] = t;
@@ -685,15 +690,15 @@ fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 				/**/
 				fprintf(stderr, "\t\tj=%d, worst=%G\n", j, latencies[chunk - 1]);
 				/**/
-				if (0.995 * t <= chunk_baseline) {	
-					++j;	/* keep this page */
-					new_baseline = t;
-					/* XXX: should retest each page and 
-					 *      then sort pages again
-					 */
-				}
 				break;
 			}
+		}
+		if (0.995 * latencies[j] <= chunk_baseline) {
+			++j;	/* keep this page */
+			new_baseline = t;
+			/* XXX: should retest each page and 
+			 *      then sort pages again
+			 */
 		}
 	}
 				
@@ -734,3 +739,54 @@ fixup_chunk(int i, int chunk, int npages, int* pages, int len,
 	return swapped;
 }
 
+void
+check_memory(int size, struct mem_state* state)
+{
+	int	i, j, first_page, npages, nwords;
+	int	page, word_count, pagesize;
+	off_t	offset;
+	char	**p, **q;
+	char	**start;
+
+	pagesize = getpagesize();
+	npages = (size + pagesize - 1) / pagesize;
+	nwords = size / sizeof(char*);
+
+	/*
+	fprintf(stderr, "check_memory(%d, ...): entering, %d words\n", size, nwords);
+	/**/
+	word_count = 1;
+	first_page = 0;
+	start = (char**)(state->base + state->pages[0] + state->lines[0] + state->words[0]);
+	for (q = p = (char**)*start; p != start; ) {
+		word_count++;
+		offset = (unsigned long)p - (unsigned long)state->base;
+		page = offset - offset % pagesize;
+		for (j = first_page; j < npages; ++j) {
+			if (page == state->pages[j]) break;
+		}
+		if (j == npages) {
+			for (j = 0; j < first_page; ++j) {
+				if (page == state->pages[j]) break;
+			}
+			if (j == first_page) {
+				fprintf(stderr, 
+					"check_memory: bad memory reference for size %d\n", 
+					size);
+			}
+		}
+		first_page = j % npages;
+		p = (char**)*p;
+		if (word_count & 0x1) q == (char**)*q;
+		if (*p == *q) {
+			fprintf(stderr, "check_memory: unwanted memory cycle! page=%d\n", j);
+			return;
+		}
+	}
+	if (word_count != nwords) {
+		fprintf(stderr, "check_memory: wrong word count, expected %d, got %d\n", nwords, word_count);
+	}
+	/*
+	fprintf(stderr, "check_memory(%d, ...): exiting\n", size);
+	/**/
+}
