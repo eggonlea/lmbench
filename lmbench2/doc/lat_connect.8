@@ -19,9 +19,10 @@ an AF_INET (aka TCP/IP) socket to a remote server.  Care is take that the
 connection time does not include any other overhead, such as the
 \fIgethostbyname()\fP or remote port lookups since these add more overhead
 than the connection establishment itself.
-.LP
+.PP
 .B lat_connect
-has three forms of usage: as a server (-s), as a client (lat_connect localhost),
+has three forms of usage: as a server (-s), 
+as a client (lat_connect localhost),
 and as a shutdown (lat_connect -localhost).
 .SH OUTPUT
 The reported time is in microseconds per connection.

@@ -14,7 +14,7 @@ times how fast a page of a file can be faulted in.  The file is flushed from
 (local) memory by using the \f(CBmsync()\fP interface with the invalidate
 flag set.  (Note that NFS does not send this over the wire so this makes
 for a handy way to measure the cost of going across the wire.)
-.LP
+.PP
 The benchmark maps in the entire file and the access pages backwards using
 a stride of 256K kilobytes.
 .SH OUTPUT

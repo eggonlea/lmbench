@@ -13,23 +13,23 @@ number of processes of any reasonable size.
 The processes are connected in a ring of Unix pipes.  Each process
 reads a token from its pipe, possibly does some work, and then writes
 the token to the next process.
-.LP
+.PP
 Processes may vary in number.  Smaller numbers of processes result in
 faster context switches.  More than 20 processes is not supported.
-.LP
+.PP
 Processes may vary in size.  A size of zero is the baseline process that
 does nothing except pass the token on to the next process.  A process size
 of greater than zero means that the process does some work before passing
 on the token.  The work is simulated as the summing up of an array of the
 specified size.  The summing is an unrolled loop of about a 2.7 thousand
 instructions.  
-.LP
+.PP
 The effect is that both the data and the instruction cache
 get polluted by some amount before the token is passed on.  The data 
 cache gets polluted by approximately the process ``size''.  The instruction
 cache gets polluted by a constant amount, approximately 2.7
 thousand instructions.  
-.LP
+.PP
 The pollution of the caches results in larger context switching times for
 the larger processes.  This may be confusing because the benchmark takes
 pains to measure only the context switch time, not including the overhead
@@ -64,7 +64,7 @@ in micro second units.  The numbers below are for a SPARCstation 2.
 The numbers produced by this benchmark are somewhat inaccurate; they vary
 by about 10 to 15% from run to run.  A series of runs may be done and the
 lowest numbers reported.  The lower the number the more accurate the results.
-.LP
+.PP
 The reasons for the inaccuracies are possibly interaction between the 
 VM system and the processor caches.  It is possible that sometimes the
 benchmark processes are laid out in memory such that there are fewer 
