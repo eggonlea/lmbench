@@ -28,7 +28,7 @@ char	*id = "$Id$\n";
 #define	CHK(x)	if ((int)(x) == -1) { perror("x"); exit(1); }
 
 typedef struct _state {
-	int	nbytes;
+	size_t	nbytes;
 	char	filename[256];
 	int	fd;
 	int	clone;
@@ -43,12 +43,13 @@ void cleanup(void *cookie);
 
 int main(int ac, char **av)
 {
-	int	fd, nbytes;
+	int	fd;
 	struct	stat sbuf;
 	void	*buf;
 	int	parallel = 1;
 	int	warmup = 0;
 	int	repetitions = TRIES;
+	size_t	nbytes;
 	state_t	state;
 	int	c;
 	char	*usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> open2close|mmap_only <filename>";
@@ -161,7 +162,7 @@ void time_with_open(iter_t iterations, void *cookie)
 {
 	state_t *state    = (state_t *) cookie;
 	char 	*filename = state->filename;
-	int	nbytes    = state->nbytes;
+	size_t	nbytes    = state->nbytes;
 	int 	fd;
 	void	*p;
 
