@@ -134,8 +134,8 @@ doit(iter_t iterations, void *cookie)
 	int sock = state->sock;
 	int ret;
 
+	alarm(15);
 	while (iterations-- > 0) {
-		if (iterations % 100 == 0) alarm(15);
 		*(int*)state->buf = htonl(seq++);
 		if (send(sock, state->buf, state->msize, 0) != state->msize) {
 			perror("lat_udp client: send failed");
