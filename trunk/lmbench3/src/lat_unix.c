@@ -15,46 +15,66 @@
 char	*id = "$Id$\n";
 #include "bench.h"
 
-void	client(int sock);
-void	server(int sock);
+struct _state {
+	int	sv[2];
+	int	pid;
+};
+void	initialize(void* cookie);
+void	benchmark(uint64 iterations, void* cookie);
+void	cleanup(void* cookie);
 
 int
 main(int ac, char **av)
 {
-	int	sv[2];
+	struct _state state;
 
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
-		perror("socketpair");
-	}
-	if (fork() == 0) {
-		BENCH(client(sv[1]), MEDIUM);
-		micro("AF_UNIX sock stream latency", get_n());
-		kill(getppid(), SIGTERM);
-	} else {
-		server(sv[0]);
-	}
+	benchmp(initialize, benchmark, cleanup, 0, 1, &state);
+	micro("AF_UNIX sock stream latency", get_n());
 	return(0);
 }
 
-void
-client(int sock)
+void initialize(void* cookie)
 {
+	struct _state* pState = (struct _state*)cookie;
 	char    c;
-
-	write(sock, &c, 1);
-	read(sock, &c, 1);
-}
-
-void
-server(int sock)
-{
-	char    c;
-	int	n = 0;
 	void	exit();
 
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, pState->sv) == -1) {
+		perror("socketpair");
+	}
+
+	if (pState->pid = fork())
+		return;
+
+	/* Child sits and ping-pongs packets back to parent */
 	signal(SIGTERM, exit);
-	while (read(sock, &c, 1) == 1) {
-		write(sock, &c, 1);
-		n++;
+	while (read(pState->sv[0], &c, 1) == 1) {
+		write(pState->sv[0], &c, 1);
+	}
+	exit(0);
+}
+
+void benchmark(uint64 iterations, void* cookie)
+{
+	struct _state* pState = (struct _state*)cookie;
+
+	while (iterations-- > 0) {
+		char    c;
+
+		if (write(pState->sv[1], &c, 1) != 1
+		    || read(pState->sv[1], &c, 1) != 1) {
+			/* error handling: how do we signal failure? */
+			cleanup(cookie);
+			exit(0);
+		}
 	}
 }
+
+void cleanup(void* cookie)
+{
+	struct _state* pState = (struct _state*)cookie;
+
+	kill(pState->pid, SIGTERM);
+	wait(0);
+}
+
