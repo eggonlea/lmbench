@@ -91,7 +91,7 @@ int main(int ac, char **av)
 	state.server = av[optind++];
 
 	if (state.msize == 0 && state.move == 0) {
-		state.msize = state.move = 10 * 1024 * 1024;
+		state.msize = state.move = XFERSIZE;
 	} else if (state.msize == 0) {
 		state.msize = state.move;
 	} else if (state.move == 0) {
@@ -110,7 +110,7 @@ int main(int ac, char **av)
 	 * connections.
 	 */
 	benchmp(initialize, loop_transfer, cleanup, 
-		SHORT, parallel, SHORT + warmup, repetitions, &state );
+		0, parallel, LONGER + warmup, repetitions, &state);
 	if (gettime() > 0) {
 		fprintf(stderr, "%.6f ", state.msize / (1000. * 1000.));
 		mb(state.move * get_n() * parallel);
@@ -131,12 +131,12 @@ initialize(void *cookie)
 	}
 	touch(state->buf, state->msize);
 
-	state->sock = tcp_connect(state->server, TCP_DATA, SOCKOPT_READ);
+	state->sock = tcp_connect(state->server, TCP_DATA, SOCKOPT_READ|SOCKOPT_WRITE|SOCKOPT_REUSE);
 	if (state->sock < 0) {
 		perror("socket connection");
 		exit(1);
 	}
-	sprintf(buf, "%llu", state->msize);
+	sprintf(buf, "%lu", state->msize);
 	if (write(state->sock, buf, strlen(buf) + 1) != strlen(buf) + 1) {
 		perror("control write");
 		exit(1);
@@ -213,6 +213,7 @@ void server_main()
 void source(int data)
 {
 	size_t	count, m;
+	unsigned long	nbytes;
 	char	*buf, scratch[100];
 
 	/*
@@ -223,7 +224,8 @@ void source(int data)
 		perror("control nbytes");
 		exit(7);
 	}
-	sscanf(scratch, "%llu", &m);
+	sscanf(scratch, "%lu", &nbytes);
+	m = nbytes;
 
 	/*
 	 * A hack to allow turning off the absorb daemon.
