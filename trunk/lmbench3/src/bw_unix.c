@@ -31,17 +31,6 @@ struct _state {
 	int	initerr;
 };
 
-struct _state* pGlobalState;
-
-void
-sigterm_handler(int n)
-{
-	if (pGlobalState->pid) {
-		kill(SIGKILL, pGlobalState->pid);
-	}
-	exit(0);
-}
-
 void 
 initialize(iter_t iterations, void* cookie)
 {
@@ -64,6 +53,8 @@ initialize(iter_t iterations, void* cookie)
 	}
 	switch (state->pid = fork()) {
 	    case 0:
+		close(state->control[1]);
+		close(state->pipes[0]);
 		writer(state->control[0], state->pipes[1], state->buf, state);
 		return;
 		/*NOTREACHED*/
@@ -77,6 +68,8 @@ initialize(iter_t iterations, void* cookie)
 	    default:
 		break;
 	}
+	close(state->control[0]);
+	close(state->pipes[1]);
 }
 void 
 cleanup(iter_t iterations, void*  cookie)
@@ -85,10 +78,12 @@ cleanup(iter_t iterations, void*  cookie)
 
 	if (iterations) return;
 
-	signal(SIGCHLD,SIG_IGN);
 	close(state->control[1]);
 	close(state->pipes[0]);
-	kill(state->pid, SIGKILL);
+	if (state->pid > 0) {
+		kill(state->pid, SIGKILL);
+		waitpid(state->pid, NULL, 0);
+	}
 	state->pid = 0;
 }
 
@@ -173,8 +168,6 @@ main(int argc, char *argv[])
 	}
 
 	state.pid = 0;
-	pGlobalState = &state;
-	signal(SIGTERM, sigterm_handler);
 
 	/* round up total byte count to a multiple of xfer */
 	if (state.bytes % state.xfer) {
