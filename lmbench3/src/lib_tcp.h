@@ -10,6 +10,3 @@ int	tcp_accept(int sock, int rdwr);
 int	tcp_connect(char *host, int prog, int rdwr);
 void	sock_optimize(int sock, int rdwr);
 int	sockport(int s);
-u_short	pmap_getport(struct sockaddr_in *addr, u_long prognum, u_long versnum, u_int protocol);
-bool_t	pmap_set(u_long prognum, u_long versnum, u_long protocol, u_short port);
-bool_t	pmap_unset(u_long prognum, u_long versnum);

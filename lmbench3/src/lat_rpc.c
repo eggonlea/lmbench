@@ -197,8 +197,6 @@ rpc_xact_1(msg, transp)
 }
 
 static void xact_prog_1();
-bool_t	pmap_set(u_long prognum, u_long versnum, u_long protocol, u_short port);
-bool_t	pmap_unset(u_long prognum, u_long versnum);
 
 void
 server_main()
