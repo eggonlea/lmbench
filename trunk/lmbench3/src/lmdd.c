@@ -257,7 +257,7 @@ main(int ac, char **av)
 #endif
 	touch = getarg("touch=", ac, av) != -1;
 	hash = getarg("hash=", ac, av) != (uint64)-1;
-	Label = (char *)(int)getarg("label=", ac, av);
+	Label = (char *)getarg("label=", ac, av);
 	count = getarg("count=", ac, av);
 	size = getarg("move=", ac, av);
 	if (size != (uint64)-1)
@@ -664,7 +664,7 @@ done(void)
 	if (hash || poff) {
 		fprintf(stderr, "\n");
 	}
-	if ((int)Label != -1) {
+	if ((long)Label != -1) {
 		fprintf(stderr, "%s", Label);
 	}
 	int_count <<= 2;
@@ -752,7 +752,7 @@ getarg(char *s, int ac, char **av)
 			}
 
 			if (!strncmp(av[i], "label", 5)) {
-				return (uint64)(int)(&av[i][len]); /* HACK */
+				return (uint64)(long)(&av[i][len]); /* HACK */
 			}
 			if (!strncmp(av[i], "bs=", 3)) {
 				return (uint64)(bs);
