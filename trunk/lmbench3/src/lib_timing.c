@@ -30,7 +30,7 @@ static	void	init_timing(void);
 #include <sys/mman.h>
 #endif
 
-#if !defined(hpux) && !defined(__hpux)
+#if !defined(hpux) && !defined(__hpux) && !defined(WIN32)
 #define RUSAGE
 #endif
 #ifdef	RUSAGE
@@ -374,7 +374,7 @@ tvdelta(struct timeval *start, struct timeval *stop)
 	usecs = td.tv_sec;
 	usecs *= 1000000;
 	usecs += td.tv_usec;
-	return (usecs);
+	return usecs;
 }
 
 void
@@ -382,8 +382,15 @@ tvsub(struct timeval * tdiff, struct timeval * t1, struct timeval * t0)
 {
 	tdiff->tv_sec = t1->tv_sec - t0->tv_sec;
 	tdiff->tv_usec = t1->tv_usec - t0->tv_usec;
-	if (tdiff->tv_usec < 0)
-		tdiff->tv_sec--, tdiff->tv_usec += 1000000;
+	while (tdiff->tv_usec < 0 && tdiff->tv_sec > 0) {
+		tdiff->tv_sec--;
+		tdiff->tv_usec += 1000000;
+	}
+	/* time shouldn't go backwards!!! */
+	if (tdiff->tv_usec < 0 || t1->tv_sec < t0->tv_sec) {
+		tdiff->tv_sec = 0;
+		tdiff->tv_usec = 0;
+	}
 }
 
 uint64
@@ -534,8 +541,13 @@ save_results(result_t *r)
 void
 save_minimum()
 {
-	save_n(results.n[results.N - 1]);
-	settime(results.u[results.N - 1]);
+	if (results.N == 0) {
+		save_n(1);
+		settime(0);
+	} else {
+		save_n(results.n[results.N - 1]);
+		settime(results.u[results.N - 1]);
+	}
 }
 
 void
@@ -544,7 +556,10 @@ save_median()
 	int	i = results.N / 2;
 	uint64	u, n;
 
-	if (results.N % 2) {
+	if (results.N == 0) {
+		n = 1;
+		u = 0;
+	} else if (results.N % 2) {
 		n = results.n[i];
 		u = results.u[i];
 	} else {
@@ -595,9 +610,11 @@ l_overhead(void)
 		insertinit(&two);
 		for (i = 0; i < TRIES; ++i) {
 			use_pointer((void*)one_op(p));
-			insertsort(gettime() - t_overhead(), get_n(), &one);
+			if (gettime() > 0 && gettime() > t_overhead())
+				insertsort(gettime() - t_overhead(), get_n(), &one);
 			use_pointer((void *)two_op(p, q));
-			insertsort(gettime() - t_overhead(), get_n(), &two);
+			if (gettime() > 0 && gettime() > t_overhead())
+				insertsort(gettime() - t_overhead(), get_n(), &two);
 		}
 		/*
 		 * u1 = (n1 * (overhead + work))
@@ -644,7 +661,8 @@ t_overhead(void)
 		insertinit(&r);
 		for (i = 0; i < TRIES; ++i) {
 			BENCH_INNER(gettimeofday(&tv, 0), 0);
-			insertsort(gettime(), get_n(), &r);
+			if (gettime() > 0) 
+				insertsort(gettime(), get_n(), &r);
 		}
 		save_results(&r);
 		save_minimum();
@@ -695,10 +713,10 @@ enough_duration(register long N, register TYPE ** p)
 	return p;
 }
 
-static int
-duration(int N)
+static uint64
+duration(long N)
 {
-	int     usecs;
+	uint64	usecs;
 	TYPE   *x = (TYPE *)&x;
 	TYPE  **p = (TYPE **)&x;
 
@@ -712,15 +730,18 @@ duration(int N)
 /*
  * find the minimum time that work "N" takes in "tries" tests
  */
-static int
+static uint64
 time_N(long N)
 {
 	int     i;
+	uint64	usecs;
 	result_t r;
 
 	insertinit(&r);
 	for (i = 1; i < TRIES; ++i) {
-		insertsort(duration(N), N, &r);
+		usecs = duration(N);
+		if (usecs > 0)
+			insertsort(usecs, N, &r);
 	}
 	save_results(&r);
 	save_minimum();
@@ -730,12 +751,12 @@ time_N(long N)
 /*
  * return the amount of work needed to run "enough" microseconds
  */
-static int
+static long
 find_N(int enough)
 {
-	int	tries;
-	static int N = 10000;
-	static int usecs = 0;
+	int		tries;
+	static long	N = 10000;
+	static uint64	usecs = 0;
 
 	if (!usecs) usecs = time_N(N);
 
@@ -763,7 +784,9 @@ static double test_points[] = {1.015, 1.02, 1.035};
 static int
 test_time(int enough)
 {
-	int     i, N, usecs, expected, baseline;
+	int     i;
+	long	N;
+	uint64	usecs, expected, baseline;
 
 	if ((N = find_N(enough)) <= 0)
 		return 0;
@@ -772,7 +795,7 @@ test_time(int enough)
 
 	for (i = 0; i < sizeof(test_points) / sizeof(double); ++i) {
 		usecs = time_N((int)((double) N * test_points[i]));
-		expected = (int)((double)baseline * test_points[i]);
+		expected = (uint64)((double)baseline * test_points[i]);
 		if (ABS(expected - usecs) / (double)expected > 0.0025)
 			return 0;
 	}
@@ -839,5 +862,76 @@ int
 getpagesize()
 {
 	return sysconf(_SC_PAGE_SIZE);
+}
+#endif
+
+#ifdef WIN32
+int
+getpagesize()
+{
+	SYSTEM_INFO s;
+
+	GetSystemInfo(&s);
+	return (int)s.dwPageSize;
+}
+
+LARGE_INTEGER
+getFILETIMEoffset()
+{
+	SYSTEMTIME s;
+	FILETIME f;
+	LARGE_INTEGER t;
+
+	s.wYear = 1970;
+	s.wMonth = 1;
+	s.wDay = 1;
+	s.wHour = 0;
+	s.wMinute = 0;
+	s.wSecond = 0;
+	s.wMilliseconds = 0;
+	SystemTimeToFileTime(&s, &f);
+	t.QuadPart = f.dwHighDateTime;
+	t.QuadPart <<= 32;
+	t.QuadPart |= f.dwLowDateTime;
+	return t;
+}
+
+int
+gettimeofday(struct timeval *tv, struct timezone *tz)
+{
+	LARGE_INTEGER			t;
+	FILETIME			f;
+	double					microseconds;
+	static LARGE_INTEGER	offset;
+	static double			frequencyToMicroseconds;
+	static int				initialized = 0;
+	static BOOL				usePerformanceCounter = 0;
+
+	if (!initialized) {
+		LARGE_INTEGER performanceFrequency;
+		initialized = 1;
+		usePerformanceCounter = QueryPerformanceFrequency(&performanceFrequency);
+		if (usePerformanceCounter) {
+			QueryPerformanceCounter(&offset);
+			frequencyToMicroseconds = (double)performanceFrequency.QuadPart / 1000000.;
+		} else {
+			offset = getFILETIMEoffset();
+			frequencyToMicroseconds = 10.;
+		}
+	}
+	if (usePerformanceCounter) QueryPerformanceCounter(&t);
+	else {
+		GetSystemTimeAsFileTime(&f);
+		t.QuadPart = f.dwHighDateTime;
+		t.QuadPart <<= 32;
+		t.QuadPart |= f.dwLowDateTime;
+	}
+
+	t.QuadPart -= offset.QuadPart;
+	microseconds = (double)t.QuadPart / frequencyToMicroseconds;
+	t.QuadPart = microseconds;
+	tv->tv_sec = t.QuadPart / 1000000;
+	tv->tv_usec = t.QuadPart % 1000000;
+	return 0;
 }
 #endif
