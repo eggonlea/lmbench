@@ -266,10 +266,12 @@ done
 ############################################################################
 echo $L
 
-if [ -x /bin/remsh ]
-then	RSH=remsh
-else	RSH=rsh
-fi
+RSH=rsh
+for p in `echo $PATH | sed 's/:/ /g'`
+do	if [ -f $p/remsh ]
+	then	RSH=remsh
+	fi
+done
 RCP=rcp
 
 cat<<EOF;
