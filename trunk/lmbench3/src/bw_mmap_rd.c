@@ -31,12 +31,14 @@ typedef struct _state {
 	int	nbytes;
 	char	filename[256];
 	int	fd;
+	int	clone;
 	TYPE	*buf;
 	TYPE	*lastone;
 } state_t;
 
 void time_no_open(iter_t iterations, void * cookie);
 void time_with_open(iter_t iterations, void * cookie);
+void initialize(void *cookie);
 void init_open(void *cookie);
 void cleanup(void *cookie);
 
@@ -52,7 +54,9 @@ int main(int ac, char **av)
 	int	c;
 	char	*usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> open2close|mmap_only <filename>";
 
-	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
+	state.clone = 0;
+
+	while (( c = getopt(ac, av, "P:W:N:C")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
@@ -63,6 +67,9 @@ int main(int ac, char **av)
 			break;
 		case 'N':
 			repetitions = atoi(optarg);
+			break;
+		case 'C':
+			state.clone = 1;
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -84,7 +91,7 @@ int main(int ac, char **av)
 	}
 
 	if (!strcmp("open2close", av[optind+1])) {
-		benchmp(NULL, time_with_open, NULL,
+		benchmp(initialize, time_with_open, cleanup,
 			0, parallel, warmup, repetitions, &state);
 	} else if (!strcmp("mmap_only", av[optind+1])) {
 		benchmp(init_open, time_no_open, cleanup,
@@ -96,23 +103,54 @@ int main(int ac, char **av)
 	return (0);
 }
 
-void init_open(void *cookie)
+void
+initialize(void* cookie)
+{
+	state_t	*state = (state_t *) cookie;
+
+	state->fd = -1;
+	state->buf = NULL;
+
+	if (state->clone) {
+		char buf[8192];
+		char* s;
+
+		/* copy original file into a process-specific one */
+		sprintf(buf, "%d", (int)getpid());
+		s = (char*)malloc(strlen(state->filename) + strlen(buf) + 1);
+		sprintf(s, "%s%d", state->filename, (int)getpid());
+		if (cp(state->filename, s, S_IREAD|S_IWRITE) < 0) {
+			perror("creating private tempfile");
+			unlink(s);
+			exit(1);
+		}
+		strcpy(state->filename, s);
+	}
+}
+
+void
+init_open(void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 
+	initialize(cookie);
 	CHK(state->fd = open(state->filename, 0));
 	CHK(state->buf = (TYPE*)mmap(0, state->nbytes, PROT_READ,
 				     MMAP_FLAGS, state->fd, 0));
 	state->lastone = (TYPE*)((char*)state->buf + state->nbytes - MINSZ);
 }
-void cleanup(void *cookie)
+
+void
+cleanup(void *cookie)
 {
 	state_t *state = (state_t *) cookie;
-	munmap((void*)state->buf, state->nbytes);
-	close(state->fd);
+	if (state->buf) munmap((void*)state->buf, state->nbytes);
+	if (state->fd >= 0) close(state->fd);
+	if (state->clone) unlink(state->filename);
 }
 
-int doit(register TYPE *p, register TYPE *lastone)
+int
+doit(register TYPE *p, register TYPE *lastone)
 {
 	register int sum = 0;
 	while (p <= lastone) {

@@ -21,6 +21,7 @@ typedef struct _state {
 	int size;
 	int npages;
 	int page;
+	int clone;
 	char* file;
 	char* where;
 	char** pages;
@@ -42,14 +43,11 @@ main(int ac, char **av)
 	char buf[2048];
 	char* usage = "[-W <warmup>] [-N <repetitions>] file\n";
 
-	while (( c = getopt(ac, av, "W:N:")) != EOF) {
+	state.clone = 0;
+
+	while (( c = getopt(ac, av, "P:W:N:C")) != EOF) {
 		switch(c) {
 		case 'P':
-			/*
-			 * don't allow this for now.  Not sure how to
-			 * manage parallel processes to ensure that they
-			 * each have to pagefault on each page access
-			 */
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
 			break;
@@ -58,6 +56,9 @@ main(int ac, char **av)
 			break;
 		case 'N':
 			repetitions = atoi(optarg);
+			break;
+		case 'C':
+			state.clone = 1;
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -85,7 +86,23 @@ initialize(void* cookie)
 	struct stat 	sbuf;
 	state_t 	*state = (state_t *) cookie;
 
+	if (state->clone) {
+		char buf[128];
+		char* s;
+
+		/* copy original file into a process-specific one */
+		sprintf(buf, "%d", (int)getpid());
+		s = (char*)malloc(strlen(state->file) + strlen(buf) + 1);
+		sprintf(s, "%s%d", state->file, (int)getpid());
+		if (cp(state->file, s, S_IREAD|S_IWRITE) < 0) {
+			perror("Could not copy file");
+			unlink(s);
+			exit(1);
+		}
+		state->file = s;
+	}
 	CHK(state->fd = open(state->file, 0));
+	if (state->clone) unlink(state->file);
 	CHK(fstat(state->fd, &sbuf));
 
 	srand(getpid());
@@ -133,6 +150,7 @@ cleanup(void* cookie)
 	state_t *state = (state_t *) cookie;
 
 	munmap(state->where, state->size);
+	if (state->fd >= 0) close(state->fd);
 	free(state->pages);
 }
 
