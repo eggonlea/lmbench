@@ -259,6 +259,15 @@ done
 # Remote networking
 ############################################################################
 echo $L
+
+RSH=rsh
+for p in `echo $PATH | sed 's/:/ /g'`
+do	if [ -f $p/remsh ]
+	then	RSH=remsh
+	fi
+done
+RCP=rcp
+
 cat<<EOF;
 
 If you are running on an idle network and there are other, identically
@@ -274,10 +283,31 @@ read REMOTE
 if [ "X$REMOTE" != X ]
 then	cat<<EOF;
 
-Thanks for doing remote testing, that is a hard thing to get.  Could you
-do me one more favor and tell me the networking you think will be used
-to get to each of the remote hosts.  By networking I mean one of the
-following (or whatever you use if you use something else):
+Thanks for doing remote testing, that is a hard thing to get.  In 
+order to run a server on the remote system, we need a remote shell 
+to be enabled (ideally without a password) from this host to $REMOTE.  
+The original remote shell is rsh, but the use of a secure remote shell 
+like ssh is increasingly common.  We need the name of BOTH the shell 
+itself and the associated copy tool (e.g. rcp vs scp) to be entered.
+
+EOF
+	echo $ECHON "RSH [default $RSH] $ECHOC"
+	read rsh
+	if [ -n "$rsh" ]
+	then	RSH=$rsh
+	fi
+	echo $ECHON "RCP [default $RCP] $ECHOC"
+	read rcp
+	if [ -n "$rsh" ]
+	then	RCP=$rcp
+	fi
+
+	cat<<EOF;
+
+Could you do me one more favor and tell me the networking you think 
+will be used to get to each of the remote hosts.  By networking I 
+mean one of the following (or whatever you use if you use something 
+else):
 
 ethernet		aka 10baseT, thinnet, thicknet, etc
 ethernet-100		aka 100baseT, 100VG
@@ -423,7 +453,7 @@ fi
 
 echo $L
 echo ""
-echo "Confguration done, thanks."
+echo "Configuration done, thanks."
 cat <<EOF
 
 There is a mailing list for discussing lmbench hosted at BitMover. 
@@ -453,6 +483,8 @@ echo REMOTE=\"$REMOTE\" >> $C
 echo SLOWFS=\"$SLOWFS\" >> $C
 echo SYNC_MAX=\"$SYNC_MAX\" >> $C
 echo TIMING_O=$TIMING_O >> $C
+echo RSH=$RSH >> $C
+echo RCP=$RCP >> $C
 echo VERSION=$VERSION >> $C
 
 exit 0
