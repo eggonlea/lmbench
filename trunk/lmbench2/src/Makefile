@@ -112,13 +112,24 @@ install-target:
 
 
 # No special handling for all these
-all: $(EXES)
+all: $(EXES) bk.ver
 
 Wall:
 	@env CFLAGS="-Wall -ansi" ../scripts/build
 
 debug:
 	@env CFLAGS=-g ../scripts/build
+
+bk.ver: ../SCCS/s.ChangeSet
+	echo  `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` > bk.ver
+
+dist:
+	@if [ "X`cd ..; bk sfiles -c`" != "X" ]; then echo "modified files!"; false; fi
+	@if [ "X`cd ..; bk pending`" != "X" ]; then echo "pending changes!"; false; fi
+	rm -rf ../bin/* bk.ver
+	cd ..; bk clean
+	cd ..; for d in doc results scripts src; do bk get; done
+	make bk.ver
 
 get $(SRCS):
 	get -s $(SRCS)
@@ -127,7 +138,7 @@ edit get-e:
 	get -e -s $(SRCS)
 
 clean:
-	/bin/rm -f ../bin/*/CONFIG ../bin/*/*.[oa]
+	/bin/rm -f ../bin/*/CONFIG.* ../bin/*/*.[oa]
 	-bk clean
 
 clobber:
