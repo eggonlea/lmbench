@@ -79,11 +79,6 @@ max_parallelism(bench_f* benchmarks,
 #define REPEAT_14(m)	REPEAT_13(m) m(14)
 #define REPEAT_15(m)	REPEAT_14(m) m(15)
 
-#define BODY(N)		p##N = (char**)*p##N;
-#define DECLARE(N)	static char **sp##N; register char **p##N;
-#define INIT(N)		p##N = (addr_save==state->addr) ? sp##N : (char**)state->p[N];
-#define SAVE(N)		sp##N = p##N;
-
 #define BENCHMARK(benchmark,N,repeat)					\
 void benchmark##_##N(iter_t iterations, void *cookie) 			\
 {									\
@@ -93,6 +88,7 @@ void benchmark##_##N(iter_t iterations, void *cookie) 			\
 									\
 	repeat(INIT);							\
 	while (i-- > 0) {						\
+		repeat(PREAMBLE);					\
 		TEN(repeat(BODY));					\
 	}								\
 									\
@@ -139,160 +135,192 @@ void benchmark##_##N(iter_t iterations, void *cookie) 			\
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
-#define BODY(N)		r##N ^= i; r##N<<=1;
-#define DECLARE(N)	register int r##N;
-#define INIT(N)		r##N = state->int_data[N];
+#define BODY(N)		r##N ^= s##N; s##N ^= r##N;
+#define DECLARE(N)	register int r##N, s##N;
+#define INIT(N)		r##N = state->int_data[N] + 1; s##N = (N+1) + r##N;
+#define PREAMBLE(N)	
 #define SAVE(N)		use_int((int)r##N);
 PARALLEL_BENCHMARKS(integer_bit)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
 #define BODY(N)		a##N += b##N; b##N -= a##N;
 #define DECLARE(N)	register int a##N, b##N;
 #define INIT(N)		b##N = a##N = state->int_data[N];
+#define PREAMBLE(N)
 #define SAVE(N)		use_int(a##N + b##N);
 PARALLEL_BENCHMARKS(integer_add)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
-#define BODY(N)		r##N = (r##N * i) ^ r##N;
-#define DECLARE(N)	register int r##N;
-#define INIT(N)		r##N = state->int_data[N];
+#define BODY(N)		r##N = (r##N * s##N);
+#define DECLARE(N)	register int r##N, s##N;
+#define INIT(N)		r##N = state->int_data[N]; s##N = (N+1) ^ r##N;
+#define PREAMBLE(N)	
 #define SAVE(N)		use_int((int)r##N);
 PARALLEL_BENCHMARKS(integer_mul)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
-#define BODY(N)		r##N = (i / r##N) ^ r##N;
-#define DECLARE(N)	register int r##N;
-#define INIT(N)		r##N = state->int_data[N];
+#define BODY(N)		r##N = (s##N / r##N);
+#define DECLARE(N)	register int r##N, s##N;
+#define INIT(N)		r##N = state->int_data[N] + 1; s##N = (N+1)<<20;
+#define PREAMBLE(N)	
 #define SAVE(N)		use_int((int)r##N);
 PARALLEL_BENCHMARKS(integer_div)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
-#define BODY(N)		r##N = (i % r##N) ^ r##N;
-#define DECLARE(N)	register int r##N;
-#define INIT(N)		r##N = state->int_data[N];
+#define BODY(N)		r##N = (s##N % r##N) | r##N;
+#define DECLARE(N)	register int r##N, s##N;
+#define INIT(N)		r##N = state->int_data[N] + 1; s##N = 0;
+#define PREAMBLE(N)	s##N++;	
 #define SAVE(N)		use_int((int)r##N);
 PARALLEL_BENCHMARKS(integer_mod)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
-#define BODY(N)		r##N ^= i; r##N<<=1;
-#define DECLARE(N)	register int64 r##N;
-#define INIT(N)		r##N = (int64)state->int_data[N];
+#define BODY(N)		r##N ^= s##N; s##N ^= r##N;
+#define DECLARE(N)	register int64 r##N, s##N;
+#define INIT(N)		r##N = (int64)state->int_data[N] + 1; s##N = (N+1) + r##N;
+#define PREAMBLE(N)	
 #define SAVE(N)		use_int((int)r##N);
 PARALLEL_BENCHMARKS(int64_bit)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
 #define BODY(N)		a##N += b##N; b##N -= a##N;
 #define DECLARE(N)	register int64 a##N, b##N;
 #define INIT(N)		b##N = a##N = (int64)state->int_data[N];
+#define PREAMBLE(N)
 #define SAVE(N)		use_int((int)a##N + (int)b##N);
 PARALLEL_BENCHMARKS(int64_add)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
-#define BODY(N)		r##N = (r##N * i) ^ r##N;
-#define DECLARE(N)	register int64 r##N;
-#define INIT(N)		r##N = (int64)state->int_data[N];
+#define BODY(N)		r##N = (r##N * s##N);
+#define DECLARE(N)	register int64 r##N, s##N;
+#define INIT(N)		r##N = (int64)state->int_data[N]; s##N = (N+1) ^ r##N;
+#define PREAMBLE(N)	
 #define SAVE(N)		use_int((int)r##N);
 PARALLEL_BENCHMARKS(int64_mul)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
-#define BODY(N)		r##N = (i / r##N) ^ r##N;
-#define DECLARE(N)	register int64 r##N;
-#define INIT(N)		r##N = (int64)state->int_data[N];
+#define BODY(N)		r##N = (s##N / r##N);
+#define DECLARE(N)	register int64 r##N, s##N;
+#define INIT(N)		r##N = (int64)state->int_data[N] + 1; s##N = (N+1)<<20;
+#define PREAMBLE(N)	
 #define SAVE(N)		use_int((int)r##N);
 PARALLEL_BENCHMARKS(int64_div)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
-#define BODY(N)		r##N = (i % r##N) ^ r##N;
-#define DECLARE(N)	register int64 r##N;
-#define INIT(N)		r##N = (int64)state->int_data[N];
+#define BODY(N)		r##N = (s##N % r##N) ^ r##N;
+#define DECLARE(N)	register int64 r##N, s##N;
+#define INIT(N)		r##N = (int64)state->int_data[N]; s##N = 0;
+#define PREAMBLE(N)	s##N++;	
 #define SAVE(N)		use_int((int)r##N);
 PARALLEL_BENCHMARKS(int64_mod)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
 #define BODY(N)		r##N += r##N;
 #define DECLARE(N)	register float r##N;
 #define INIT(N)		r##N = (float)state->double_data[N] - 1.;
+#define PREAMBLE(N)
 #define SAVE(N)		use_int((int)r##N);
 PARALLEL_BENCHMARKS(float_add)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
 #define BODY(N)		r##N *= r##N;
 #define DECLARE(N)	register float r##N;
 #define INIT(N)		r##N = (float)state->double_data[N];
+#define PREAMBLE(N)
 #define SAVE(N)		use_int((int)r##N);
 PARALLEL_BENCHMARKS(float_mul)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
 #define BODY(N)		r##N = s##N / r##N;
 #define DECLARE(N)	register float r##N, s##N;
 #define INIT(N)		r##N = (float)state->double_data[N]; s##N = (float)state->int_data[N];
+#define PREAMBLE(N)
 #define SAVE(N)		use_int((int)r##N); use_int((int)s##N);
 PARALLEL_BENCHMARKS(float_div)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
 #define BODY(N)		r##N += r##N;
 #define DECLARE(N)	register double r##N;
 #define INIT(N)		r##N = state->double_data[N] - 1.;
+#define PREAMBLE(N)
 #define SAVE(N)		use_int((int)r##N);
 PARALLEL_BENCHMARKS(double_add)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
 #define BODY(N)		r##N *= r##N;
 #define DECLARE(N)	register double r##N;
 #define INIT(N)		r##N = state->double_data[N];
+#define PREAMBLE(N)
 #define SAVE(N)		use_int((int)r##N);
 PARALLEL_BENCHMARKS(double_mul)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
+#undef	PREAMBLE
 #undef	SAVE
 #define BODY(N)		r##N = s##N / r##N;
 #define DECLARE(N)	register double r##N, s##N;
 #define INIT(N)		r##N = state->double_data[N]; s##N = (double)state->int_data[N];
+#define PREAMBLE(N)
 #define SAVE(N)		use_int((int)r##N); use_int((int)s##N);
 PARALLEL_BENCHMARKS(double_div)
 
@@ -307,8 +335,8 @@ initialize(void* cookie)
 	state->double_data = (double*)malloc(MAX_LOAD_PARALLELISM * sizeof(double));
 
 	for (i = 0; i < MAX_LOAD_PARALLELISM; ++i) {
-		state->int_data[i] = (double)(rand() + 1);
-		state->double_data[i] = state->N;
+		state->int_data[i] = i+1;
+		state->double_data[i] = rand() + 1.;
 	}
 }
 
