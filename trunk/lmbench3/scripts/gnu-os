@@ -3,7 +3,7 @@
 #   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
 #   2000, 2001, 2002, 2003 Free Software Foundation, Inc.
 
-timestamp='2004-01-05'
+timestamp='2004-08-18'
 
 # This file is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -89,6 +89,13 @@ if test $# != 0; then
 fi
 
 trap 'exit 1' 1 2 15
+
+for t in /usr/tmp /var/tmp /tmp; do
+	if [ -d $t -a -w $t ]
+	then	TMPDIR=$t
+		break
+	fi
+done
 
 # CC_FOR_BUILD -- compiler used by this script. Note that the use of a
 # compiler to aid in system detection is discouraged as it requires
