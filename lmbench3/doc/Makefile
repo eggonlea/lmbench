@@ -15,7 +15,7 @@ MAN = \
 	lat_http.8 lat_tcp.8 lat_udp.8 lat_rpc.8 lat_connect.8 lat_fs.8	\
 	lat_ops.8 lat_pagefault.8 lat_mem_rd.8 lat_select.8		\
 	lat_fifo.8 lat_fcntl.8 lat_sig.8 lat_unix.8 lat_unix_connect.8	\
-	bw_file_rd.8 bw_mem.8 bw_mem_wr.8 bw_mmap_rd.8			\
+	bw_file_rd.8 bw_mem.8 bw_mmap_rd.8				\
 	bw_pipe.8 bw_tcp.8 bw_unix.8 					\
 	par_ops.8 par_mem.8
 
@@ -38,6 +38,21 @@ text: $(ALL)
 	gsoelim usenix96.ms | sed "s/expand doublebox/center/" | \
 	sed s/doublebox// > Fixed.ms
 	groff -Tascii -t -e -s -p -R -mgs Fixed.ms 2>/dev/null | colcrt - | more
+
+memhier.ps: $(ALL) memhier-color.d memhier-tlb.d memhier-line.d references-memhier memhier.ms
+	gindxbib references-memhier
+	groff -G -t -e -s -p -R tmac.usenix memhier.ms > memhier.ps
+#	../scripts/graph -xm -logx -small -below -nomarks -nospace memhier-color.graph > memhier-color.pic
+#	../scripts/graph -xm -logx -small -below -nomarks -nospace memhier-line.graph > memhier-line.pic
+#	../scripts/graph -logx -small -below -nomarks -nospace memhier-tlb.graph > memhier-tlb.pic
+
+lmbench3.ps: $(ALL) references-lmbench3 lmbench3.ms
+	gindxbib references-lmbench3
+	groff -t -e -s -p -R tmac.usenix lmbench3.ms > lmbench3.ps
+
+parallel.ps: $(ALL) references-parallel parallel.ms
+	gindxbib references-parallel
+	groff -t -e -s -p -R tmac.usenix parallel.ms > parallel.ps
 
 install: $(MAN)
 	for f in $(MAN); do \
