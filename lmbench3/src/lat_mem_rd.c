@@ -87,7 +87,7 @@ void
 benchmark_loads(iter_t iterations, void *cookie)
 {
 	struct mem_state* state = (struct mem_state*)cookie;
-	register char **p = (char**)state->addr;
+	register char **p = (char**)state->base;
 	register int i;
 	register int count = state->len / (state->line * 100) + 1;
 
