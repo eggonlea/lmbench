@@ -20,8 +20,8 @@ int	XFER	= 10*1024*1024;
 
 struct _state {
 	int	pid;
-	int	xfer;	/* bytes to read/write per "packet" */
-	int	bytes;	/* bytes to read/write in one iteration */
+	size_t	xfer;	/* bytes to read/write per "packet" */
+	size_t	bytes;	/* bytes to read/write in one iteration */
 	char	*buf;	/* buffer memory space */
 	int	pipes[2];
 	int	control[2];
@@ -32,8 +32,6 @@ void initialize(void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 
-	state->buf = valloc(state->xfer);
-	touch(state->buf, state->xfer);
 	state->initerr = 0;
 	if (pipe(state->pipes) == -1) {
 		perror("pipe");
@@ -49,6 +47,13 @@ void initialize(void *cookie)
 	    case 0:
 		close(state->control[1]);
 		close(state->pipes[0]);
+		state->buf = valloc(state->xfer);
+		if (state->buf == NULL) {
+			perror("child: no memory");
+			state->initerr = 4;
+			return;
+		}
+		touch(state->buf, state->xfer);
 		writer(state->control, state->pipes, state->buf, state);
 		return;
 		/*NOTREACHED*/
@@ -64,6 +69,14 @@ void initialize(void *cookie)
 		close(state->pipes[1]);
 		break;
 	}
+	state->buf = valloc(state->xfer + getpagesize());
+	if (state->buf == NULL) {
+		perror("parent: no memory");
+		state->initerr = 4;
+		return;
+	}
+	touch(state->buf, state->xfer + getpagesize());
+	state->buf += 128; /* destroy page alignment */
 }
 
 void cleanup(void * cookie)
