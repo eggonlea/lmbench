@@ -63,7 +63,7 @@ fi
 # Figure out as much stuff as we can about this system.
 # Sure would be nice if everyone had SGI's "hinv".
 echo \[lmbench3.0 results for `uname -a`] 1>&2
-echo \[LMBENCH_VER: `cat ../../src/bk.ver`] 1>&2
+echo \[LMBENCH_VER: <version>] 1>&2
 echo \[BENCHMARK_HARDWARE: ${BENCHMARK_HARDWARE}] 1>&2
 echo \[BENCHMARK_OS: ${BENCHMARK_OS}] 1>&2
 echo \[ALL: ${ALL}] 1>&2
