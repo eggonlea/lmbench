@@ -46,12 +46,12 @@ typedef struct _state {
 	double	overhead;
 	int	nbytes;
 	int	need_buf2;
-	int	isOverheadLoop;
 	int	aligned;
 	TYPE	*buf;
 	TYPE	*buf2;
 	TYPE	*buf2_orig;
 	TYPE	*lastone;
+	int	N;
 } state_t;
 
 void	adjusted_bandwidth(uint64 t, uint64 b, uint64 iter, double ovrhd);
@@ -181,7 +181,8 @@ void init_overhead(void *cookie)
 {
 	state_t *state = (state_t *) cookie;
         state->buf = (TYPE *)valloc(state->nbytes);
-	state->lastone = (TYPE*)((char *)state->buf + state->nbytes - 512);
+	state->lastone = (TYPE*)state->buf - 1;
+	state->N = 0;
 	if (!state->buf) {
 		perror("malloc");
 		exit(1);
@@ -203,14 +204,14 @@ void init_overhead(void *cookie)
 			state->buf2 = (TYPE *)tmp;
 		}
 	}
-	state->isOverheadLoop = 1;
 }
 
 void init_loop(void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	init_overhead(state);
-	state->isOverheadLoop = 0;
+	state->lastone = (TYPE*)((char *)state->buf + state->nbytes - 512);
+	state->N = state->nbytes;
 }
 
 void cleanup(void *cookie)
@@ -228,9 +229,6 @@ rd(uint64 iterations, void *cookie)
 	state_t *state = (state_t *) cookie;
 	register TYPE *lastone = state->lastone;
 	register int sum = 0;
-
-	if (state->isOverheadLoop == 1)
-		lastone = state->buf - 1;
 
 	while (iterations-- > 0) {
 	    register TYPE *p = state->buf;
@@ -255,8 +253,6 @@ wr(uint64 iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *lastone = state->lastone;
-	if (state->isOverheadLoop == 1)
-		lastone = state->buf - 1;
 
 	while (iterations-- > 0) {
 	    register TYPE *p = state->buf;
@@ -280,9 +276,6 @@ rdwr(uint64 iterations, void *cookie)
 	register TYPE *lastone = state->lastone;
 	register int sum = 0;
 
-	if (state->isOverheadLoop == 1)
-		lastone = state->buf - 1;
-
 	while (iterations-- > 0) {
 	    register TYPE *p = state->buf;
 	    while (p <= lastone) {
@@ -304,14 +297,12 @@ cp(uint64 iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *lastone = state->lastone;
-
-	if (state->isOverheadLoop == 1)
-		lastone = state->buf - 1;
+	TYPE* p_save = NULL;
 
 	while (iterations-- > 0) {
 	    register TYPE *p = state->buf;
 	    register TYPE *dst = state->buf2;
-	    while (dst <= lastone) {
+	    while (p <= lastone) {
 #define	DOIT(i)	dst[i] = p[i];
 		DOIT(0) DOIT(4) DOIT(8) DOIT(12) DOIT(16) DOIT(20) DOIT(24)
 		DOIT(28) DOIT(32) DOIT(36) DOIT(40) DOIT(44) DOIT(48) DOIT(52)
@@ -321,7 +312,9 @@ cp(uint64 iterations, void *cookie)
 		p += 128;
 		dst += 128;
 	    }
+	    p_save = p;
 	}
+	use_pointer(p_save);
 }
 #undef	DOIT
 
@@ -330,8 +323,7 @@ fwr(uint64 iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *lastone = state->lastone;
-	if (state->isOverheadLoop == 1)
-		lastone = state->buf - 1;
+	TYPE* p_save = NULL;
 
 	while (iterations-- > 0) {
 	    register TYPE *p = state->buf;
@@ -361,7 +353,9 @@ fwr(uint64 iterations, void *cookie)
 		DOIT(123) DOIT(124) DOIT(125) DOIT(126) DOIT(127) 1;
 		p += 128;
 	    }
+	    p_save = p;
 	}
+	use_pointer(p_save);
 }
 #undef	DOIT
 
@@ -371,8 +365,6 @@ frd(uint64 iterations, void *cookie)
 	state_t *state = (state_t *) cookie;
 	register int sum = 0;
 	register TYPE *lastone = state->lastone;
-	if (state->isOverheadLoop == 1)
-		lastone = state->buf - 1;
 
 	while (iterations-- > 0) {
 	    register TYPE *p = state->buf;
@@ -413,13 +405,11 @@ fcp(uint64 iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *lastone = state->lastone;
-	if (state->isOverheadLoop == 1)
-		lastone = state->buf - 1;
 
 	while (iterations-- > 0) {
 	    register TYPE *p = state->buf;
 	    register TYPE *dst = state->buf2;
-	    while (dst <= lastone) {
+	    while (p <= lastone) {
 #define	DOIT(i)	dst[i]=p[i];
 		DOIT(0) DOIT(1) DOIT(2) DOIT(3) DOIT(4) DOIT(5) DOIT(6)
 		DOIT(7) DOIT(8) DOIT(9) DOIT(10) DOIT(11) DOIT(12)
@@ -455,11 +445,10 @@ loop_bzero(uint64 iterations, void *cookie)
 	state_t *state = (state_t *) cookie;
 	register TYPE *p = state->buf;
 	register TYPE *dst = state->buf2;
-	register int  nbytes = state->nbytes;
-	if (state->isOverheadLoop == 1)
-		nbytes = 1;
+	register int  N = state->N;
+
 	while (iterations-- > 0) {
-		bzero(p, nbytes);
+		bzero(p, N);
 	}
 }
 void
@@ -468,11 +457,10 @@ loop_bcopy(uint64 iterations, void *cookie)
 	state_t *state = (state_t *) cookie;
 	register TYPE *p = state->buf;
 	register TYPE *dst = state->buf2;
-	register int  nbytes = state->nbytes;
-	if (state->isOverheadLoop == 1)
-		nbytes = 1;
+	register int  N = state->N;
+
 	while (iterations-- > 0) {
-		bcopy(p,dst,nbytes);
+		bcopy(p,dst,N);
 	}
 }
 
@@ -482,22 +470,23 @@ loop_bcopy(uint64 iterations, void *cookie)
  */
 void adjusted_bandwidth(uint64 time, uint64 bytes, uint64 iter, double overhd)
 {
-#define MB	(1000 * 1000.0)
+#define MB	(1000. * 1000.)
 	extern FILE *ftiming;
-	double secs = time / 1000000.0;
+	double secs = ((double)time / (double)iter - overhd) / 1000000.0;
 	double mb;
 	
-	secs /= iter;
         mb = bytes / MB;
-	secs = secs - ( overhd / 1000000.0 );
+
+	if (secs <= 0.)
+		return;
 
         if (!ftiming) ftiming = stderr;
-	if (mb < 1) {
+	if (mb < 1.) {
 		(void) fprintf(ftiming, "%.6f ", mb);
 	} else {
 		(void) fprintf(ftiming, "%.2f ", mb);
 	}
-	if (mb / secs < 1) {
+	if (mb / secs < 1.) {
 		(void) fprintf(ftiming, "%.6f\n", mb/secs);
 	} else {
 		(void) fprintf(ftiming, "%.2f\n", mb/secs);
