@@ -337,7 +337,7 @@ initialize(void* cookie)
 
 	for (i = 0; i < MAX_LOAD_PARALLELISM; ++i) {
 		state->int_data[i] = i+1;
-		state->double_data[i] = rand() + 1.;
+		state->double_data[i] = 1.;
 	}
 }
 
