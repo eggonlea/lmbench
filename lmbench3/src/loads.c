@@ -17,6 +17,7 @@ char	*id = "$Id$\n";
 struct _state {
 	char*	addr;
 	char*	p[16];
+	int	width;
 	int	len;
 	int	line;
 	int	pagesize;
@@ -34,43 +35,60 @@ void cleanup(void* cookie);
 
 #define MAX_LOAD_PARALLELISM 16
 
-#define REPEAT(m) m(0) m(1) m(2) m(3) m(4) m(5) m(6) m(7) m(8) m(9) m(10) m(11) m(12) m(13) m(14) m(15)
-#define DEREF(N) p##N = (char**)*p##N
-#define DECLARE(N) static char **sp##N; register char **p##N;
-#define INIT(N) p##N = (addr_save==state->addr) ? sp##N : (char**)state->p[N];
-#define SAVE(N) sp##N = p##N;
-#define BENCHMARK(N,body) \
-void benchmark_##N(iter_t iterations, void *cookie) \
-{ \
-	struct _state* state = (struct _state*)cookie; \
-	static char *addr_save = NULL; \
-	REPEAT(DECLARE); \
-\
-	REPEAT(INIT); \
-	while (iterations-- > 0) { \
-		HUNDRED(body); \
-	} \
-\
-	REPEAT(SAVE); \
-	addr_save = state->addr; \
+#define REPEAT_0(m)	m(0)
+#define REPEAT_1(m)	REPEAT_0(m) m(1)
+#define REPEAT_2(m)	REPEAT_1(m) m(2)
+#define REPEAT_3(m)	REPEAT_2(m) m(3)
+#define REPEAT_4(m)	REPEAT_3(m) m(4)
+#define REPEAT_5(m)	REPEAT_4(m) m(5)
+#define REPEAT_6(m)	REPEAT_5(m) m(6)
+#define REPEAT_7(m)	REPEAT_6(m) m(7)
+#define REPEAT_8(m)	REPEAT_7(m) m(8)
+#define REPEAT_9(m)	REPEAT_8(m) m(9)
+#define REPEAT_10(m)	REPEAT_9(m) m(10)
+#define REPEAT_11(m)	REPEAT_10(m) m(11)
+#define REPEAT_12(m)	REPEAT_11(m) m(12)
+#define REPEAT_13(m)	REPEAT_12(m) m(13)
+#define REPEAT_14(m)	REPEAT_13(m) m(14)
+#define REPEAT_15(m)	REPEAT_14(m) m(15)
+
+#define DEREF(N)	p##N = (char**)*p##N;
+#define DECLARE(N)	static char **sp##N; register char **p##N;
+#define INIT(N)		p##N = (addr_save==state->addr) ? sp##N : (char**)state->p[N];
+#define SAVE(N)		sp##N = p##N;
+
+#define BENCHMARK(N,repeat,body) 					\
+void benchmark_##N(iter_t iterations, void *cookie) 			\
+{									\
+	struct _state* state = (struct _state*)cookie;			\
+	static char *addr_save = NULL;					\
+	repeat(DECLARE);						\
+									\
+	repeat(INIT);							\
+	while (iterations-- > 0) {					\
+		HUNDRED(repeat(body));					\
+	}								\
+									\
+	repeat(SAVE);							\
+	addr_save = state->addr;					\
 }
 
-BENCHMARK(0, DEREF(0);)
-BENCHMARK(1, DEREF(0); DEREF(8);)
-BENCHMARK(2, DEREF(0); DEREF(8); DEREF(4);)
-BENCHMARK(3, DEREF(0); DEREF(8); DEREF(4); DEREF(12);)
-BENCHMARK(4, DEREF(0); DEREF(8); DEREF(4); DEREF(12); DEREF(2);)
-BENCHMARK(5, DEREF(0); DEREF(8); DEREF(4); DEREF(12); DEREF(2); DEREF(10);)
-BENCHMARK(6, DEREF(0); DEREF(8); DEREF(4); DEREF(12); DEREF(2); DEREF(10); DEREF(6);)
-BENCHMARK(7, DEREF(0); DEREF(8); DEREF(4); DEREF(12); DEREF(2); DEREF(10); DEREF(6); DEREF(14);)
-BENCHMARK(8, DEREF(0); DEREF(8); DEREF(4); DEREF(12); DEREF(2); DEREF(10); DEREF(6); DEREF(14); DEREF(1);)
-BENCHMARK(9, DEREF(0); DEREF(8); DEREF(4); DEREF(12); DEREF(2); DEREF(10); DEREF(6); DEREF(14); DEREF(1); DEREF(11);)
-BENCHMARK(10, DEREF(0); DEREF(8); DEREF(4); DEREF(12); DEREF(2); DEREF(10); DEREF(6); DEREF(14); DEREF(1); DEREF(11); DEREF(3);)
-BENCHMARK(11, DEREF(0); DEREF(8); DEREF(4); DEREF(12); DEREF(2); DEREF(10); DEREF(6); DEREF(14); DEREF(1); DEREF(11); DEREF(3); DEREF(9);)
-BENCHMARK(12, DEREF(0); DEREF(8); DEREF(4); DEREF(12); DEREF(2); DEREF(10); DEREF(6); DEREF(14); DEREF(1); DEREF(11); DEREF(3); DEREF(9); DEREF(15);)
-BENCHMARK(13, DEREF(0); DEREF(8); DEREF(4); DEREF(12); DEREF(2); DEREF(10); DEREF(6); DEREF(14); DEREF(1); DEREF(11); DEREF(3); DEREF(9); DEREF(15); DEREF(5);)
-BENCHMARK(14, DEREF(0); DEREF(8); DEREF(4); DEREF(12); DEREF(2); DEREF(10); DEREF(6); DEREF(14); DEREF(1); DEREF(11); DEREF(3); DEREF(9); DEREF(15); DEREF(5); DEREF(13);)
-BENCHMARK(15, DEREF(0); DEREF(8); DEREF(4); DEREF(12); DEREF(2); DEREF(10); DEREF(6); DEREF(14); DEREF(1); DEREF(11); DEREF(3); DEREF(9); DEREF(15); DEREF(5); DEREF(13); DEREF(7);)
+BENCHMARK(0, REPEAT_0, DEREF)
+BENCHMARK(1, REPEAT_1, DEREF)
+BENCHMARK(2, REPEAT_2, DEREF)
+BENCHMARK(3, REPEAT_3, DEREF)
+BENCHMARK(4, REPEAT_4, DEREF)
+BENCHMARK(5, REPEAT_5, DEREF)
+BENCHMARK(6, REPEAT_6, DEREF)
+BENCHMARK(7, REPEAT_7, DEREF)
+BENCHMARK(8, REPEAT_8, DEREF)
+BENCHMARK(9, REPEAT_9, DEREF)
+BENCHMARK(10, REPEAT_10, DEREF)
+BENCHMARK(11, REPEAT_11, DEREF)
+BENCHMARK(12, REPEAT_12, DEREF)
+BENCHMARK(13, REPEAT_13, DEREF)
+BENCHMARK(14, REPEAT_14, DEREF)
+BENCHMARK(15, REPEAT_15, DEREF)
 
 bench_f benchmarks[] = {
 	benchmark_0,
@@ -155,9 +173,10 @@ main(int ac, char **av)
 
 		for (j = 0; j < TRIES; ++j) {
 			for (k = 0; k < MAX_LOAD_PARALLELISM; ++k) {
+				state.width = k + 1;
 				benchmp(initialize, benchmarks[k], cleanup, 
 					0, 1, warmup, repetitions, &state);
-				insertsort(gettime(), (k + 1) * get_n(), results[k]);
+				insertsort(gettime(), state.width * get_n(), results[k]);
 			}
 		}
 		set_results(results[0]);
@@ -173,7 +192,7 @@ main(int ac, char **av)
 			}
 		}
 
-		fprintf(stderr, "%.5f %.2f\n", 
+		fprintf(stderr, "%.6f %.2f\n", 
 			state.len / (1000. * 1000.), max_load_parallelism);
 
 		set_results(r_save);
@@ -282,8 +301,8 @@ initialize(void* cookie)
 	free(words);
 
 	for (p = state->p[0], i = 0; i < k; ++i) {
-		if (i % (k/MAX_LOAD_PARALLELISM) == 0) {
-			state->p[i / (k/MAX_LOAD_PARALLELISM)] = p;
+		if (i % (k/state->width) == 0) {
+			state->p[i / (k/state->width)] = p;
 		}
 		p = *(char**)p;
 	}
