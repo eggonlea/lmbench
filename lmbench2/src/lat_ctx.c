@@ -133,11 +133,11 @@ ctx(int procs, int nprocs)
 	for (i = 0; i < TRIPS; ++i) {
 		if (write(p[nprocs - procs][1], &msg, sizeof(msg)) !=
 		    sizeof(msg)) {
-			perror("read/write on pipe");
+			if (errno) perror("read/write on pipe");
 			exit(1);
 		}
 		if (read(p[nprocs-1][0], &msg, sizeof(msg)) != sizeof(msg)) {
-			perror("read/write on pipe");
+			if (errno) perror("read/write on pipe");
 			exit(1);
 		}
 		sum = sumit(process_size);
@@ -166,12 +166,12 @@ doit(int p[][2], int rd, int wr)
 	if (data) bzero((void*)data, process_size);	
 	for ( ;; ) {
 		if (read(p[rd][0], &msg, sizeof(msg)) != sizeof(msg)) {
-			perror("read/write on pipe");
+			if (errno) perror("read/write on pipe");
 			break;
 		}
 		sum = sumit(process_size);
 		if (write(p[wr][1], &msg, sizeof(msg)) != sizeof(msg)) {
-			perror("read/write on pipe");
+			if (errno) perror("read/write on pipe");
 			break;
 		}
 	}
@@ -188,11 +188,11 @@ doit_cost(int p[][2], int procs)
 
 	for (i = 0; i < TRIPS; ++i) {
 		if (write(p[k][1], &msg, sizeof(msg)) != sizeof(msg)) {
-			perror("read/write on pipe");
+			if (errno) perror("read/write on pipe");
 			exit(1);				
 		}
 		if (read(p[k][0], &msg, sizeof(msg)) != sizeof(msg)) {
-			perror("read/write on pipe");
+			if (errno) perror("read/write on pipe");
 			exit(1);
 		}
 		if (++k == procs) {
@@ -224,7 +224,7 @@ pipe_cost(int p[][2], int procs)
 int
 create_daemons(int p[][2], int pids[], int procs)
 {
-	int	i;
+	int	i, j;
 	int	msg;
 
 	/*
@@ -234,6 +234,7 @@ create_daemons(int p[][2], int pids[], int procs)
 	 * Do the sum in each process and get that time before moving on.
 	 */
 	signal(SIGTERM, SIG_IGN);
+	bzero(pids, procs * sizeof(pid_t));
      	for (i = 1; i < procs; ++i) {
 		switch (pids[i] = fork()) {
 		    case -1:	/* could not fork, out of processes? */
@@ -244,6 +245,10 @@ create_daemons(int p[][2], int pids[], int procs)
 #if	defined(sgi) && defined(PIN)
 			sysmp(MP_MUSTRUN, i % ncpus);
 #endif
+			for (j = 0; j < procs; ++j) {
+				if (j != i-1) close(p[j][0]);
+				if (j != i) close(p[j][1]);
+			}
 			doit(p, i-1, i);
 			/* NOTREACHED */
 
@@ -258,7 +263,7 @@ create_daemons(int p[][2], int pids[], int procs)
 	 */
 	if (write(p[0][1], &msg, sizeof(msg)) != sizeof(msg) ||
 	    read(p[procs-1][0], &msg, sizeof(msg)) != sizeof(msg)) {
-		perror("write/read/write on pipe");
+		if (errno) perror("write/read/write on pipe");
 		exit(1);
 	}
 	if (data) bzero((void*)data, process_size);	
