@@ -54,7 +54,7 @@ SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
 	lat_mem_rd.c lat_mmap.c lat_ops.c lat_pagefault.c lat_pipe.c 	\
 	lat_proc.c lat_rpc.c lat_select.c lat_sig.c lat_syscall.c	\
 	lat_tcp.c lat_udp.c lat_unix.c lat_unix_connect.c lat_sem.c	\
-	lat_usleep.c 							\
+	lat_usleep.c lat_pmake.c					\
 	lib_debug.c lib_mem.c lib_stats.c lib_tcp.c lib_timing.c 	\
 	lib_udp.c lib_unix.c						\
 	line.c lmdd.c lmhttp.c par_mem.c par_ops.c loop_o.c memsize.c 	\
@@ -67,7 +67,7 @@ EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
 	$O/lat_select $O/lat_pipe $O/lat_rpc $O/lat_syscall $O/lat_tcp	\
 	$O/lat_udp $O/lat_mmap $O/mhz $O/lat_proc $O/lat_pagefault	\
 	$O/lat_connect $O/lat_fs $O/lat_sig $O/lat_mem_rd $O/lat_ctx	\
-	$O/lat_sem 							\
+	$O/lat_sem $O/lat_pmake						\
 	$O/memsize $O/lat_unix $O/lmdd $O/timing_o $O/enough		\
 	$O/msleep $O/loop_o $O/lat_fifo $O/lmhttp $O/lat_http		\
 	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk		\
@@ -408,3 +408,6 @@ $O/lat_dram_page:  lat_dram_page.c timing.h stats.h bench.h $O/lmbench.a
 
 $O/lat_usleep:  lat_usleep.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/lat_usleep lat_usleep.c $O/lmbench.a $(LDLIBS)
+
+$O/lat_pmake:  lat_pmake.c timing.h stats.h bench.h $O/lmbench.a
+	$(COMPILE) -o $O/lat_pmake lat_pmake.c $O/lmbench.a $(LDLIBS)
