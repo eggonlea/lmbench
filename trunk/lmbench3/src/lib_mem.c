@@ -339,7 +339,7 @@ line_test(int line, int warmup, int repetitions, struct mem_state* state)
 	insertinit(r);
 	for (i = 0; i < repetitions; ++i) {
 		benchmp(line_initialize, mem_benchmark_0, mem_cleanup, 
-			0, 1, warmup, TRIES, state);
+			0, 1, warmup, 7, state);
 		insertsort(gettime(), get_n(), r);
 	}
 	set_results(r);
