@@ -25,17 +25,6 @@ void	initialize(void* cookie);
 void	benchmark(iter_t iterations, void* cookie);
 void	cleanup(void* cookie);
 
-struct _state* pGlobalState;
-
-void
-sigterm_handler(int n)
-{
-	if (pGlobalState->pid) {
-		kill(SIGKILL, pGlobalState->pid);
-	}
-	exit(0);
-}
-
 int
 main(int ac, char **av)
 {
@@ -73,9 +62,6 @@ main(int ac, char **av)
 		lmbench_usage(ac, av, usage);
 	}
 
-	pGlobalState = &state;
-	signal(SIGTERM, sigterm_handler);
-
 	benchmp(initialize, benchmark, cleanup, 0, parallel, 
 		warmup, repetitions, &state);
 
@@ -83,7 +69,8 @@ main(int ac, char **av)
 	return(0);
 }
 
-void initialize(void* cookie)
+void
+initialize(void* cookie)
 {
 	struct _state* pState = (struct _state*)cookie;
 	void	exit();
@@ -109,7 +96,8 @@ void initialize(void* cookie)
 	exit(0);
 }
 
-void benchmark(iter_t iterations, void* cookie)
+void
+benchmark(iter_t iterations, void* cookie)
 {
 	struct _state* pState = (struct _state*)cookie;
 
@@ -123,11 +111,12 @@ void benchmark(iter_t iterations, void* cookie)
 	}
 }
 
-void cleanup(void* cookie)
+void
+cleanup(void* cookie)
 {
 	struct _state* pState = (struct _state*)cookie;
 
-	kill(pState->pid, SIGTERM);
+	if (pState->pid) kill(pState->pid, SIGKILL);
 	wait(0);
 }
 

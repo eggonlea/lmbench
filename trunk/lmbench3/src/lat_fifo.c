@@ -28,17 +28,6 @@ typedef struct _state {
 	int	rd;
 } state_t;
 
-state_t* pGlobalState;
-
-void
-sigterm_handler(int n)
-{
-	if (pGlobalState->pid) {
-		kill(SIGKILL, pGlobalState->pid);
-	}
-	exit(0);
-}
-
 int 
 main(int ac, char **av)
 {
@@ -71,12 +60,11 @@ main(int ac, char **av)
 	}
 
 	state.pid = 0;
-	pGlobalState = &state;
-	signal(SIGTERM, sigterm_handler);
 
 	benchmp(initialize, doit, cleanup, SHORT, parallel, 
 		warmup, repetitions, &state);
 	micro("Fifo latency", get_n());
+	return (0);
 }
 
 void 
@@ -96,6 +84,7 @@ initialize(void *cookie)
 	}
 	switch (state->pid = fork()) {
 	    case 0:
+		signal(SIGTERM, exit);
 		state->rd = open(state->filename1, O_RDONLY);
 		state->wr = open(state->filename2, O_WRONLY);
 		writer(state->wr, state->rd);
@@ -125,11 +114,11 @@ cleanup(void * cookie)
 {
 	state_t * state = (state_t *)cookie;
 
-	signal(SIGCHLD,SIG_IGN);
-	kill(state->pid, 15);
+	signal(SIGCHLD, SIG_IGN);
+	if (state->pid) kill(state->pid, 15);
 	unlink(state->filename1);
 	unlink(state->filename2);
-	kill(state->pid, 9);
+	if (state->pid) kill(state->pid, 9);
 	close(state->wr);
 	close(state->rd);
 }
