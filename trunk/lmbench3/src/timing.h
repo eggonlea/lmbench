@@ -10,7 +10,7 @@ double	Delta(void);
 double	Now(void);
 void	adjust(int usec);
 void	bandwidth(uint64 bytes, uint64 times, int verbose);
-int	bytes(char *s);
+uint64	bytes(char *s);
 void	context(uint64 xfers);
 uint64	delta(void);
 int	get_enough(int);
