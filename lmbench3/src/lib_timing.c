@@ -33,9 +33,6 @@ static	void	init_timing(void);
 #include <sys/mman.h>
 #endif
 
-#if !defined(hpux) && !defined(__hpux) && !defined(WIN32)
-#define RUSAGE
-#endif
 #ifdef	RUSAGE
 #include <sys/resource.h>
 #define	SECS(tv)	(tv.tv_sec + tv.tv_usec / 1000000.0)
@@ -918,7 +915,7 @@ nano(char *s, uint64 n)
 	micro = td.tv_sec * 1000000 + td.tv_usec;
 	micro *= 1000;
 	if (!ftiming) ftiming = stderr;
-	fprintf(ftiming, "%s: %.0f nanoseconds\n", s, micro / n);
+	fprintf(ftiming, "%s: %.2f nanoseconds\n", s, micro / n);
 }
 
 void
@@ -999,7 +996,7 @@ tvdelta(struct timeval *start, struct timeval *stop)
 	usecs = td.tv_sec;
 	usecs *= 1000000;
 	usecs += td.tv_usec;
-	return usecs;
+	return (usecs);
 }
 
 void
