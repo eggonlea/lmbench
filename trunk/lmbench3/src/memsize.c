@@ -68,8 +68,9 @@ void
 timeit(char *where, size_t size)
 {
 	int	sum = 0;
-	size_t	n;
 	char	*end = where + size;
+	size_t	n;
+	size_t	s;
 	size_t	range;
 	size_t	incr = 1024 * 1024;
 	ssize_t	stride;
@@ -103,13 +104,9 @@ timeit(char *where, size_t size)
 			printf("%d\n", (range - incr)>>20);
 			return;
 		}
-		if (range < 20 * 1024 * 1024) 
-			incr = 1024 * 1024;
-		else if (range < 50 * 1024 * 1024)
-			incr = 2 * 1024 * 1024;
-		else if (range < 200 * 1024 * 1024)
-			incr = 10 * 1024 * 1024;
-		else    incr = 20 * 1024 * 1024;
+		for (s = 8 * 1024 * 1024; s <= range; s *= 2)
+			;
+		incr = s / 8;
 		if (range < size && size < range + incr) {
 			incr = size - range;
 		}
