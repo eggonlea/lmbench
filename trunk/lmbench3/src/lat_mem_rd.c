@@ -153,7 +153,7 @@ void cleanup_loads(void* cookie)
 void
 loads(int len, int range, int stride, int parallel, int warmup, int repetitions)
 {
-	int result;
+	double result;
 	struct _state state;
 
 	state.len = len;
@@ -167,8 +167,8 @@ loads(int len, int range, int stride, int parallel, int warmup, int repetitions)
 		warmup, repetitions, &state);
 
 	/* We want to get to nanoseconds / load. */
-	result = (int)(((uint64)1000 * gettime()) / ((uint64)100 * get_n()));
-	fprintf(stderr, "%.5f %d\n", range / (1024. * 1024), result);
+	result = (1000. * (double)gettime()) / (100. * (double)get_n());
+	fprintf(stderr, "%.5f %.3f\n", range / (1024. * 1024), result);
 
 }
 
