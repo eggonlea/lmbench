@@ -1536,6 +1536,42 @@ touch(char *buf, int nbytes)
 	}
 }
 
+int*
+permutation(int max)
+{
+	int	i, v;
+	static unsigned int r = 0;
+	int*	result = (int*)malloc(max * sizeof(int));
+
+	for (i = 0; i < max; ++i) {
+		result[i] = i;
+	}
+
+	if (r == 0)
+		r = (getpid()<<6) ^ getppid() ^ rand() ^ (rand()<<10);
+
+	/* randomize the sequence */
+	for (i = max - 1; i > 0; --i) {
+		r = (r << 1) ^ rand();
+		v = result[r % (i + 1)];
+		result[r % (i + 1)] = result[i];
+		result[i] = v;
+	}
+
+#ifdef _DEBUG
+	fprintf(stderr, "permutation(%d): {", max);
+	for (i = 0; i < max; ++i) {
+	  fprintf(stderr, "%d", result[i]);
+	  if (i < max - 1) 
+	    fprintf(stderr, ",");
+	}
+	fprintf(stderr, "}\n");
+	fflush(stderr);
+#endif /* _DEBUG */
+
+	return (result);
+}
+
 #if defined(hpux) || defined(__hpux)
 int
 getpagesize()
