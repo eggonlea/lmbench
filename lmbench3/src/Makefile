@@ -90,7 +90,7 @@ results: lmbench
 
 rerun: lmbench
 	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; fi
-	@BENCHMARK_HARDWARE=YES BENCHMARK_OS=YES ../scripts/results
+	@../scripts/results
 
 hardware: lmbench
 	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; fi
