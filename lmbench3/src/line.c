@@ -26,7 +26,7 @@ main(int ac, char **av)
 {
 	int	i, j, l;
 	int	verbose = 0;
-	int	maxlen = 32 * 1024 * 1024;
+	int	maxlen = 64 * 1024 * 1024;
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	c;
@@ -56,14 +56,17 @@ main(int ac, char **av)
 		}
 	}
 
-	while(!(l = line_find(maxlen, warmup, repetitions, &state))) {
+	while (maxlen > state.pagesize
+	       && !(l = line_find(maxlen, warmup, repetitions, &state))) {
 		maxlen >>= 1;
 	}
 
-	if (verbose) {
-		printf("cache line size: %d bytes\n", l);
-	} else {
-		printf("%d\n", l);
+	if (l) {
+		if (verbose) {
+			printf("cache line size: %d bytes\n", l);
+		} else {
+			printf("%d\n", l);
+		}
 	}
 
 	return (0);
