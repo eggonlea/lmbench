@@ -15,6 +15,8 @@
 char	*id = "$Id$\n";
 #include "bench.h"
 
+#define	MINMOVE	(10<<20)
+
 int	server_main(int ac, char **av);
 int	client_main(int ac, char **av);
 void	source(int data);
@@ -62,7 +64,7 @@ client_main(int ac, char **av)
 	if (ac == 3) {
 		move = bytes(av[2]);
 	} else {
-		move = 10*1024*1024;
+		move = MINMOVE;
 	}
 	/*
 	 * Disabler message to other side.
@@ -91,6 +93,7 @@ client_main(int ac, char **av)
 	}
 	usecs = 5000000 / usecs;
 	move *= usecs * 1.25;
+	if (move < MINMOVE) move = MINMOVE;
 	BENCH(transfer(move, server), LONGER);
 out:	(void)fprintf(stderr, "Socket bandwidth using %s: ", server);
 	mb(move * get_n());
