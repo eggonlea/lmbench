@@ -37,7 +37,7 @@ void cleanup(void* cookie);
  * Assumptions:
  *
  * 1) Cache lines are a multiple of pointer-size words
- * 2) Cache lines are smaller than 1/2 a page size
+ * 2) Cache lines are smaller than 1/4 a page size
  * 3) Pages are an even multiple of cache lines
  */
 int
@@ -51,7 +51,7 @@ main(int ac, char **av)
 	struct _state state;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]]\n";
 
-	state.line = sizeof(char*);
+	state.line = getpagesize() / (4 * sizeof(char*));
 	state.pagesize = getpagesize();
 
 	while (( c = getopt(ac, av, "cL:M:")) != EOF) {
@@ -79,7 +79,7 @@ main(int ac, char **av)
 		}
 	}
 
-	for (i = 8; i <= maxlen; i<<=1) {
+	for (i = sizeof(char*); i <= maxlen; i<<=1) {
 		state.len = i;
 		benchmp(initialize, benchmark, cleanup, 0, 1, &state);
 
@@ -104,18 +104,21 @@ main(int ac, char **av)
 void
 initialize(void* cookie)
 {
-	int i, j, k, nlines, nbytes, npages, npointers;
+	int i, j, k, nwords, nlines, nbytes, npages, npointers;
 	unsigned int r;
 	char ***pages;
 	int    *lines;
+	int    *words;
 	struct _state* state = (struct _state*)cookie;
 	register char *p = 0 /* lint */;
 
 	nbytes = state->len;
 	npointers = state->len / sizeof(char*);
+	nwords = state->line / sizeof(char*);
 	nlines = state->pagesize / state->line;
 	npages = (nbytes + state->pagesize) / state->pagesize;
 
+	words = (int*)malloc(nwords * sizeof(int));
 	lines = (int*)malloc(nlines * sizeof(int));
 	pages = (char***)malloc(npages * sizeof(char**));
 	state->p = state->addr = (char*)malloc(nbytes + 2 * state->pagesize);
@@ -161,22 +164,37 @@ initialize(void* cookie)
 		lines[i] = l;
 	}
 
+	/* layout the sequence of word accesses */
+	for (i = 0; i < nwords; ++i) {
+		words[i] = i * state->line / (nwords * sizeof(char*));
+	}
+
+	/* randomize the line sequences */
+	for (i = nwords - 2; i > 0; --i) {
+		int l;
+		r = (r << 1) ^ (rand() >> 4);
+		l = words[(r % i) + 1];
+		words[(r % i) + 1] = words[i];
+		words[i] = l;
+	}
+
 	/* setup the run through the pages */
 	for (i = 0, k = 0; i < npages; ++i) {
 		for (j = 0; j < nlines - 1 && k < npointers - 1; ++j) {
-			pages[i][lines[j]] = (char*)(pages[i] + lines[j+1]);
+			pages[i][lines[j]+words[k%nwords]] = (char*)(pages[i] + lines[j+1] + words[(k+1)%nwords]);
 			k++;
 		}
 		if (i == npages - 1 || k == npointers - 1) {
-			pages[i][lines[j]] = (char*)(pages[0] + lines[0]);
+			pages[i][lines[j]+words[k%nwords]] = (char*)(pages[0] + lines[0] + words[0]);
 		} else {
-			pages[i][lines[j]] = (char*)(pages[i+1] + lines[0]);
+			pages[i][lines[j]+words[k%nwords]] = (char*)(pages[i+1] + lines[0] + words[(k+1)%nwords]);
 		}
 		k++;
 	}
 
 	free(pages);
 	free(lines);
+	free(words);
 
 	/* run through the chain once to clear the cache */
 	benchmark((npointers + 100) / 100, state);
