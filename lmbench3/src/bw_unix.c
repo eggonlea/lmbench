@@ -148,7 +148,7 @@ main(int argc, char *argv[])
 	}
 	if (optind == argc - 1) {
 		state.bytes = bytes(argv[optind]);
-	} else {
+	} else if (optind < argc - 1) {
 		lmbench_usage(argc, argv);
 	}
 
