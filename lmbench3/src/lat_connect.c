@@ -3,8 +3,17 @@
  *
  * Three programs in one -
  *	server usage:	lat_connect -s
- *	client usage:	lat_connect [-P <parallelism>] [-W <warmup>] [-N <repetitions>] hostname
+ *	client usage:	lat_connect [-N <repetitions>] hostname
  *	shutdown:	lat_connect -hostname
+ *
+ * lat_connect may not be parallelized because of idiosyncracies
+ * with TCP connection creation.  Basically, if the client tries
+ * to create too many connections too quickly, the system fills
+ * up the set of available connections with TIME_WAIT connections.
+ * We can only measure the TCP connection cost accurately if we
+ * do just a few connections.  Since the parallel harness needs
+ * each child to run for a second, this guarantees that the 
+ * parallel version will generate inaccurate results.
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -25,12 +34,10 @@ void	server_main();
 int main(int ac, char **av)
 {
 	state_t state;
-	int	parallel = 1;
-	int	warmup = 0;
 	int	repetitions = TRIES;
 	int 	c;
 	char	buf[256];
-	char	*usage = "-s\n OR [-S] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] server\n";
+	char	*usage = "-s\n OR [-S] [-N <repetitions>] server\n";
 
 	while (( c = getopt(ac, av, "sSP:W:N:")) != EOF) {
 		switch(c) {
@@ -48,14 +55,6 @@ int main(int ac, char **av)
 			close(sock);
 			exit(0);
 		}
-		case 'P':
-			parallel = atoi(optarg);
-			if (parallel <= 0)
-				lmbench_usage(ac, av, usage);
-			break;
-		case 'W':
-			warmup = atoi(optarg);
-			break;
 		case 'N':
 			repetitions = atoi(optarg);
 			break;
@@ -70,8 +69,7 @@ int main(int ac, char **av)
 	}
 
 	state.server = av[optind];
-	benchmp(NULL, doclient, NULL, REAL_SHORT, parallel, 
-		warmup, repetitions, &state);
+	benchmp(NULL, doclient, NULL, 0, 1, 0, repetitions, &state);
 
 	sprintf(buf, "TCP/IP connection cost to %s", state.server);
 	micro(buf, get_n());
@@ -97,7 +95,7 @@ server_main()
 	char	c ='1';
 
 	GO_AWAY;
-	sock = tcp_server(TCP_CONNECT, SOCKOPT_NONE);
+	sock = tcp_server(TCP_CONNECT, SOCKOPT_NONE|SOCKOPT_REUSE);
 	for (;;) {
 		newsock = tcp_accept(sock, SOCKOPT_NONE);
 		if (read(newsock, &c, 1) > 0) {
