@@ -325,18 +325,18 @@ for ($i = 0; $i <= $#uname; $i++) {
 		$tmp = ($lat_read[$i] + $lat_write[$i]) / 2;
 	}
         printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-            printf "%4.0f %4.4s %4.4s %4.4s %4.4s %5.5s %4.4s %4.4s %3.3sK %3.3sK %3.3sK\n",
+            printf "%4.0f %4.4s %4.4s %4.4s %4.4s %5.5s %4.4s %4.4s %4.4s %4.4s %4.4s\n",
             $misc_mhz[$i],
-            &num($lat_syscall[$i], "%3.1f"),
-            &num($tmp, "%3.1f"),
-            &num($lat_stat[$i], "%3.1f"),
-            &num($lat_openclose[$i], "%3.1f"),
-            &num($lat_tcp_select[$i], "%4d"),
-            &num($lat_siginstall[$i], "%3.1f"),
-            &num($lat_sigcatch[$i], "%3.1f"),
-            &num($lat_nullproc[$i]/1000., "%3.1f"),
-            &num($lat_simpleproc[$i]/1000., "%3.1f"),
-            &num($lat_shproc[$i]/1000., "%3.1f"),
+            &num($lat_syscall[$i], 4),
+            &num($tmp, 4),
+            &num($lat_stat[$i], 4),
+            &num($lat_openclose[$i], 4),
+            &num($lat_tcp_select[$i], 5),
+            &num($lat_siginstall[$i], 4),
+            &num($lat_sigcatch[$i], 4),
+            &num($lat_nullproc[$i], 4),
+            &num($lat_simpleproc[$i], 4),
+            &num($lat_shproc[$i], 4),
 	    0;
 }
 
@@ -351,14 +351,14 @@ EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
         printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-            printf " %4s   %4s   %4s   %4s   %4s    %4s    %4s\n",
-            &num($lat_ctx0_2[$i], "%4d"),
-            &num($lat_ctx16_2[$i], "%4d"),
-            &num($lat_ctx64_2[$i], "%4d"),
-            &num($lat_ctx16_8[$i], "%4d"),
-            &num($lat_ctx64_8[$i], "%4d"),
-            &num($lat_ctx16_16[$i], "%4d"),
-            &num($lat_ctx64_16[$i], "%4d"),
+            printf "%5.5s %6.6s %6.6s %6.6s %6.6s %7.7s %7.7s\n",
+            &num($lat_ctx0_2[$i], 5),
+            &num($lat_ctx16_2[$i], 6),
+            &num($lat_ctx64_2[$i], 6),
+            &num($lat_ctx16_8[$i], 6),
+            &num($lat_ctx64_8[$i], 6),
+            &num($lat_ctx16_16[$i], 7),
+            &num($lat_ctx64_16[$i], 7),
 	    0;
 }
 
@@ -374,15 +374,15 @@ EOF
 for ($i = 0; $i <= $#uname; $i++) {
         printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
         printf "%5s %5s %4s %5s %5s %5s %5s %4s\n",
-            &num($lat_ctx0_2[$i], "%5d"),
-            &num($lat_pipe[$i], "%5d"),
-            &num($lat_unix[$i], "%4d"),
-            &num($lat_udp_local[$i], "%5d"),
-            &num($lat_rpc_udp_local[$i], "%5d"),
-            &num($lat_tcp_local[$i], "%5d"),
-            &num($lat_rpc_tcp_local[$i], "%5d"),
-	    &num($lat_tcp_connect_local[$i], "%4d"),
-	    -999;
+            &num($lat_ctx0_2[$i], 5),
+            &num($lat_pipe[$i], 5),
+            &num($lat_unix[$i], 4),
+            &num($lat_udp_local[$i], 5),
+            &num($lat_rpc_udp_local[$i], 5),
+            &num($lat_tcp_local[$i], 5),
+            &num($lat_rpc_tcp_local[$i], 5),
+	    &num($lat_tcp_connect_local[$i], 4),
+	    0;
 
 }
 
@@ -401,14 +401,15 @@ for ($i = 0; $i <= $#uname; $i++) {
 	$c10k = $fs_create_10k[$i] <= 0 ? -1 : 100000 / $fs_create_10k[$i];
 	$d0k = $fs_delete_0k[$i] <= 0 ? -1 : 100000 / $fs_delete_0k[$i];
 	$d10k = $fs_delete_10k[$i] <= 0 ? -1 : 100000 / $fs_delete_10k[$i];
-	printf "%6s %6s %6s %6s %8d %5s %7s\n",
-	    &num($c0k, "%6d"),
-	    &num($d0k, "%6d"),
-	    &num($c10k, "%6d"),
-	    &num($d10k, "%6d"),
-	    $lat_mappings[$i],
-	    &num($lat_protfault[$i], "%5d"),
-	    &num($lat_pagefault[$i]/1000, "%6.1fK");
+	printf "%6.6s %6.6s %6.6s %6.6s %8.8s %5.5s %7.7s\n",
+	    &num($c0k, 6),
+	    &num($d0k, 6),
+	    &num($c10k, 6),
+	    &num($d10k, 6),
+	    &num($lat_mappings[$i], 8),
+	    &num($lat_protfault[$i], 5),
+	    &num($lat_pagefault[$i], 7),
+	    0;
 }
 
 print<<EOF;
@@ -422,12 +423,16 @@ EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
         printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
-        printf "%4.0f %4s %4.0f %6.0f %6.0f %6.0f %6.0f %4.0f %5.0f\n",
-            $bw_pipe[$i], &num($bw_unix[$i], "%4.0f"), $bw_tcp_local[$i], 
-            $bw_reread[$i], $bw_mmap[$i], $bw_bcopy_libc[$i],
-            $bw_bcopy_unrolled[$i],
-            $bw_mem_rdsum[$i],
-            $bw_mem_wr[$i];
+        printf "%4.4s %4.4s %4.4s %6.6s %6.6s %6.6s %6.6s %4.4s %5.5s\n",
+            &num($bw_pipe[$i], 4), 
+	    &num($bw_unix[$i], 4), 
+	    &num($bw_tcp_local[$i], 4), 
+            &num($bw_reread[$i], 6), 
+	    &num($bw_mmap[$i], 6), 
+	    &num($bw_bcopy_libc[$i], 6),
+            &num($bw_bcopy_unrolled[$i], 6),
+            &num($bw_mem_rdsum[$i], 4),
+            &num($bw_mem_wr[$i], 5);
 }
 
 print<<EOF;
@@ -440,7 +445,7 @@ Host                 OS   Mhz  L1 \$   L2 \$    Main mem    Guesses
 EOF
 
 for ($i = 0; $i <= $#uname; $i++) {
-        printf "%-9.9s %13.13s   %3d",
+        printf "%-9.9s %13.13s  %4d",
 	    $host[$i], &getos($uname[$i]), $misc_mhz[$i];
 	$msg = &check_caches;
 	if ($lat_l1[$i] < 0) {
@@ -448,9 +453,10 @@ for ($i = 0; $i <= $#uname; $i++) {
 		    "-", "-", "-",
 		    "Bad mhz?";
 	} else {
-		printf "%6.2f %6.2f %11.1f",
-		    $lat_l1[$i], $lat_l2[$i], 
-		    $lat_mem[$i];
+		printf " %5.5s %6.6s %6.6s",
+		    &num($lat_l1[$i], 5),
+		    &num($lat_l2[$i], 6),
+		    &num($lat_mem[$i], 6);
 		print $msg if ($msg =~ /L/);
 	}
 	print "\n";
@@ -462,19 +468,37 @@ exit 0;
 # (33, %3d)
 sub num
 {
-	local($val, $fmt) = @_;
+	local($val, $len) = @_;
 	local($str) = "";
 	local($i);
 
 	if ($val <= 0) {
-		$fmt =~ s/^.//;
-		while (length($fmt) > 1) { chop($fmt); }
-		for ($i = 0; $i < $fmt; $i++) {
+		$str = "";
+		for ($i = 0; $i < $len; $i++) {
 			$str .= " ";
 		}
 		return ($str);
 	}
-	$str = sprintf($fmt, $val);
+	if ($val >= 10000000) {
+		$fmt = sprintf("%%%ddM", $len - 1);
+		$str = sprintf($fmt, $val / 1000000.);
+	} elsif ($val >= 1000000) {
+		$fmt = sprintf("%%%d.%dfM", $len - 1, $len - 3);
+		$str = sprintf($fmt, $val / 1000000.);
+	} elsif ($val >= 10000) {
+		if ($len <= 4) {
+			$fmt = sprintf("%%%ddK", $len - 1);
+		} else {
+			$fmt = sprintf("%%%d.%dfK", $len - 1, $len - 3);
+		}
+		$str = sprintf($fmt, $val / 1000.);
+	} elsif ($val >= 10) {
+		$fmt = sprintf("%%%dd", $len);
+		$str = sprintf($fmt, $val);
+	} else {
+		$fmt = sprintf("%%%d.%df", $len, $len - 2);
+		$str = sprintf($fmt, $val);
+	}
 	$str;
 }
 
