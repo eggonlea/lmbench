@@ -124,7 +124,7 @@ void
 do_integer_div(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register int r = pState->N + 1;
+	register int r = pState->N + 36;
 	register int s = (r + 1) << 20;
 
 	while (iterations-- > 0) {
@@ -138,7 +138,7 @@ do_integer_mod(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	register int r = pState->N + iterations;
-	register int s = pState->N;
+	register int s = pState->N + 62;
 
 	while (iterations-- > 0) {
 		HUNDRED(r %= s; r |= s;)
@@ -199,8 +199,11 @@ void
 do_int64_div(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register int64 r = (int64)pState->N + (int64)pState->N<<32;
-	register int64 s = (r + 1) << 13;
+	register int64 r = (int64)pState->N + 36;
+	register int64 s;
+
+	r += r << 33;
+	s = (r + 17) << 13;
 
 	while (iterations-- > 0) {
 		HUNDRED(r = s / r;)
