@@ -21,6 +21,11 @@ MAN = \
 
 ALL = $(DESC) $(USENIX) $(PIC) $(MAN) $(REFER) references
 
+.SUFFIXES: .pic .fig
+
+.fig.pic:
+	fig2dev -L pic $< $*.pic
+
 PS ps: $(ALL)
 	gindxbib references
 	groff -t -e -s -p -R $(USENIX) > USENIX.PS
@@ -46,7 +51,8 @@ memhier.ps: $(ALL) memhier-color.d memhier-tlb.d memhier-line.d references-memhi
 #	../scripts/graph -xm -logx -small -below -nomarks -nospace memhier-line.graph > memhier-line.pic
 #	../scripts/graph -logx -small -below -nomarks -nospace memhier-tlb.graph > memhier-tlb.pic
 
-lmbench3.ps: $(ALL) references-lmbench3 lmbench3.ms
+lmbench3.ps: $(ALL) references-lmbench3 lmbench3.ms \
+		lmbench3_arch.pic lmbench3_signals.pic
 	gindxbib references-lmbench3
 	groff -t -e -s -p -R tmac.usenix lmbench3.ms > lmbench3.ps
 
