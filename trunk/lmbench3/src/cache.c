@@ -163,9 +163,11 @@ collect_data(int start, int line, int maxlen,
 						 warmup, repetitions, &state);
 
 			/**/
-			fprintf(stderr, "%.6f\t%d\t%.5f\t%.5f\t%.5f\n", 
+			fprintf(stderr, 
+				"%8.6f %4.4d %7.5f %7.5f %7.5f %7.5f\n", 
 				p->len / (1000. * 1000.), p->line, 
-				p->latency, p->variation, p->parallelism);
+				p->latency, p->variation, p->parallelism,
+				p->latency / (*pdata)[idx-(idx>1?1:0)].latency);
 			/**/
 		}
 	}
