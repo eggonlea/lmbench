@@ -118,7 +118,9 @@ zone(char *disk, int oflag, int bsize)
 		fprintf(stderr, "%.01f %.2f\n",
 		    off/1000000.0, (double)bsize/usecs);
 		off += stride;
-		seekto(fd, off);
+		if (seekto(fd, off)) {
+			exit(0);
+		}
 	}
 	exit(0);
 }
