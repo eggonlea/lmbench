@@ -118,6 +118,8 @@ loads(size_t len, size_t range, size_t stride,
 	size_t count;
 	struct mem_state state;
 
+	if (range < stride) return;
+
 	state.width = 1;
 	state.len = range;
 	state.maxlen = len;
@@ -128,17 +130,19 @@ loads(size_t len, size_t range, size_t stride,
 #if 0
 	(*fpInit)(0, &state);
 	fprintf(stderr, "loads: after init\n");
-	(*benchmark_loads)(1, &state);
+	(*benchmark_loads)(2, &state);
 	fprintf(stderr, "loads: after benchmark\n");
 	mem_cleanup(0, &state);
 	fprintf(stderr, "loads: after cleanup\n");
-#endif
-
+	settime(1);
+	save_n(1);
+#else
 	/*
 	 * Now walk them and time it.
 	 */
 	benchmp(fpInit, benchmark_loads, mem_cleanup, 
 		100000, parallel, warmup, repetitions, &state);
+#endif
 
 	/* We want to get to nanoseconds / load. */
 	save_minimum();
