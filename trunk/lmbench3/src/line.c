@@ -44,20 +44,24 @@ int
 main(int ac, char **av)
 {
 	int	i, l;
+	int	verbose = 0;
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	c;
 	int	maxline = getpagesize() / (4 * sizeof(char*));
 	double* times;
 	struct _state state;
-	char   *usage = "[-W <warmup>] [-N <repetitions>][-M len[K|M]]\n";
+	char   *usage = "[-v] [-W <warmup>] [-N <repetitions>][-M len[K|M]]\n";
 
         state.len = 32 * 1024 * 1024;
 	state.line = 2;
 	state.pagesize = getpagesize();
 
-	while (( c = getopt(ac, av, "M:W:N:")) != EOF) {
+	while (( c = getopt(ac, av, "vM:W:N:")) != EOF) {
 		switch(c) {
+		case 'v':
+			verbose = 1;
+			break;
 		case 'M':
 			l = strlen(optarg);
 			if (optarg[l-1] == 'm' || optarg[l-1] == 'M') {
@@ -81,14 +85,6 @@ main(int ac, char **av)
 		}
 	}
 
-/*
-	state.line = 2;
-	initialize(&state);
-	benchmark(1, &state);
-	cleanup(&state);
-	exit(0);
-/**/	
-
 	times = (double*)malloc(maxline * sizeof(double));
 
 	for (i = 2; i < maxline; i<<=1) {
@@ -99,12 +95,16 @@ main(int ac, char **av)
 		/* We want to get to nanoseconds / load. */
 		times[i] = (1000. * (double)gettime()) / (100. * (double)get_n());
 
-		/**/
+		/*
 		fprintf(stderr, "%d %.5f\n", state.line * sizeof(char*), times[i]); 
 		/**/
 		
 		if (i > 2 && times[i] / times[2] > 1.25) {
-			fprintf(stderr, "cache line size: %d bytes\n", l);
+			if (verbose) {
+				fprintf(stderr, "cache line size: %d bytes\n", l);
+			} else {
+				fprintf(stderr, "%d\n", l);
+			}
 			break;
 		}
 
