@@ -23,11 +23,20 @@ struct _state {
 };
 
 void initialize(void* cookie);
+void cleanup(void* cookie);
+
+/* These are from STREAM version 1 */
 void copy(iter_t iterations, void* cookie);
 void scale(iter_t iterations, void* cookie);
 void sum(iter_t iterations, void* cookie);
 void triad(iter_t iterations, void* cookie);
-void cleanup(void* cookie);
+
+/* These are from STREAM version 2 */
+void fill(iter_t iterations, void* cookie);
+/* NOTE: copy is the same as in version 1 */
+void daxpy(iter_t iterations, void* cookie);
+void cumsum(iter_t iterations, void* cookie);
+
 
 /*
  * Assumptions:
@@ -40,20 +49,27 @@ int
 main(int ac, char **av)
 {
 	int	i, j, l;
-	int	verbose = 0;
+	int	version = 1;
+	int	parallel = 1;
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	c;
 	struct _state state;
-	char   *usage = "[-v] [-W <warmup>] [-N <repetitions>][-M len[K|M]]\n";
+	char   *usage = "[-v <stream version 1|2>] [-M <len>[K|M]] [-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
 
         state.len = 1000 * 1000;
 	state.scalar = 3.0;
 
-	while (( c = getopt(ac, av, "vM:W:N:")) != EOF) {
+	while (( c = getopt(ac, av, "v:M:P:W:N:")) != EOF) {
 		switch(c) {
 		case 'v':
-			verbose = 1;
+			version = atoi(optarg);
+			if (version != 1 && version != 2) 
+				lmbench_usage(ac, av, usage);
+			break;
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0) lmbench_usage(ac, av, usage);
 			break;
 		case 'M':
 			state.len = bytes(optarg);
@@ -72,36 +88,70 @@ main(int ac, char **av)
 		}
 	}
 
-	benchmp(initialize, copy, cleanup, 0, 1, warmup, repetitions, &state);
-	save_minimum();
-	if (gettime() > 0) {
-		nano("STREAM copy latency", state.len * get_n());
-		fprintf(stderr, "STREAM copy bandwidth: ");
-		mb(2 * sizeof(double) * state.len * get_n());
-	}
+	if (version == 1) {
+		benchmp(initialize, copy, cleanup, 
+			0, parallel, warmup, repetitions, &state);
+		if (gettime() > 0) {
+			nano("STREAM copy latency", state.len * get_n());
+			fprintf(stderr, "STREAM copy bandwidth: ");
+			mb(2 * sizeof(double) * state.len * get_n());
+		}
 
-	benchmp(initialize, scale, cleanup, 0, 1, warmup, repetitions, &state);
-	save_minimum();
-	if (gettime() > 0) {
-		nano("STREAM scale latency", state.len * get_n());
-		fprintf(stderr, "STREAM scale bandwidth: ");
-		mb(2 * sizeof(double) * state.len * get_n());
-	}
+		benchmp(initialize, scale, cleanup, 
+			0, parallel, warmup, repetitions, &state);
+		if (gettime() > 0) {
+			nano("STREAM scale latency", state.len * get_n());
+			fprintf(stderr, "STREAM scale bandwidth: ");
+			mb(2 * sizeof(double) * state.len * get_n());
+		}
 
-	benchmp(initialize, sum, cleanup, 0, 1, warmup, repetitions, &state);
-	save_minimum();
-	if (gettime() > 0) {
-		nano("STREAM sum latency", state.len * get_n());
-		fprintf(stderr, "STREAM sum bandwidth: ");
-		mb(3 * sizeof(double) * state.len * get_n());
-	}
+		benchmp(initialize, sum, cleanup, 
+			0, parallel, warmup, repetitions, &state);
+		if (gettime() > 0) {
+			nano("STREAM sum latency", state.len * get_n());
+			fprintf(stderr, "STREAM sum bandwidth: ");
+			mb(3 * sizeof(double) * state.len * get_n());
+		}
 
-	benchmp(initialize, triad, cleanup, 0, 1, warmup, repetitions, &state);
-	save_minimum();
-	if (gettime() > 0) {
-		nano("STREAM triad latency", state.len * get_n());
-		fprintf(stderr, "STREAM triad bandwidth: ");
-		mb(3 * sizeof(double) * state.len * get_n());
+		benchmp(initialize, triad, cleanup, 
+			0, parallel, warmup, repetitions, &state);
+		if (gettime() > 0) {
+			nano("STREAM triad latency", state.len * get_n());
+			fprintf(stderr, "STREAM triad bandwidth: ");
+			mb(3 * sizeof(double) * state.len * get_n());
+		}
+	} else {
+		benchmp(initialize, fill, cleanup, 
+			0, parallel, warmup, repetitions, &state);
+		if (gettime() > 0) {
+			nano("STREAM2 fill latency", state.len * get_n());
+			fprintf(stderr, "STREAM2 fill bandwidth: ");
+			mb(sizeof(double) * state.len * get_n());
+		}
+
+		benchmp(initialize, copy, cleanup, 
+			0, parallel, warmup, repetitions, &state);
+		if (gettime() > 0) {
+			nano("STREAM2 copy latency", state.len * get_n());
+			fprintf(stderr, "STREAM2 copy bandwidth: ");
+			mb(2 * sizeof(double) * state.len * get_n());
+		}
+
+		benchmp(initialize, daxpy, cleanup, 
+			0, parallel, warmup, repetitions, &state);
+		if (gettime() > 0) {
+			nano("STREAM2 daxpy latency", state.len * get_n());
+			fprintf(stderr, "STREAM2 daxpy bandwidth: ");
+			mb(3 * sizeof(double) * state.len * get_n());
+		}
+
+		benchmp(initialize, cumsum, cleanup, 
+			0, parallel, warmup, repetitions, &state);
+		if (gettime() > 0) {
+			nano("STREAM2 sum latency", state.len * get_n());
+			fprintf(stderr, "STREAM2 sum bandwidth: ");
+			mb(sizeof(double) * state.len * get_n());
+		}
 	}
 
 	return(0);
@@ -122,8 +172,8 @@ initialize(void* cookie)
 	}
 
 	for (i = 0; i < state->len; ++i) {
-		state->a[i] = 0.;
-		state->b[i] = 0.;
+		state->a[i] = 1.;
+		state->b[i] = 2.;
 		state->c[i] = 0.;
 	}
 }
@@ -180,6 +230,41 @@ void triad(iter_t iterations, void *cookie)
 	while (iterations-- > 0) {
 		BODY(a[i] = b[i] + scalar * c[i];)
 	}
+}
+
+/*
+ * STREAM version 2 benchmark kernels
+ *
+ * NOTE: copy is the same as version 1's benchmark
+ */
+void fill(iter_t iterations, void *cookie)
+{
+	struct _state* state = (struct _state*)cookie;
+
+	while (iterations-- > 0) {
+		BODY(a[i] = 0;)
+	}
+}
+
+void daxpy(iter_t iterations, void *cookie)
+{
+	struct _state* state = (struct _state*)cookie;
+
+	while (iterations-- > 0) {
+		BODY(a[i] = a[i] + scalar * b[i];)
+	}
+}
+
+void cumsum(iter_t iterations, void *cookie)
+{
+	register double	sum;
+	struct _state* state = (struct _state*)cookie;
+
+	sum = 0.0;
+	while (iterations-- > 0) {
+		BODY(sum += a[i];)
+	}
+	use_int((int)sum);
 }
 
 void cleanup(void* cookie)
