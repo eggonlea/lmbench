@@ -1216,31 +1216,6 @@ insertsort(uint64 u, uint64 n, result_t *r)
 static result_t  _results;
 static result_t* results = &_results;
 
-void
-print_results(int details)
-{
-	int	i;
-
-	fprintf(stderr, "N=%d, t={", results->N);
-	for (i = 0; i < results->N; ++i) {
-		fprintf(stderr, "%.2f", (double)results->v[i].u/results->v[i].n);
-		if (i < results->N - 1) 
-			fprintf(stderr, ", ");
-	}
-	fprintf(stderr, "}\n");
-	if (details) {
-		fprintf(stderr, "\t/* {", results->N);
-		for (i = 0; i < results->N; ++i) {
-			fprintf(stderr, 
-				"%llu/%llu", results->v[i].u, results->v[i].n);
-			if (i < results->N - 1)
-				fprintf(stderr, ", ");
-		}
-		fprintf(stderr, "} */\n");
-	}
-		
-}
-
 result_t*
 get_results()
 {
