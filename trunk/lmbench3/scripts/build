@@ -30,7 +30,12 @@ ${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS
 rm -f /tmp/dummy$$ /tmp/dummy$$.c
 
 # check for getrusage
-echo "#include <sys/resource.h>" > /tmp/dummy$$.c
+echo "#include <sys/types.h>" > /tmp/dummy$$.c
+echo "#include <sys/time.h>" >> /tmp/dummy$$.c
+echo "#include <sys/resource.h>" >> /tmp/dummy$$.c
+echo "#ifndef RUSAGE_SELF" >> /tmp/dummy$$.c
+echo "#define RUSAGE_SELF 0" >> /tmp/dummy$$.c
+echo "#endif /* RUSAGE_SELF */" >> /tmp/dummy$$.c
 echo "main() { struct rusage ru; getrusage(RUSAGE_SELF, &ru); }" >> /tmp/dummy$$.c
 ${CC} -o /tmp/dummy$$ /tmp/dummy$$.c 1>/dev/null 2>/dev/null && CFLAGS="${CFLAGS} -DRUSAGE"
 rm -f /tmp/dummy$$ /tmp/dummy$$.c
