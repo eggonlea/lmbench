@@ -138,19 +138,23 @@ dist:
 		false; \
 	 fi
 	cd ..; \
-		PWD=`pwd`; \
-		DIR=`basename $${PWD}`; \
+		SRCDIR=`pwd`; \
+		DIR=`basename $${SRCDIR}`; \
+		TODAY=`date '+%Y%m%d'`; \
 		cd ..; \
 		bk clone $${DIR} /tmp/$${DIR}; \
 		cd /tmp/$${DIR}; \
+		bk sfiles | xargs touch; \
+		sleep 5; \
 		bk get -s; \
 		for d in doc results scripts src; do \
 			cd $$d; bk get -s; cd ..; \
 		done; \
+		bk sfiles -U -g | xargs touch; \
 		cd src; \
 		make bk.ver; \
 		cd /tmp; \
-		tar czf $${DIR}.tgz $${DIR}; \
+		tar czf $${SRCDIR}/../$${DIR}-$${TODAY}.tgz $${DIR}; \
 		rm -rf /tmp/$${DIR};
 
 get $(SRCS):
