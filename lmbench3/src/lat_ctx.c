@@ -27,7 +27,6 @@ int	ncpus;
 #endif
 
 int	sumit(int*, int);
-void	killem(int* pids, int procs);
 void	doit(int **p, int rd, int wr, int process_size);
 int	create_pipes(int **p, int procs);
 int	create_daemons(int **p, int pids[], int procs, int process_size);
@@ -198,7 +197,7 @@ initialize(void* cookie)
 		cleanup(cookie);
 		exit(1);
 	}
-};
+}
 
 void cleanup(void* cookie)
 {
@@ -208,9 +207,11 @@ void cleanup(void* cookie)
 	/*
 	 * Close the pipes and kill the children.
 	 */
-     	killem(pState->pids, pState->procs);
      	for (i = 1; i < pState->procs; ++i) {
-		wait(0);
+		if (pState->pids[i] > 0) {
+			kill(pState->pids[i], SIGTERM);
+			waitpid(pState->pids[i], NULL, 0);
+		}
 	}
 
 	cleanup_overhead(cookie);
@@ -244,18 +245,6 @@ benchmark(uint64 iterations, void* cookie)
 	use_int(sum);
 }
 
-
-void
-killem(int* pids, int procs)
-{
-	int	i;
-
-	for (i = 1; i < procs; ++i) {
-		if (pids[i] > 0) {
-			kill(pids[i], SIGTERM);
-		}
-	}
-}
 
 void
 doit(int **p, int rd, int wr, int process_size)
