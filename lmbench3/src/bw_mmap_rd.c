@@ -1,7 +1,7 @@
 /*
  * bw_mmap_rd.c - time reading & summing of a file using mmap
  *
- * Usage: bw_mmap_rd [-P <parallelism>] [-W <warmup>] [-N <repetitions>] size file
+ * Usage: bw_mmap_rd [-C] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] size file
  *
  * Sizes less than 2m are not recommended.  Memory is read by summing it up
  * so the numbers include the cost of the adds.  If you use sizes large
@@ -52,7 +52,7 @@ int main(int ac, char **av)
 	size_t	nbytes;
 	state_t	state;
 	int	c;
-	char	*usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> open2close|mmap_only <filename>";
+	char	*usage = "[-C] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> open2close|mmap_only <filename>";
 
 	state.clone = 0;
 
