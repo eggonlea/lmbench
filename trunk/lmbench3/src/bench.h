@@ -274,6 +274,13 @@ extern void benchmp(support_f initialize,
 extern void* benchmp_getstate();
 extern iter_t benchmp_interval(void* _state);
 
+/*
+ * Which child process is this?
+ * Returns a number in the range [0, ..., N-1], where N is the
+ * total number of children (parallelism)
+ */
+extern int benchmp_childid();
+
 #include	"lib_mem.h"
 
 /*
