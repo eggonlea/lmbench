@@ -28,7 +28,19 @@ typedef struct _state {
 	int	rd;
 } state_t;
 
-int main(int ac, char **av)
+state_t* pGlobalState;
+
+void
+sigterm_handler(int n)
+{
+	if (pGlobalState->pid) {
+		kill(SIGKILL, pGlobalState->pid);
+	}
+	exit(0);
+}
+
+int 
+main(int ac, char **av)
 {
 	state_t state;
 	int parallel = 1;
@@ -58,12 +70,17 @@ int main(int ac, char **av)
 		lmbench_usage(ac, av, usage);
 	}
 
+	state.pid = 0;
+	pGlobalState = &state;
+	signal(SIGTERM, sigterm_handler);
+
 	benchmp(initialize, doit, cleanup, SHORT, parallel, 
 		warmup, repetitions, &state);
 	micro("Fifo latency", get_n());
 }
 
-void initialize(void *cookie)
+void 
+initialize(void *cookie)
 {
 	char	c;
 	state_t * state = (state_t *)cookie;
@@ -103,7 +120,8 @@ void initialize(void *cookie)
 	}
 }
 
-void cleanup(void * cookie)
+void 
+cleanup(void * cookie)
 {
 	state_t * state = (state_t *)cookie;
 
@@ -116,7 +134,8 @@ void cleanup(void * cookie)
 	close(state->rd);
 }
 
-void doit(register iter_t iterations, void *cookie)
+void 
+doit(register iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	char		c;
@@ -133,7 +152,8 @@ void doit(register iter_t iterations, void *cookie)
 	}
 }
 
-void writer(register int w, register int r)
+void 
+writer(register int w, register int r)
 {
 	char		c;
 	register char	*cptr = &c;

@@ -27,7 +27,19 @@ struct _state {
 	int	initerr;
 };
 
-void initialize(void *cookie)
+struct _state* pGlobalState;
+
+void
+sigterm_handler(int n)
+{
+	if (pGlobalState->pid) {
+		kill(SIGKILL, pGlobalState->pid);
+	}
+	exit(0);
+}
+
+void 
+initialize(void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 
@@ -60,15 +72,18 @@ void initialize(void *cookie)
 		break;
 	}
 }
-void cleanup(void * cookie)
+void 
+cleanup(void * cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 
 	signal(SIGCHLD,SIG_IGN);
-	kill(state->pid, 9);
+	kill(state->pid, SIGKILL);
+	state->pid = 0;
 }
 
-void reader(iter_t iterations, void * cookie)
+void 
+reader(iter_t iterations, void * cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 	int	done, n;
@@ -134,6 +149,11 @@ main(int argc, char *argv[])
 	if (optind < argc) {
 		lmbench_usage(argc, argv);
 	}
+
+	state.pid = 0;
+	pGlobalState = &state;
+	signal(SIGTERM, sigterm_handler);
+
 	benchmp(initialize, reader, cleanup, MEDIUM, parallel, 
 		warmup, repetitions, &state);
 

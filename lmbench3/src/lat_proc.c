@@ -28,6 +28,16 @@ void do_shell(iter_t iterations, void* cookie);
 void do_forkexec(iter_t iterations,void* cookie);
 void do_fork(iter_t iterations, void* cookie);
 void do_procedure(iter_t iterations, void* cookie);
+
+pid_t child_pid;
+
+void
+sigterm_handler(int n)
+{
+	if (child_pid)
+		kill(SIGKILL, child_pid);
+	exit(0);
+}
 	
 int
 main(int ac, char **av)
@@ -60,6 +70,8 @@ main(int ac, char **av)
 		lmbench_usage(ac, av, usage);
 	}
 
+	signal(SIGTERM, sigterm_handler);
+
 	if (!strcmp("procedure", av[optind])) {
 		benchmp(NULL, do_procedure, NULL, 0, parallel, 
 			warmup, repetitions, &ac);
@@ -82,73 +94,75 @@ main(int ac, char **av)
 	return(0);
 }
 
-void do_shell(iter_t iterations, void* cookie)
+void 
+do_shell(iter_t iterations, void* cookie)
 {
-	int	pid;
 	while (iterations-- > 0) {
-	  switch (pid = fork()) {
-	    case -1:
-	      perror("fork");
-	      exit(1);
+		switch (child_pid = fork()) {
+		case -1:
+			perror("fork");
+			exit(1);
 	    
-	    case 0:	/* child */
-	      close(1);
-	      execlp("/bin/sh", "sh", "-c", PROG, 0);
-	      exit(1);
+		case 0:	/* child */
+			close(1);
+			execlp("/bin/sh", "sh", "-c", PROG, 0);
+			exit(1);
 
-	    default:
-	      while (wait(0) != pid)
-		;
-	  }
+		default:
+			while (wait(0) != child_pid)
+				;
+		}
+		child_pid = 0;
 	}
 }
 
-void do_forkexec(iter_t iterations,void* cookie)
+void 
+do_forkexec(iter_t iterations, void* cookie)
 {
-	int	pid;
 	char	*nav[2];
 
 	while (iterations-- > 0) {
-	  nav[0] = PROG;
-	  nav[1] = 0;
-	  switch (pid = fork()) {
-	    case -1:
-		perror("fork");
-		exit(1);
+		nav[0] = PROG;
+		nav[1] = 0;
+		switch (child_pid = fork()) {
+		case -1:
+			perror("fork");
+			exit(1);
 
-	    case 0: 	/* child */
-		close(1);
-		execve(PROG, nav, 0);
-		exit(1);
+		case 0: 	/* child */
+			close(1);
+			execve(PROG, nav, 0);
+			exit(1);
 
-	    default:
-		while (wait(0) != pid)
-			;
-	  }
+		default:
+			while (wait(0) != child_pid)
+				;
+		}
+		child_pid = 0;
 	}
 }
 	
-void do_fork(iter_t iterations, void* cookie)
+void 
+do_fork(iter_t iterations, void* cookie)
 {
-	int pid;
-	int i;
-
 	while (iterations-- > 0) {
-	  switch (pid = fork()) {
-	    case -1:
-	      perror("fork");
-	      exit(1);
+		switch (child_pid = fork()) {
+		case -1:
+			perror("fork");
+			exit(1);
 	
-	    case 0:	/* child */
-	      exit(1);
+		case 0:	/* child */
+			exit(1);
 	
-	    default:
-	      while (wait(0) != pid);
-	  }
+		default:
+			while (wait(0) != child_pid);
+		}
+		child_pid = 0;
 	}
 }
 	
-void do_procedure(iter_t iterations, void* cookie)
+void 
+do_procedure(iter_t iterations, void* cookie)
 {
 	int r = *(int *) cookie;
 	while (iterations-- > 0) {
