@@ -62,7 +62,7 @@ then	if [ X$SYNC_PID = X ]
 	fi
 	MP=Y
 fi
-if [ X`os` = Xhpux ]
+if [ -x /bin/remsh ]
 then	RSH=remsh
 else	RSH=rsh
 fi
@@ -236,7 +236,8 @@ then	date > /dev/tty
 		lat_udp -$i
 		lat_tcp $i
 		lat_tcp -$i
-		lat_rpc $i;			 # Internal kill on this one.
+		lat_rpc $i
+		lat_rpc -$i
 		lat_connect $i
 		lat_connect -$i
 		bw_tcp $i
@@ -258,7 +259,7 @@ then	date > /dev/tty
 		echo "[ Networking remote to $remote: `$RSH $remote uname -a` ]" 1>&2
 		lat_udp $remote; lat_udp -$remote;
 		lat_tcp $remote; lat_tcp -$remote;
-		lat_rpc $remote udp; lat_rpc $remote tcp; 
+		lat_rpc $remote udp; lat_rpc $remote tcp; lat_rpc -$remote; 
 		lat_connect $remote; lat_connect -$remote;
 		bw_tcp $remote; bw_tcp -$remote 
 		# I want a hot cache number
