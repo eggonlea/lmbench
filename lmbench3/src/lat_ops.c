@@ -25,7 +25,7 @@ do_integer_bitwise(iter_t iterations, void* cookie)
 	register int s = (int)iterations;
 
 	while (iterations-- > 0) {
-		HUNDRED(r^=s;s^=r;)
+		HUNDRED(r^=iterations;s^=r;r|=s;)
 	}
 	use_int(r);
 }
@@ -88,9 +88,11 @@ do_int64_bitwise(iter_t iterations, void* cookie)
 	struct _state *pState = (struct _state*)cookie;
 	register int64 r = pState->N;
 	register int64 s = (int64)iterations;
+	register int64 i = (int64)iterations;
 
 	while (iterations-- > 0) {
-		HUNDRED(r^=s;s^=r;)
+		HUNDRED(r^=i;s^=r;r|=s;)
+		i--;
 	}
 	use_int((int)r);
 }
@@ -352,9 +354,9 @@ main(int ac, char **av)
 	}
 
 	BENCH((*do_integer_bitwise)(__n, &state); __n = 1;, 0);
-	nano("integer bit", get_n() * 100 * 2);
+	nano("integer bit", get_n() * 100 * 3);
 	iop_time = gettime();
-	iop_N = get_n() * 100 * 2;
+	iop_N = get_n() * 100 * 3;
 	
 	BENCH((*do_integer_add)(__n, &state); __n = 1;, 0);
 	nano("integer add", get_n() * 100 * 2);
@@ -371,9 +373,9 @@ main(int ac, char **av)
 	nano("integer mod", get_n() * 100);
 	
 	BENCH((*do_int64_bitwise)(__n, &state); __n = 1;, 0);
-	nano("int64 bit", get_n() * 100 * 2);
+	nano("int64 bit", get_n() * 100 * 3);
 	iop_time = gettime();
-	iop_N = get_n() * 100 * 2;
+	iop_N = get_n() * 100 * 3;
 
 	BENCH((*do_int64_add)(__n, &state); __n = 1;, 0);
 	nano("int64 add", get_n() * 100 * 2);
