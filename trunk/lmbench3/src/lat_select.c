@@ -105,7 +105,7 @@ server(void* cookie)
 	pid = getpid();
 
 	/* Create a socket for clients to connect to */
-	state->sock = tcp_server(TCP_CONNECT, SOCKOPT_NONE);
+	state->sock = tcp_server(TCP_SELECT, SOCKOPT_REUSE);
 	if (state->sock <= 0) {
 		perror("lat_select: Could not open tcp server socket");
 		exit(1);
@@ -144,7 +144,7 @@ server(void* cookie)
 int
 open_socket(void* cookie)
 {
-	return tcp_connect("localhost", TCP_CONNECT, SOCKOPT_NONE);
+	return tcp_connect("localhost", TCP_SELECT, SOCKOPT_NONE);
 }
 
 int open_file(void* cookie)
