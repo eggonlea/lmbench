@@ -48,7 +48,7 @@ COMPILE=$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
 INCS =	bench.h lib_mem.h lib_tcp.h lib_udp.h stats.h timing.h
 
 SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
-	bw_unix.c bw_shm.c						\
+	bw_unix.c							\
 	cache.c clock.c disk.c enough.c flushdisk.c getopt.c hello.c	\
 	lat_connect.c lat_ctx.c	lat_fcntl.c lat_fifo.c lat_fs.c 	\
 	lat_mem_rd.c lat_mmap.c lat_ops.c lat_pagefault.c lat_pipe.c 	\
@@ -72,7 +72,7 @@ EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
 	$O/msleep $O/loop_o $O/lat_fifo $O/lmhttp $O/lat_http		\
 	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk		\
 	$O/lat_ops $O/line $O/tlb $O/cache $O/par_mem $O/par_ops 	\
-	$O/stream $O/lat_dram_page $O/bw_shm
+	$O/stream $O/lat_dram_page
 
 MAN1 =	lmdd.1 $D/bargraph.1 $D/graph.1 $D/pgraph.1 $D/rccs.1
 
@@ -263,9 +263,6 @@ $O/bw_mmap_rd:  bw_mmap_rd.c timing.h stats.h bench.h $O/lmbench.a
 
 $O/bw_pipe:  bw_pipe.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/bw_pipe bw_pipe.c $O/lmbench.a $(LDLIBS)
-
-$O/bw_shm:  bw_shm.c timing.h stats.h bench.h $O/lmbench.a
-	$(COMPILE) -o $O/bw_shm bw_shm.c $O/lmbench.a $(LDLIBS)
 
 $O/bw_tcp:  bw_tcp.c bench.h timing.h stats.h lib_tcp.h $O/lmbench.a
 	$(COMPILE) -o $O/bw_tcp bw_tcp.c $O/lmbench.a $(LDLIBS)
