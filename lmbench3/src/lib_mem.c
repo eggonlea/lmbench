@@ -311,6 +311,8 @@ line_find(int len, int warmup, int repetitions, struct mem_state* state)
 	for (i = sizeof(char*); i <= maxline; i<<=1) {
 		t = line_test(i, warmup, repetitions, state);
 
+		if (t == 0.) break;
+
 		if (i > sizeof(char*)) {
 			if (t > 1.3 * baseline) {
 				big_jump = 1;
@@ -329,19 +331,21 @@ line_test(int line, int warmup, int repetitions, struct mem_state* state)
 {
 	int	i;
 	double	t;
-	result_t r, *r_save;
+	result_t *r, *r_save;
 
 	state->line = line;
 	r_save = get_results();
-	insertinit(&r);
-	for (i = 0; i < 5; ++i) {
+	r = (result_t*)malloc(sizeof_result(repetitions));
+	insertinit(r);
+	for (i = 0; i < repetitions; ++i) {
 		benchmp(line_initialize, mem_benchmark_0, mem_cleanup, 
-			0, 1, warmup, repetitions, state);
-		insertsort(gettime(), get_n(), &r);
+			0, 1, warmup, TRIES, state);
+		insertsort(gettime(), get_n(), r);
 	}
-	set_results(&r);
+	set_results(r);
 	t = 10. * (double)gettime() / (double)get_n();
 	set_results(r_save);
+	free(r);
 	
 	/*
 	fprintf(stderr, "%d\t%.5f\t%d\n", line, t, state->len); 
