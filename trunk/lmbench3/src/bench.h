@@ -34,8 +34,22 @@ typedef unsigned char bool_t;
 #include        <sys/socket.h>
 #include        <sys/un.h>
 #include        <sys/resource.h>
+#define PORTMAP
 #include	<rpc/rpc.h>
 #endif
+
+#ifndef HAVE_uint
+typedef unsigned int uint;
+#endif
+
+#ifdef HAVE_uint64_t
+typedef uint64_t uint64;
+#else
+typedef unsigned long long uint64;
+#endif
+
+#define NO_PORTMAPPER
+
 #include	"stats.h"
 #include	"timing.h"
 #include	"lib_tcp.h"
@@ -48,7 +62,6 @@ typedef unsigned char bool_t;
 #else
 #	define		debug(x)
 #endif
-#define NO_PORTMAPPER
 #ifdef	NO_PORTMAPPER
 #define	TCP_SELECT	-31233
 #define	TCP_XACT	-31234
