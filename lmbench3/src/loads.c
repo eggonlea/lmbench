@@ -89,6 +89,7 @@ main(int ac, char **av)
 	int	print_cost = 0;
 	int	maxlen = 32 * 1024 * 1024;
 	double	time;
+	result_t base, wide, *r_save;
 	struct _state state;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 
@@ -102,6 +103,8 @@ main(int ac, char **av)
 			break;
 		case 'L':
 			state.line = atoi(optarg);
+			if (state.line < sizeof(char*))
+				state.line = sizeof(char*);
 			break;
 		case 'M':
 			l = strlen(optarg);
@@ -126,21 +129,30 @@ main(int ac, char **av)
 		}
 	}
 
-	for (i = sizeof(char*); i <= maxlen; i<<=1) { 
+	for (i = 8 * state.line; i <= maxlen; i<<=1) { 
 		state.len = i;
-		benchmp(initialize, benchmarks[0], cleanup, 0, 1, 
-			warmup, repetitions, &state);
 
-		/* We want nanoseconds / load. */
-		time = (1000. * (double)gettime()) / (100. * (double)get_n());
+		r_save = get_results();
+		insertinit(&base);
+		insertinit(&wide);
+		
+		for (j = 0; j < TRIES; ++j) {
+			benchmp(initialize, benchmarks[0], cleanup, 0, 1, 
+				warmup, repetitions, &state);
+			insertsort(gettime(), get_n(), &base);
 
-		benchmp(initialize, benchmarks[7], cleanup, 0, 1, 
-			warmup, repetitions, &state);
+			benchmp(initialize, benchmarks[7], cleanup, 0, 1, 
+				warmup, repetitions, &state);
+			insertsort(gettime(), 8 * get_n(), &wide);
+		}
+		set_results(&base);
+		time = (double)gettime() / (double)get_n();
 
-		time /= (1000. * (double)gettime()) / (100. * (double)(8 * get_n()));
-		j = (int)(time + 0.5);
+		set_results(&wide);
+		time /= (double)gettime() / get_n();
+		set_results(r_save);
 
-		fprintf(stderr, "loads: %d loads %d bytes\n", j, state.len);
+		fprintf(stderr, "loads: %.5f loads %d bytes\n", time, state.len);
 	}
 
 #if 0
@@ -161,7 +173,7 @@ main(int ac, char **av)
 void
 initialize(void* cookie)
 {
-	int i, j, k, nwords, nlines, nbytes, npages;
+	int i, j, k, nwords, nlines, nbytes, npages, npointers;
 	unsigned int r;
 	char ***pages;
 	int    *lines;
@@ -169,6 +181,7 @@ initialize(void* cookie)
 	struct _state* state = (struct _state*)cookie;
 	register char *p = 0 /* lint */;
 
+	npointers = state->len / state->line;
 	nbytes = state->len;
 	nwords = state->line / sizeof(char*);
 	nlines = state->pagesize / state->line;
@@ -236,11 +249,11 @@ initialize(void* cookie)
 
 	/* setup the run through the pages */
 	for (i = 0, k = 0; i < npages; ++i) {
-		for (j = 0; j < nlines - 1; ++j) {
+		for (j = 0; j < nlines - 1 && k < npointers - 1; ++j) {
 			pages[i][lines[j]+words[k%nwords]] = (char*)(pages[i] + lines[j+1] + words[(k+1)%nwords]);
 			k++;
 		}
-		if (i == npages - 1) {
+		if (i == npages - 1 || k == npointers - 1) {
 			pages[i][lines[j]+words[k%nwords]] = (char*)(pages[0] + lines[0] + words[0]);
 		} else {
 			pages[i][lines[j]+words[k%nwords]] = (char*)(pages[i+1] + lines[0] + words[(k+1)%nwords]);
@@ -266,6 +279,3 @@ void cleanup(void* cookie)
 	free(state->addr);
 	state->addr = NULL;
 }
-
-
-
