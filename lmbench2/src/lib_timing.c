@@ -786,7 +786,7 @@ test_time(int enough)
 {
 	int     i;
 	long	N;
-	uint64	usecs, expected, baseline;
+	uint64	usecs, expected, baseline, diff;
 
 	if ((N = find_N(enough)) <= 0)
 		return 0;
@@ -796,7 +796,8 @@ test_time(int enough)
 	for (i = 0; i < sizeof(test_points) / sizeof(double); ++i) {
 		usecs = time_N((int)((double) N * test_points[i]));
 		expected = (uint64)((double)baseline * test_points[i]);
-		if (ABS(expected - usecs) / (double)expected > 0.0025)
+		diff = expected > usecs ? expected - usecs : usecs - expected;
+		if (diff / (double)expected > 0.0025)
 			return 0;
 	}
 	return 1;
