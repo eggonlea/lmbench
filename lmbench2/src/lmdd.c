@@ -664,7 +664,7 @@ done(void)
 	if (hash || poff) {
 		fprintf(stderr, "\n");
 	}
-	if ((int)Label != -1) {
+	if ((long)Label != -1) {
 		fprintf(stderr, "%s", Label);
 	}
 	int_count <<= 2;
