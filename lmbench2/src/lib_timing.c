@@ -517,13 +517,24 @@ insertsort(uint64 u, uint64 n, result_t *r)
 static result_t results;
 
 void
-print_results(void)
+print_results(int details)
 {
 	int	i;
 
 	for (i = 0; i < results.N; ++i) {
-		fprintf(stderr, "%.2f ", (double)results.u[i]/results.n[i]);
+		fprintf(stderr, "%.2f", (double)results.u[i]/results.n[i]);
+		if (i < results.N - 1) fprintf(stderr, " ");
 	}
+	fprintf(stderr, "\n");
+	if (details) {
+		for (i = 0; i < results.N; ++i) {
+			fprintf(stderr, 
+				"%llu/%llu", results.u[i], results.n[i]);
+			if (i < results.N - 1) fprintf(stderr, " ");
+		}
+		fprintf(stderr, "\n");
+	}
+		
 }
 
 void

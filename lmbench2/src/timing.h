@@ -37,6 +37,7 @@ double	timespent(void);
 void	timing(FILE *out);
 uint64	tvdelta(struct timeval *, struct timeval *);
 void	tvsub(struct timeval *tdiff, struct timeval *t1, struct timeval *t0);
+void	print_results(int details);
 void	use_int(int result);
 void	use_pointer(void *result);
 uint64	usecs_spent(void);
