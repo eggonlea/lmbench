@@ -5,6 +5,8 @@
 # lmbench	[default] builds the benchmark suite for the current os/arch
 # results	builds, configures run parameters, and runs the benchmark
 # rerun		reruns the benchmark using the same parameters as last time
+# hardware	reruns the hardware benchmarks using the same parameters
+# os		reruns the OS benchmarks using the same parameters
 # clean		cleans out sources and run configuration
 # clobber	clean and removes the bin directories
 # shar		obsolete, use cd .. && make shar
@@ -13,12 +15,6 @@
 # This is largely self configuring.  Most stuff is pretty portable.  You
 # may have problems with the mhz program.  
 #
-# OS config.  If you aren't one of the known OS's (see ../scripts/os)
-# then you need to make a target in this makefile with the flags that
-# you need.  First fix os to spit out your os and then create a target
-# here.  Please mail me that info so I can update the makefile.
-#
-# If you don't have gcc, try make CC=cc and see if that works.
 
 # I finally know why Larry Wall's Makefile says "Grrrr".
 SHELL=/bin/sh
@@ -90,11 +86,19 @@ lmbench: $(UTILS)
 
 results: lmbench
 	@../scripts/config-run
-	@../scripts/results
+	@BENCHMARK_HARDWARE=YES BENCHMARK_OS=YES ../scripts/results
 
 rerun: lmbench
 	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; fi
-	@../scripts/results
+	@BENCHMARK_HARDWARE=YES BENCHMARK_OS=YES ../scripts/results
+
+hardware: lmbench
+	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; fi
+	@BENCHMARK_HARDWARE=YES BENCHMARK_OS=NO  ../scripts/results
+
+os: lmbench
+	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; fi
+	@BENCHMARK_HARDWARE=NO  BENCHMARK_OS=YES ../scripts/results
 
 install: lmbench
 	@env CFLAGS=-O ../scripts/build install-target
@@ -126,8 +130,8 @@ debug:
 	@env CFLAGS=-g ../scripts/build all
 
 bk.ver: ../SCCS/s.ChangeSet
-	echo `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` \
-		> bk.ver
+	-echo `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` > bk.ver
+	touch bk.ver
 
 dist:
 	@if [ "X`cd ..; bk sfiles -c`" != "X" ]; then \
@@ -138,11 +142,13 @@ dist:
 		echo "pending changes!"; \
 		false; \
 	 fi
-	rm -rf ../bin/* bk.ver
-	cd ..; bk clean
-	cd ..; bk get
-	cd ..; for d in doc results scripts src; do bk get; done
+	cd ..; for d in . doc results scripts src; do \
+		(cd $$d; bk clean; bk get -s); \
+	done
+	rm -rf bk.ver
 	make bk.ver
+	cp -rp .. ../../lmbench-3dist
+	rm -rf ../../lmbench-3dist/bin/*
 
 get $(SRCS):
 	-get -s $(SRCS)
