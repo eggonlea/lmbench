@@ -121,7 +121,8 @@ debug:
 	@env CFLAGS=-g ../scripts/build
 
 bk.ver: ../SCCS/s.ChangeSet
-	echo  `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` > bk.ver
+	-echo  `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` > bk.ver
+	touch bk.ver
 
 dist:
 	@if [ "X`cd ..; bk sfiles -c`" != "X" ]; then echo "modified files!"; false; fi
