@@ -43,6 +43,7 @@ max_parallelism(bench_f* benchmarks,
 	initialize(cookie);
 	for (i = 0; i < MAX_LOAD_PARALLELISM; ++i) {
 		BENCH((*benchmarks[i])(__n, cookie); __n = 1;, 0);
+		save_minimum();
 
 		if (gettime() == 0)
 			return -1.;
