@@ -216,16 +216,16 @@ echo $L
 echo ""
 echo "Calculating mhz, please wait for a moment..."
 MHZ=`../bin/$OS/mhz`
-cat > /dev/tty <<EOF
+cat<<EOF
 I think your CPU mhz is 
 
 	$MHZ
 	
 but I am frequently wrong.  If that is the wrong Mhz, type in your
 best guess as to your processor speed.  It doesn't have to be exact,
-but if you know it is around 100, say 100.  
+but if you know it is around 800, say 800.  
 
-Type in just the Mhz part, like 200 or 500 for you lucky Alpha owners.
+Type in just the Mhz part, like 3060 or 2800 for 3.06GHz or 2.8GHz P4s.
 
 EOF
 echo $ECHON "Processor mhz [default $MHZ] $ECHOC"
