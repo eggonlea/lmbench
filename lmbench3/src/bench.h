@@ -29,6 +29,7 @@ typedef unsigned char bool_t;
 #include        <sys/stat.h>
 #ifndef WIN32
 #include        <sys/wait.h>
+#include	<time.h>
 #include        <sys/time.h>
 #include        <sys/socket.h>
 #include        <sys/un.h>
@@ -223,6 +224,13 @@ extern void benchmp(support_f initialize,
 		    int parallel,
 		    void* cookie
 	);
+
+/* 
+ * These are used by weird benchmarks which cannot return, such as page
+ * protection fault handling.  See lat_sig.c for sample usage.
+ */
+extern void* benchmp_getstate();
+extern uint64 benchmp_interval(void* _state);
 
 
 /*
