@@ -119,6 +119,14 @@ ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
 	&& CFLAGS="${CFLAGS} -DHAVE_uint64_t=1";
 rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
 
+# check that we have int64
+echo "#include <stdlib.h>" > ${BASE}$$.c
+echo "#include <sys/types.h>" >> ${BASE}$$.c
+echo "main() { int64_t i = 0; return (int)(i); }" >> ${BASE}$$.c
+${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
+	&& CFLAGS="${CFLAGS} -DHAVE_int64_t=1";
+rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
+
 
 # echo Building for $(TARGET)
 if [ ! -d ${BINDIR} ]; then mkdir -p ${BINDIR}; fi

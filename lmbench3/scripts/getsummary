@@ -78,23 +78,23 @@ foreach $file (@ARGV) {
 		}
 		if (/^uint64 bit:/) {
 			@_ = split;
-			push(@uint64_bit, $_[2]);
+			push(@int64_bit, $_[2]);
 		}
 		if (/^uint64 add:/) {
 			@_ = split;
-			push(@uint64_add, $_[2]);
+			push(@int64_add, $_[2]);
 		}
 		if (/^uint64 mul:/) {
 			@_ = split;
-			push(@uint64_mul, $_[2]);
+			push(@int64_mul, $_[2]);
 		}
 		if (/^uint64 div:/) {
 			@_ = split;
-			push(@uint64_div, $_[2]);
+			push(@int64_div, $_[2]);
 		}
 		if (/^uint64 mod:/) {
 			@_ = split;
-			push(@uint64_mod, $_[2]);
+			push(@int64_mod, $_[2]);
 		}
 		if (/^float add:/) {
 			@_ = split;
@@ -391,8 +391,8 @@ foreach $file (@ARGV) {
 		'lat_tcp_local', 'lat_tcp_remote',
 		'lat_udp_local', 'lat_udp_remote', 'lat_unix', 'lat_write', 
 		'line_size', 'mem_load_par', 'misc_mhz', 'tlb',
-		'uint64_add', 'uint64_bit', 'uint64_div', 'uint64_mod',
-		'uint64_mul'
+		'int64_add', 'int64_bit', 'int64_div', 'int64_mod',
+		'int64_mul'
 	) {
 		$last = eval '$#' . $array;
 		if ($last != $n) {
@@ -555,33 +555,33 @@ sub print_uint64
 	local($i);
 	local($t);
 	
-	if (&resultsq(0, $#uname, ( 'uint64_bit', 'uint64_add', 
-				'uint64_mul', 'uint64_div',
-				'uint64_mod' )) <= 0) { 
+	if (&resultsq(0, $#uname, ( 'int64_bit', 'int64_add', 
+				'int64_mul', 'int64_div',
+				'int64_mod' )) <= 0) { 
 		return; 
 	}
 	print<<EOF;
 
 Basic uint64 operations - times in nanoseconds - smaller is better
 ------------------------------------------------------------------
-Host                 OS uint64 uint64 uint64 uint64 uint64  
+Host                 OS int64  int64  int64  int64  int64  
                          bit    add    mul    div    mod   
 --------- ------------- ------ ------ ------ ------ ------ 
 EOF
 
 	for ($i = 0; $i <= $#uname; $i++) {
-		if (&resultsq($i, $i, ( 'uint64_bit', 'uint64_add', 
-					'uint64_mul', 'uint64_div',
-					'uint64_mod' )) <= 0) { 
+		if (&resultsq($i, $i, ( 'int64_bit', 'int64_add', 
+					'int64_mul', 'int64_div',
+					'int64_mod' )) <= 0) { 
 			next; 
 		}
         	printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
 		printf " %5.5s %6.6s %6.6s %6.6s %6.6s\n",
-			&num($uint64_bit[$i], 6),
-			&num($uint64_add[$i], 6),
-			&num($uint64_mul[$i], 6),
-			&num($uint64_div[$i], 6),
-			&num($uint64_mod[$i], 6);
+			&num($int64_bit[$i], 6),
+			&num($int64_add[$i], 6),
+			&num($int64_mul[$i], 6),
+			&num($int64_div[$i], 6),
+			&num($int64_mod[$i], 6);
 	}
 }
 

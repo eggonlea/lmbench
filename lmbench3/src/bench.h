@@ -48,6 +48,12 @@ typedef uint64_t uint64;
 typedef unsigned long long uint64;
 #endif
 
+#ifdef HAVE_int64_t
+typedef int64_t int64;
+#else
+typedef long long int64;
+#endif
+
 #define NO_PORTMAPPER
 
 #include	"stats.h"
