@@ -123,7 +123,7 @@ static void
 touchRange(char *p, size_t range, ssize_t stride)
 {
 	int i = 0;
-	register char	*tmp = p + (stride > 0 ? 0 : range - stride);
+	register char	*tmp = p + (stride > 0 ? 0 : range - 1);
 	register size_t delta = (stride > 0 ? stride : -stride);
 
 	while (range > delta - 1) {
