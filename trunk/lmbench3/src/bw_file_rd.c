@@ -1,7 +1,7 @@
 /*
  * bw_file_rd.c - time reading & summing of a file
  *
- * Usage: bw_file_rd [-P <parallelism] [-W <warmup>] [-N <repetitions>] size file
+ * Usage: bw_file_rd [-C] [-P <parallelism] [-W <warmup>] [-N <repetitions>] size file
  *
  * The intent is that the file is in memory.
  * Disk benchmarking is done with lmdd.
@@ -126,7 +126,7 @@ int main(int ac, char **av)
 	int	c;
 	char	usage[1024];
 	
-	sprintf(usage,"[-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> open2close|io_only <filename>"
+	sprintf(usage,"[-C] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> open2close|io_only <filename>"
 		"\nmin size=%d\n",(int) (XFERSIZE>>10)) ;
 
 	state.clone = 0;
