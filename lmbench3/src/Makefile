@@ -149,14 +149,25 @@ dist:
 		echo "pending changes!"; \
 		false; \
 	 fi
-	cd ..; for d in . doc results scripts src; do \
-		(cd $$d; bk clean; bk get -s); \
-	done
-	rm -rf bk.ver
-	make bk.ver
-	cp -rp .. ../../lmbench-3dist
-	rm -rf ../../lmbench-3dist/bin/*
-	rm -rf ../../lmbench-3dist/results/[a-su-z]*
+	cd ..; \
+		SRCDIR=`pwd`; \
+		DIR=`basename $${SRCDIR}`; \
+		TODAY=`date '+%Y%m%d'`; \
+		cd ..; \
+		bk clone $${DIR} /tmp/$${DIR}; \
+		cd /tmp/$${DIR}; \
+		bk sfiles | xargs touch; \
+		sleep 5; \
+		bk get -s; \
+		for d in doc results scripts src; do \
+			cd $$d; bk get -s; cd ..; \
+		done; \
+		bk sfiles -U -g | xargs touch; \
+		cd src; \
+		make bk.ver; \
+		cd /tmp; \
+		tar czf $${SRCDIR}/../$${DIR}-$${TODAY}.tgz $${DIR}; \
+		rm -rf /tmp/$${DIR};
 
 get $(SRCS):
 	-get -s $(SRCS)
