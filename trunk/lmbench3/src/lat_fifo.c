@@ -1,6 +1,8 @@
 /*
  * lat_fifo.c - named pipe transaction test
  *
+ * usage: lat_fifo [-P <parallelism>]
+ *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
  * (1) the benchmark is unmodified, and
@@ -10,59 +12,127 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-#define	F1	"/tmp/lmbench_f1"
-#define	F2	"/tmp/lmbench_f2"
+#define	F1	"/tmp/lmbench_f1.%d"
+#define	F2	"/tmp/lmbench_f2.%d"
 
-void
-doit(int r, int w)
+void initialize(void *cookie);
+void cleanup(void *cookie);
+void doit(uint64 iterations,void *cookie);
+void writer(int wr, int rd);
+
+typedef struct _state {
+	char	filename1[256];
+	char	filename2[256];
+	int	pid;
+	int	wr;
+	int	rd;
+} state_t;
+
+int main(int ac, char **av)
 {
-	char	c;
+	state_t state;
+	int parallel = 1;
+	int c;
+	char* usage = "[-P <parallelism>]\n";
 
-	if (write(w, &c, 1) != 1 || read(r, &c, 1) != 1) {
-			perror("read/write on pipe");
-			exit(1);
+	while (( c = getopt(ac, av, "P:")) != EOF) {
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
 	}
+	if (optind < ac) {
+		lmbench_usage(ac, av, usage);
+	}
+
+	benchmp(initialize, doit, cleanup, SHORT, parallel, &state);
+	micro("Fifo latency", get_n());
 }
 
-int
-main()
+void initialize(void *cookie)
 {
-	int	pid, rd, wr;
 	char	c;
+	state_t * state = (state_t *)cookie;
 
-	unlink(F1); unlink(F2);
-	if (mknod(F1, S_IFIFO|0664, 0) || mknod(F2, S_IFIFO|0664, 0)) {
+	sprintf(state->filename1,F1,getpid());
+	sprintf(state->filename2,F2,getpid());
+	
+	unlink(state->filename1); unlink(state->filename2);
+	if (mknod(state->filename1, S_IFIFO|0664, 0) ||
+	    mknod(state->filename2, S_IFIFO|0664, 0)) {
 		perror("mknod");
 		exit(1);
 	}
-	pid = fork();
-	if (pid == -1) {
+	switch (state->pid = fork()) {
+	    case 0:
+		state->rd = open(state->filename1, O_RDONLY);
+		state->wr = open(state->filename2, O_WRONLY);
+		writer(state->wr, state->rd);
+		return;
+
+	    case -1:
 		perror("fork");
+		return;
+
+	    default:
+		state->wr = open(state->filename1, O_WRONLY);
+		state->rd = open(state->filename2, O_RDONLY);
+		break;
+	}
+
+	/*
+	 * One time around to make sure both processes are started.
+	 */
+	if (write(state->wr, &c, 1) != 1 ||read(state->rd, &c, 1) != 1) {
+		perror("(i) read/write on pipe");
 		exit(1);
 	}
-	if (pid > 0) {
-		rd = open(F1, O_RDONLY);
-		wr = open(F2, O_WRONLY);
-		/*
-		 * One time around to make sure both processes are started.
-		 */
-		if (write(wr, &c, 1) != 1 || read(rd, &c, 1) != 1) {
-			perror("read/write on pipe");
+}
+
+void cleanup(void * cookie)
+{
+	state_t * state = (state_t *)cookie;
+
+	signal(SIGCHLD,SIG_IGN);
+	kill(state->pid, 15);
+	unlink(state->filename1);
+	unlink(state->filename2);
+	kill(state->pid, 9);
+	close(state->wr);
+	close(state->rd);
+}
+
+void doit(register uint64 iterations, void *cookie)
+{
+	state_t *state = (state_t *) cookie;
+	char		c;
+	register int	w = state->wr;
+	register int	r = state->rd;
+	register char	*cptr = &c;
+
+	while (iterations-- > 0) {
+		if (write(w, cptr, 1) != 1 ||
+		    read(r, cptr, 1) != 1) {
+			perror("(r) read/write on pipe");
 			exit(1);
 		}
-		BENCH(doit(rd, wr), SHORT);
-		micro("Pipe latency", get_n());
-		kill(pid, 15);
-	} else {
-		wr = open(F1, O_WRONLY);
-		rd = open(F2, O_RDONLY);
-		for ( ;; ) {
-			if (read(rd, &c, 1) != 1 ||
-			    write(wr, &c, 1) != 1) {
-				perror("read/write on pipe");
-				exit(1);
-			}
+	}
+}
+
+void writer(register int w, register int r)
+{
+	char		c;
+	register char	*cptr = &c;
+
+	for ( ;; ) {
+		if (read(r, cptr, 1) != 1 ||
+			write(w, cptr, 1) != 1) {
+			    perror("(w) read/write on pipe");
 		}
 	}
-	return (0);
 }

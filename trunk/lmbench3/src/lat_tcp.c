@@ -1,9 +1,9 @@
 /*
- * tcp_xact.c - simple TCP transaction latency test
+ * lat_tcp.c - simple TCP transaction latency test
  *
  * Three programs in one -
  *	server usage:	tcp_xact -s
- *	client usage:	tcp_xact hostname
+ *	client usage:	tcp_xact [-P <parallelism>] hostname
  *	shutdown:	tcp_xact -hostname
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
@@ -16,67 +16,101 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-void	client_main(int ac, char **av);
+typedef struct _state {
+	int	sock;
+	char	*server;
+} state_t;
+
+void	init(void *cookie);
+void	cleanup(void *cookie);
 void	doserver(int sock);
-void	doclient(int sock);
-void	server_main(int ac, char **av);
+void	doclient(uint64 iterations, void * cookie);
+void	server_main();
 void	doserver(int sock);
 
 int
 main(int ac, char **av)
 {
-	if (ac != 2) {
-		fprintf(stderr, "Usage: %s -s OR %s [-]serverhost\n",
-		    av[0], av[0]);
-		exit(1);
-	}
-	if (!strcmp(av[1], "-s")) {
+	state_t state;
+	int	parallel = 1;
+	char	buf[256];
+	char	*usage = "-s\n OR [-P <parallelism>] server [size]\n OR [-]serverhost\n";
+
+	if (ac == 2 && !strcmp(av[1], "-s")) { /* Server */
 		if (fork() == 0) {
-			server_main(ac, av);
+			server_main();
 		}
 		exit(0);
-	} else {
-		client_main(ac, av);
+		
+	} else { /* Client */
+		char c;
+		if (ac == 2) {
+			if (av[1][0] == '-') { /* shut down server */
+				if (!strcmp(av[1],"-"))
+					lmbench_usage(ac, av, usage);
+				else {
+					state.sock = tcp_connect(&av[1][1],
+								 TCP_XACT,
+								 SOCKOPT_NONE);
+					close(state.sock);
+					exit(0);
+				}
+			}
+		}
+
+		while (( c = getopt(ac, av, "P:")) != EOF) {
+			switch(c) {
+			case 'P':
+				parallel = atoi(optarg);
+				if (parallel <= 0)
+					lmbench_usage(ac, av, usage);
+				break;
+			default:
+				lmbench_usage(ac, av, usage);
+				break;
+			}
+		}
+
+		if (optind + 1 != ac) {
+			lmbench_usage(ac, av, usage);
+		}
+
+		state.server = av[optind][0] == '-' ?
+			                  &av[optind][1] : av[optind];
+
 	}
-	return(0);
-}
 
-void
-client_main(int ac, char **av)
-{
-	int     sock;
-	char	*server;
-	char	buf[100];
-
-	if (ac != 2) {
-		fprintf(stderr, "usage: %s host\n", av[0]);
-		exit(1);
-	}
-	server = av[1][0] == '-' ? &av[1][1] : av[1];
-	sock = tcp_connect(server, TCP_XACT, SOCKOPT_NONE);
-
-	/*
-	 * Stop server code.
-	 */
-	if (av[1][0] == '-') {
-		close(sock);
-		exit(0);
-	}
-
-	BENCH(doclient(sock), MEDIUM);
-	sprintf(buf, "TCP latency using %s", av[1]);
+	benchmp(init,doclient,cleanup,
+		MEDIUM, parallel, &state);
+	sprintf(buf, "TCP latency using %s", state.server);
 	micro(buf, get_n());
-	exit(0);
-	/* NOTREACHED */
+}
+
+void init(void * cookie)
+{
+	state_t *state = (state_t *) cookie;
+
+	state->sock = tcp_connect(state->server, TCP_XACT, SOCKOPT_NONE);
+}
+
+void cleanup(void * cookie)
+{
+	state_t *state = (state_t *) cookie;
+
+	close(state->sock);
 }
 
 void
-doclient(int sock)
+doclient(uint64 iterations, void *cookie)
 {
+	state_t *state = (state_t *) cookie;
+	int 	sock   = state->sock;
 	char    c;
 
-	write(sock, &c, 1);
-	read(sock, &c, 1);
+	while (iterations-- > 0) {
+		write(sock, &c, 1);
+		read(sock, &c, 1);
+	}
 }
 
 void
@@ -87,14 +121,10 @@ child()
 }
 
 void
-server_main(int ac, char **av)
+server_main()
 {
 	int     newsock, sock;
 
-	if (ac != 2) {
-		fprintf(stderr, "usage: %s -s\n", av[0]);
-		exit(1);
-	}
 	GO_AWAY;
 	signal(SIGCHLD, child);
 	sock = tcp_server(TCP_XACT, SOCKOPT_NONE);
