@@ -44,6 +44,15 @@ text: $(ALL)
 	sed s/doublebox// > Fixed.ms
 	groff -Tascii -t -e -s -p -R -mgs Fixed.ms 2>/dev/null | colcrt - | more
 
+userguide.ps: $(ALL) references-userguide userguide.ms \
+		lmbench3_arch.pic lmbench3_signals.pic ctx.tbl \
+		bw_allmem.tbl bw_ipc.tbl bw_reread2.tbl bw_tcp.tbl \
+		lat_allmem.tbl lat_allproc.tbl lat_connect.tbl \
+		lat_disk.tbl lat_fs.tbl lat_ipc.tbl lat_nullsys.tbl \
+		lat_pipe.tbl lat_signal.tbl lat_tcp.tbl lat_udp.tbl
+	gindxbib references-userguide
+	groff -t -e -G -s -p -R tmac.usenix userguide.ms > userguide.ps
+
 memhier.ps: $(ALL) memhier-color.d memhier-tlb.d memhier-line.d references-memhier memhier.ms
 	gindxbib references-memhier
 	groff -G -t -e -s -p -R tmac.usenix memhier.ms > memhier.ps
