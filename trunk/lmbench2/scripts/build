@@ -37,8 +37,12 @@ ${CC} -o $$ $$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -Dvalloc=malloc"
 rm -f $$ $$.c
 
 # check for -lnsl -lsocket
-echo "main() { int i; }" >> $$.c
-${CC} -o $$ $$.c -lnsl -lsocket 1>/dev/null 2>/dev/null && LDLIBS="${LDLIBS} -lnsl -lsocket"
+echo "extern int callrpc(); main() { callrpc(); }" > $$.c
+if ${CC} -o $$ $$.c 1>/dev/null 2>/dev/null; then
+	true;
+else
+	${CC} -o $$ $$.c -lnsl -lsocket 1>/dev/null 2>/dev/null && LDLIBS="${LDLIBS} -lnsl -lsocket"
+fi
 rm -f $$ $$.c
 
 
@@ -46,4 +50,5 @@ rm -f $$ $$.c
 if [ ! -d ${BINDIR} ]; then mkdir -p ${BINDIR}; fi
 
 # now go ahead and build everything!
+echo ${MAKE} CC="${CC}" CFLAGS="${CFLAGS}" LDLIBS="${LDLIBS}" O="${BINDIR}" all
 ${MAKE} CC="${CC}" CFLAGS="${CFLAGS}" LDLIBS="${LDLIBS}" O="${BINDIR}" all
