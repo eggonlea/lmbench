@@ -28,6 +28,7 @@ struct mem_state {
 	char*	p[MAX_MEM_PARALLELISM];
 	int	width;
 	int	len;
+	int	maxlen;
 	int	line;
 	int	pagesize;
 };
@@ -42,6 +43,7 @@ extern bench_f mem_benchmarks[];
 
 int	line_find(int l, int warmup, int repetitions, struct mem_state* state);
 double	line_test(int l, int warmup, int repetitions, struct mem_state* state);
+double	par_mem(int l, int warmup, int repetitions, struct mem_state* state);
 
 #endif LMBENCH_MEM_H
 
