@@ -4,6 +4,15 @@
 lat_pipe \- measure interprocess communication latency through pipes
 .SH SYNOPSIS
 .B lat_pipe
+[
+.I "-P <parallelism>"
+]
+[
+.I "-W <warmups>"
+]
+[
+.I "-N <repetitions>"
+]
 .SH DESCRIPTION
 .B lat_pipe
 uses two processes communicating through a Unix pipe to measure interprocess
@@ -23,3 +32,7 @@ Funding for the development of
 this tool was provided by Sun Microsystems Computer Corporation.
 .SH "SEE ALSO"
 lmbench(8).
+.SH "AUTHOR"
+Carl Staelin and Larry McVoy
+.PP
+Comments, suggestions, and bug reports are always welcome.

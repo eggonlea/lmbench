@@ -4,10 +4,33 @@
 bw_pipe \- time data movement through pipes
 .SH SYNOPSIS
 .B bw_pipe
+[
+.I "-m <message size>"
+]
+[
+.I "-M <total bytes>"
+]
+[
+.I "-P <parallelism>"
+]
+[
+.I "-W <warmups>"
+]
+[
+.I "-N <repetitions>"
+]
 .SH DESCRIPTION
 .B bw_pipe
-creates a Unix pipe between two processes and moves 50MB through the pipe
-in 64KB chunks (note that pipes are typically sized smaller than that).
+creates a Unix pipe between two processes and moves 
+.I "total bytes"
+through the pipe in 
+.I "message size"
+chunks (note that pipes are typically sized smaller than that).  
+The default
+.I "total bytes"
+is 10MB and the default
+.I "message size"
+is 64KB.
 .SH OUTPUT
 Output format is \f(CB"Pipe bandwidth: %0.2f MB/sec\\n", megabytes_per_second\fP, i.e.,
 .sp
@@ -30,3 +53,7 @@ Funding for the development of
 this tool was provided by Sun Microsystems Computer Corporation.
 .SH "SEE ALSO"
 lmbench(8).
+.SH "AUTHOR"
+Carl Staelin and Larry McVoy
+.PP
+Comments, suggestions, and bug reports are always welcome.

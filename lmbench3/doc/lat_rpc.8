@@ -7,10 +7,25 @@ lat_rpc \- measure interprocess communication latency via Sun RPC
 .I -s
 .sp .5
 .B lat_rpc
-.I hostname [udp|tcp]
+[
+.I "-P <parallelism>"
+]
+[
+.I "-W <warmups>"
+]
+[
+.I "-N <repetitions>"
+]
+[
+.I "-p tcp|udp"
+]
+.I hostname
+[
+.I "udp|tcp"
+]
 .sp .5
 .B lat_rpc
-.I -hostname
+.I "-S hostname"
 .SH DESCRIPTION
 .B lat_rpc
 is a client/server program that measures interprocess
@@ -25,10 +40,13 @@ back and forth a single byte, not some long complicated record.
 .LP
 .B lat_rpc
 has three forms of usage: as a server (-s), as a client (lat_rpc localhost), and
-as a shutdown (lat_rpc -localhost).
+as a shutdown (lat_rpc -S localhost).
 .LP
 The client form may specify the protocol over which the RPCs are performed.
-The default is ``udp''.
+The default is to measure performance for both
+.I udp
+and 
+.IR tcp .
 .SH OUTPUT
 The reported time is in microseconds per round trip and includes the total
 time, i.e., the context switching overhead is includeded.
@@ -44,3 +62,7 @@ Funding for the development of
 this tool was provided by Sun Microsystems Computer Corporation.
 .SH "SEE ALSO"
 lmbench(8).
+.SH "AUTHOR"
+Carl Staelin and Larry McVoy
+.PP
+Comments, suggestions, and bug reports are always welcome.

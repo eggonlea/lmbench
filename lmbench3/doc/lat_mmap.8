@@ -4,6 +4,15 @@
 lat_mmap \- costs of mmapping and unmmapping varying file sizes
 .SH SYNOPSIS
 .B lat_mmap
+[
+.I "-P <parallelism>"
+]
+[
+.I "-W <warmups>"
+]
+[
+.I "-N <repetitions>"
+]
 .I size
 .I file
 .SH DESCRIPTION
@@ -30,3 +39,7 @@ Funding for the development of
 this tool was provided by Sun Microsystems Computer Corporation.
 .SH "SEE ALSO"
 lmbench(8).
+.SH "AUTHOR"
+Carl Staelin and Larry McVoy
+.PP
+Comments, suggestions, and bug reports are always welcome.

@@ -1,11 +1,25 @@
 .\" $Id$
-.TH LAT_CTX 8 "$Date$" "(c)1994 Larry McVoy" "LMBENCH"
+.TH LAT_CTX 8 "$Date$" "(c)1994-2000 Carl Staelin and Larry McVoy" "LMBENCH"
 .SH NAME
 lat_ctx \- context switching benchmark
 .SH SYNOPSIS
 .B lat_ctx 
-.I [-s size_in_kbytes]
-.I #procs [#procs ...]
+[
+.I "-P <parallelism>"
+]
+[
+.I "-W <warmups>"
+]
+[
+.I "-N <repetitions>"
+]
+[
+.I "-s <size_in_kbytes>"
+]
+.I "#procs"
+[
+.I "#procs ..."
+]
 .SH DESCRIPTION
 .B lat_ctx
 measures context switching time for any reasonable
@@ -68,9 +82,14 @@ lowest numbers reported.  The lower the number the more accurate the results.
 The reasons for the inaccuracies are possibly interaction between the 
 VM system and the processor caches.  It is possible that sometimes the
 benchmark processes are laid out in memory such that there are fewer 
-TLB/cache conflicts than other times.  This is pure speculation on my part.
+TLB/cache conflicts than other times.  This is pure speculation on our part.
 .SH ACKNOWLEDGEMENT
 Funding for the development of
 this tool was provided by Sun Microsystems Computer Corporation.
 .SH "SEE ALSO"
 lmbench(8).
+.SH "AUTHOR"
+Carl Staelin and Larry McVoy
+.PP
+Comments, suggestions, and bug reports are always welcome.
+

@@ -4,6 +4,15 @@
 bw_mmap_rd \- time the reading and summing of a file
 .SH SYNOPSIS
 .B bw_mmap_rd
+[
+.I "-P <parallelism>"
+]
+[
+.I "-W <warmups>"
+]
+[
+.I "-N <repetitions>"
+]
 .I size
 .I file
 .SH DESCRIPTION
@@ -31,3 +40,7 @@ Funding for the development of
 this tool was provided by Sun Microsystems Computer Corporation.
 .SH "SEE ALSO"
 lmbench(8).
+.SH "AUTHOR"
+Carl Staelin and Larry McVoy
+.PP
+Comments, suggestions, and bug reports are always welcome.
