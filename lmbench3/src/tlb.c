@@ -139,11 +139,13 @@ compute_times(int pages, int warmup, int repetitions,
 
 	for (i = 0; i < TRIES; ++i) {
 		state->len = pages * state->pagesize;
+		state->maxlen = pages * state->pagesize;
 		benchmp(tlb_initialize, mem_benchmark_0, mem_cleanup, 0, 1, 
 			warmup, repetitions, state);
 		insertsort(gettime(), get_n(), &tlb_results);
 	
 		state->len = pages * state->line;
+		state->maxlen = pages * state->line;
 		benchmp(mem_initialize, mem_benchmark_0, mem_cleanup, 0, 1,
 			warmup, repetitions, state);
 		insertsort(gettime(), get_n(), &cache_results);
@@ -159,7 +161,7 @@ compute_times(int pages, int warmup, int repetitions,
 	set_results(r_save);
 
 	/*
-	fprintf(stderr, "%d %.5f %.5f\n", state->pages, *tlb_time, *cache_time);
+	fprintf(stderr, "%d %.5f %.5f\n", pages, *tlb_time, *cache_time);
 	/**/
 }
 
