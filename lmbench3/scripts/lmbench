@@ -197,7 +197,7 @@ if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_FILE = XYES ]; then
 fi
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_PAGEFAULT = XYES ]; then
-	lat_pagefault $FILE
+	lat_pagefault -P $SYNC_MAX $FILE
 fi
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_MMAP = XYES ]; then
 	echo "" 1>&2
