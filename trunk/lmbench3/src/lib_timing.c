@@ -1158,10 +1158,13 @@ last(char *s)
 	return (s[-2]);
 }
 
-int
+uint64
 bytes(char *s)
 {
-	int	n = atoi(s);
+	uint64	n;
+
+	if (sscanf(s, "%llu", &n) < 1)
+		return (0);
 
 	if ((last(s) == 'k') || (last(s) == 'K'))
 		n *= 1024;
