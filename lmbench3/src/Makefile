@@ -46,12 +46,12 @@ COMPILE=$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
 INCS =	bench.h lib_mem.h lib_tcp.h lib_udp.h stats.h timing.h
 
 SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
-	bw_unix.c	\
+	bw_unix.c bw_shm.c	\
 	cache.c clock.c disk.c enough.c flushdisk.c getopt.c hello.c	\
 	lat_connect.c lat_ctx.c	lat_fcntl.c lat_fifo.c lat_fs.c 	\
 	lat_mem_rd.c lat_mmap.c lat_ops.c lat_pagefault.c lat_pipe.c 	\
 	lat_proc.c lat_rpc.c lat_select.c lat_sig.c lat_syscall.c	\
-	lat_tcp.c lat_udp.c lat_unix.c lat_unix_connect.c		\
+	lat_tcp.c lat_udp.c lat_unix.c lat_unix_connect.c lat_sem.c	\
 	lib_mem.c lib_stats.c lib_tcp.c lib_timing.c lib_udp.c 		\
 	lib_unix.c		\
 	line.c lmdd.c lmhttp.c par_mem.c par_ops.c loop_o.c memsize.c 	\
@@ -60,25 +60,29 @@ SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
 	timing.h version.h
 
 EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
-	$O/bw_udp $O/bw_unix $O/hello	\
+	$O/bw_udp $O/bw_unix $O/bw_shm $O/hello	\
 	$O/lat_select $O/lat_pipe $O/lat_rpc $O/lat_syscall $O/lat_tcp	\
 	$O/lat_udp $O/lat_mmap $O/mhz $O/lat_proc $O/lat_pagefault	\
 	$O/lat_connect $O/lat_fs $O/lat_sig $O/lat_mem_rd $O/lat_ctx	\
+	$O/lat_sem							\
 	$O/memsize $O/lat_unix $O/lmdd $O/timing_o $O/enough	\
 	$O/msleep $O/loop_o $O/lat_fifo $O/lmhttp $O/lat_http	\
 	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk		\
-	$O/lat_ops $O/line $O/tlb $O/cache $O/par_mem $O/par_ops $O/stream
+	$O/lat_ops $O/line $O/tlb $O/cache $O/par_mem $O/par_ops $O/stream $O/par_list
 
 MAN1 =	lmdd.1 $D/bargraph.1 $D/graph.1 $D/pgraph.1 $D/rccs.1
 
 MAN3 =	$D/lmbench.3 $D/reporting.3 $D/results.3 $D/timing.3
 
-MAN8 =	$D/bw_file_rd.8 $D/bw_mem_cp.8 $D/bw_mem_rd.8 $D/bw_mem_wr.8	\
-	$D/bw_mmap_rd.8 $D/bw_pipe.8 $D/bw_tcp.8 $D/lat_connect.8	\
+MAN8 =	$D/bw_file_rd.8 $D/bw_mem.8 $D/bw_mmap_rd.8 \
+	$D/bw_pipe.8 $D/bw_tcp.8 $D/bw_unix.8 $D/lat_connect.8	\
 	$D/lat_ctx.8 $D/lat_fs.8 $D/lat_mem_rd.8 $D/lat_mmap.8		\
 	$D/lat_pagefault.8 $D/lat_pipe.8 $D/lat_proc.8 $D/lat_rpc.8 	\
 	$D/lat_syscall.8 $D/lat_tcp.8 $D/lat_udp.8 $D/lmbench.8 	\
-	$D/lmdd.8 $D/mhz.8 
+	$D/lat_select.8 $D/lat_unix.8 $D/lat_unix_connect.8		\
+	$D/lat_fifo.8 $D/lat_fcntl.8 $D/lat_http.8 $D/lat_sig.8		\
+	$D/lat_ops.8 $D/par_ops.8 $D/par_mem.8				\
+	$D/lmdd.8 $D/mhz.8 $D/cache.8 $D/tlb.8 $D/line.8
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o 	\
 	$O/lib_mem.o $O/lib_stats.o $O/getopt.o
 
@@ -349,3 +353,12 @@ $O/par_ops:  par_ops.c timing.h stats.h bench.h $O/lmbench.a
 
 $O/stream:  stream.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/stream stream.c $O/lmbench.a $(LDLIBS)
+
+$O/lat_sem:  lat_sem.c timing.h stats.h bench.h $O/lmbench.a
+	$(COMPILE) -o $O/lat_sem lat_sem.c $O/lmbench.a $(LDLIBS)
+
+$O/bw_shm:  bw_shm.c timing.h stats.h bench.h $O/lmbench.a
+	$(COMPILE) -o $O/bw_shm bw_shm.c $O/lmbench.a $(LDLIBS)
+
+$O/par_list:  par_list.c timing.h stats.h bench.h $O/lmbench.a
+	$(COMPILE) -o $O/par_list par_list.c $O/lmbench.a $(LDLIBS)
