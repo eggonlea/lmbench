@@ -1,7 +1,7 @@
 /*
  * lat_mmap.c - time how fast a mapping can be made and broken down
  *
- * Usage: mmap [-P <parallelism>] [-W <warmup>] [-N <repetitions>] size file
+ * Usage: mmap [-r] [-C] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] size file
  *
  * XXX - If an implementation did lazy address space mapping, this test
  * will make that system look very good.  I haven't heard of such a system.
@@ -44,7 +44,7 @@ int main(int ac, char **av)
 	int	repetitions = TRIES;
 	char	buf[256];
 	int	c;
-	char	*usage = "[-r] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] size file\n";
+	char	*usage = "[-r] [-C] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] size file\n";
 	
 
 	state.random = 0;
@@ -113,6 +113,7 @@ void init(void * cookie)
 		state->name = s;
 	}
 	CHK(state->fd = open(state->name, O_RDWR));
+	if (state->clone) unlink(state->name);
 	if (lseek(state->fd, 0, SEEK_END) < state->size) {
 		fprintf(stderr, "Input file too small\n");
 		exit(1);
@@ -123,7 +124,6 @@ void cleanup(void * cookie)
 {
 	state_t *state = (state_t *) cookie;
 	close(state->fd);
-	if (state->clone) unlink(state->name);
 }
 
 /*
