@@ -4,7 +4,7 @@
 
 #define MAX_MEM_PARALLELISM 16
 #define MEM_BENCHMARK_DECL(N) \
-	void mem_benchmark_##N##(iter_t iterations, void* cookie);
+	void mem_benchmark_##N(iter_t iterations, void* cookie);
 
 #define REPEAT_0(m)	m(0)
 #define REPEAT_1(m)	REPEAT_0(m) m(1)
@@ -45,5 +45,5 @@ int	line_find(int l, int warmup, int repetitions, struct mem_state* state);
 double	line_test(int l, int warmup, int repetitions, struct mem_state* state);
 double	par_mem(int l, int warmup, int repetitions, struct mem_state* state);
 
-#endif LMBENCH_MEM_H
+#endif /* LMBENCH_MEM_H */
 
