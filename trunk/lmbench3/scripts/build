@@ -155,20 +155,21 @@ fi
 echo "#include <stdlib.h>" > ${BASE}$$.c
 echo "main() { srand48(973); return (int)(1.0E9 * drand48()); }" >> ${BASE}$$.c
 if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
-	true;
-else
-	rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
-	echo "#include <stdlib.h>" > ${BASE}$$.c
-	echo "main() { srand(973); return (10 * rand()) / RAND_MAX; }" >> ${BASE}$$.c
-	if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
-		CFLAGS="${CFLAGS} -DUSE_RAND"
-        else
-		rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
-		echo "#include <stdlib.h>" > ${BASE}$$.c
-		echo "main() { srandom(973); return (10 * random()) / RAND_MAX; }" >> ${BASE}$$.c
-		${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
-			|| CFLAGS="${CFLAGS} -DUSE_RANDOM"
-	fi
+	CFLAGS="${CFLAGS} -DHAVE_DRAND48"
+fi
+rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
+
+echo "#include <stdlib.h>" > ${BASE}$$.c
+echo "main() { srand(973); return (10 * rand()) / RAND_MAX; }" >> ${BASE}$$.c
+if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
+	CFLAGS="${CFLAGS} -DHAVE_RAND"
+fi
+rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
+
+echo "#include <stdlib.h>" > ${BASE}$$.c
+echo "main() { srandom(973); return (10 * random()) / RAND_MAX; }" >> ${BASE}$$.c
+if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
+	CFLAGS="${CFLAGS} -DHAVE_RANDOM"
 fi
 rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
 
