@@ -18,6 +18,12 @@ char	*id = "$Id$\n";
 void	client_main(int ac, char **av);
 void	server_main(int ac, char **av);
 
+void
+timeout()
+{
+	fprintf(stderr, "Recv timed out\n");
+	exit(1);
+}
 
 void
 doit(int sock, int seq)
@@ -85,6 +91,8 @@ client_main(int ac, char **av)
 		}
 		exit(0);
 	}
+	signal(SIGALRM, timeout);
+	alarm(15);
 	BENCH(doit(sock, ++seq), MEDIUM);
 	sprintf(buf, "UDP latency using %s", server);
 	micro(buf, get_n());
