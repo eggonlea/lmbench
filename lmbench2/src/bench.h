@@ -36,6 +36,7 @@ typedef unsigned char bool_t;
 #include        <sys/resource.h>
 #include	<rpc/rpc.h>
 #endif
+#define	NO_PORTMAPPER	/* needs to be up here, lib_*.h look at it */
 #include	"stats.h"
 #include	"timing.h"
 #include	"lib_tcp.h"
@@ -48,7 +49,6 @@ typedef unsigned char bool_t;
 #else
 #	define		debug(x)
 #endif
-#define	NO_PORTMAPPER
 #ifdef	NO_PORTMAPPER
 #define	TCP_XACT	-31234
 #define	TCP_CONTROL	-31235
