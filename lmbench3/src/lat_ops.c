@@ -368,6 +368,7 @@ main(int ac, char **av)
 {
 	int	c, i, j;
 	int	warmup = 0;
+	int	parallel = 1;
 	int	repetitions = TRIES;
 	uint64	iop_time;
 	uint64	iop_N;
@@ -379,7 +380,7 @@ main(int ac, char **av)
 	state.K = -1023;
 	state.data = NULL;
 
-	while (( c = getopt(ac, av, "W:N:")) != EOF) {
+	while (( c = getopt(ac, av, "W:N:P:")) != EOF) {
 		switch(c) {
 		case 'W':
 			warmup = atoi(optarg);
@@ -387,13 +388,17 @@ main(int ac, char **av)
 		case 'N':
 			repetitions = atoi(optarg);
 			break;
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
 		default:
 			lmbench_usage(ac, av, usage);
 			break;
 		}
 	}
 
-	benchmp(NULL, do_integer_bitwise, NULL, 0, 1, warmup, repetitions, &state);
+	benchmp(NULL, do_integer_bitwise, NULL, 0, parallel, warmup, repetitions, &state);
 	nano("integer bit", get_n() * 100000 * 2);
 	iop_time = gettime();
 	iop_N = get_n() * 100000 * 2;
@@ -478,11 +483,11 @@ main(int ac, char **av)
 #endif
 
 	benchmp(float_initialize, 
-		do_float_bogomflops, cleanup, 0, 1, warmup, repetitions, &state);
+		do_float_bogomflops, cleanup, 0, parallel, warmup, repetitions, &state);
 	nano("float bogomflops", get_n() * state.M);
 
 	benchmp(double_initialize, 
-		do_double_bogomflops, cleanup, 0, 1, warmup, repetitions, &state);
+		do_double_bogomflops, cleanup, 0, parallel, warmup, repetitions, &state);
 	nano("double bogomflops", get_n() * state.M);
 
 	return(0);
