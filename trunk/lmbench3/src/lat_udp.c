@@ -174,7 +174,7 @@ server_main()
 
 	GO_AWAY;
 
-	sock = udp_server(UDP_XACT, SOCKOPT_NONE);
+	sock = udp_server(UDP_XACT, SOCKOPT_REUSE);
 
 	while (1) {
 		int nbytes;

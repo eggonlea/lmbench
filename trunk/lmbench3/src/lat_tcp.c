@@ -134,7 +134,7 @@ server_main()
 
 	GO_AWAY;
 	signal(SIGCHLD, child);
-	sock = tcp_server(TCP_XACT, SOCKOPT_NONE);
+	sock = tcp_server(TCP_XACT, SOCKOPT_REUSE);
 	for (;;) {
 		newsock = tcp_accept(sock, SOCKOPT_NONE);
 		switch (fork()) {
