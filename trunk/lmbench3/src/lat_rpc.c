@@ -5,6 +5,7 @@
  *	server usage:	lat_rpc -s
  *	client usage:	lat_rpc hostname
  *	client usage:	lat_rpc hostname tcp
+ *	client usage:	lat_rpc hostname udp
  *	shutdown:	lat_rpc -hostname
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
@@ -17,7 +18,8 @@ char	*id = "$Id$\n";
 #include "bench.h"
 
 void	client_main(int ac, char **av);
-void	server_main(void);
+void	server_main();
+void	benchmark(char *server, char* protocol);
 char	*client_rpc_xact_1(char *argp, CLIENT *clnt);
 
 void
@@ -37,71 +39,106 @@ doit(CLIENT *cl, char *server)
 	}
 }
 
-int
-main(int ac, char **av)
-{
-	if (ac != 2 && ac != 3) {
-		fprintf(stderr, "Usage: %s -s OR %s [-]serverhost [proto]\n",
-		    av[0], av[0]);
-		exit(1);
-	}
-	if (!strcmp(av[1], "-s")) {
-		if (fork() == 0) {
-			server_main();
-		}
-		exit(0);
-	} else {
-		client_main(ac, av);
-	}
-	return(0);
-}
 
 /* Default timeout can be changed using clnt_control() */
 static struct timeval TIMEOUT = { 0, 2500 };
 
 char	*proto[] = { "tcp", "udp", 0 };
 
+typedef struct state_ {
+	int	msize;
+	char	*server;
+} state_t;
+
 void
-client_main(int ac, char **av)
+benchmark(char *server, char* protocol)
 {
 	CLIENT *cl;
-	struct	timeval tv;
-	char	*server;
 	char	buf[256];
-	int	i;
+	struct	timeval tv;
 
-	if (ac != 2 && ac != 3) {
-		fprintf(stderr, "Usage: %s hostname [protocol]\n", av[0]);
+	cl = clnt_create(server, XACT_PROG, XACT_VERS, protocol);
+	if (!cl) {
+		clnt_pcreateerror(server);
 		exit(1);
 	}
-	server = av[1][0] == '-' ? &av[1][1] : av[1];
-	for (i = 0; i < 2; ++i) {
-		if (!(cl =
-		    clnt_create(server, XACT_PROG, XACT_VERS, proto[i]))) {
-			clnt_pcreateerror(server);
+	if (strcasecmp(protocol, proto[1]) == 0) {
+		tv.tv_sec = 0;
+		tv.tv_usec = 2500;
+		if (!clnt_control(cl, CLSET_RETRY_TIMEOUT, (char *)&tv)) {
+			clnt_perror(cl, "setting timeout");
 			exit(1);
 		}
-		if (av[1][0] == '-') {
-done:			clnt_call(cl, RPC_EXIT, (xdrproc_t)xdr_void, 0, 
-			    (xdrproc_t)xdr_void, 0, TIMEOUT);
+	}
+	BENCH(doit(cl, server), MEDIUM);
+	sprintf(buf, "RPC/%s latency using %s", protocol, server);
+	micro(buf, get_n());
+}
+
+void
+main(int ac, char **av)
+{
+	int	i;
+	int 	c;
+	int	parallel = 1;
+	int	server = 0;
+	int	shutdown = 0;
+	CLIENT *cl;
+	state_t	state;
+	char	*protocol = NULL;
+	char	*usage = "-s\n OR [-p <tcp|udp>] [-P parallel] serverhost\n OR -S serverhost\n";
+
+	state.msize = 1;
+
+	while (( c = getopt(ac, av, "sSm:p:P:")) != EOF) {
+		switch(c) {
+		case 's': /* Server */
+			if (fork() == 0) {
+				server_main();
+			}
 			exit(0);
-		}
-		if (i == 1) {
-			tv.tv_sec = 0;
-			tv.tv_usec = 2500;
-			if (!clnt_control(cl,
-			    CLSET_RETRY_TIMEOUT, (char *)&tv)) {
-				clnt_perror(cl, "setting timeout");
+		case 'S': /* shutdown serverhost */
+		{
+			cl = clnt_create(av[ac-1], XACT_PROG, XACT_VERS, "udp");
+			if (!cl) {
+				clnt_pcreateerror(state.server);
 				exit(1);
 			}
+			clnt_call(cl, RPC_EXIT, (xdrproc_t)xdr_void, 0, 
+				  (xdrproc_t)xdr_void, 0, TIMEOUT);
+			exit(0);
 		}
-		BENCH(doit(cl, server), MEDIUM);
-		sprintf(buf, "RPC/%s latency using %s", proto[i], server);
-		micro(buf, get_n());
-
+		case 'm':
+			state.msize = atoi(optarg);
+			break;
+		case 'p':
+			protocol = optarg;
+			break;
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0)
+				lmbench_usage(ac, av, usage);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
 	}
-	goto done;
-	/* NOTREACHED */
+
+	if (optind != ac - 1) {
+		lmbench_usage(ac, av, usage);
+	}
+
+	state.server = av[optind++];
+
+	if (protocol) {
+		benchmark(state.server, protocol);
+	} else {
+		benchmark(state.server, proto[0]);
+		benchmark(state.server, proto[1]);
+	}
+		
+	exit(0);
 }
 
 char *
@@ -136,7 +173,7 @@ bool_t	pmap_set(u_long prognum, u_long versnum, u_long protocol, u_short port);
 bool_t	pmap_unset(u_long prognum, u_long versnum);
 
 void
-server_main(void)
+server_main()
 {
 	register SVCXPRT *transp;
 
