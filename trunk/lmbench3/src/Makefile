@@ -21,11 +21,13 @@
 # I finally know why Larry Wall's Makefile says "Grrrr".
 SHELL=/bin/sh
 
-CC = `../scripts/compiler`
-MAKE = `../scripts/make`
-AR = ar
-ARCREATE = cr
-BASE=/usr/local		# base of installation location
+CC=`../scripts/compiler`
+MAKE=`../scripts/make`
+AR=ar
+ARCREATE=cr
+
+# base of installation location
+BASE=/usr/local
 O= ../bin/unknown
 D= ../doc
 TRUE=/bin/true
@@ -75,20 +77,6 @@ EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
 	$O/stream 
 OPT_EXES=$O/cache $O/lat_dram_page $O/lat_pmake $O/lat_rand 		\
 	$O/lat_usleep 
-
-MAN1 =	lmdd.1 $D/bargraph.1 $D/graph.1 $D/pgraph.1 $D/rccs.1
-
-MAN3 =	$D/lmbench.3 $D/reporting.3 $D/results.3 $D/timing.3
-
-MAN8 =	$D/bw_file_rd.8 $D/bw_mem.8 $D/bw_mmap_rd.8 \
-	$D/bw_pipe.8 $D/bw_tcp.8 $D/bw_unix.8 $D/lat_connect.8	\
-	$D/lat_ctx.8 $D/lat_fs.8 $D/lat_mem_rd.8 $D/lat_mmap.8		\
-	$D/lat_pagefault.8 $D/lat_pipe.8 $D/lat_proc.8 $D/lat_rpc.8 	\
-	$D/lat_syscall.8 $D/lat_tcp.8 $D/lat_udp.8 $D/lmbench.8 	\
-	$D/lat_select.8 $D/lat_unix.8 $D/lat_unix_connect.8		\
-	$D/lat_fifo.8 $D/lat_fcntl.8 $D/lat_http.8 $D/lat_sig.8		\
-	$D/lat_ops.8 $D/par_ops.8 $D/par_mem.8				\
-	$D/lmdd.8 $D/mhz.8 $D/cache.8 $D/tlb.8 $D/line.8
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o 	\
 	$O/lib_mem.o $O/lib_stats.o $O/lib_debug.o $O/getopt.o
 
@@ -125,20 +113,14 @@ install-target:
 	if [ ! -d $(BASE)/bin ]; then mkdir $(BASE)/bin; fi
 	if [ ! -d $(BASE)/include ]; then mkdir $(BASE)/include; fi
 	if [ ! -d $(BASE)/lib ]; then mkdir $(BASE)/lib; fi
-	if [ ! -d $(BASE)/man ]; then mkdir $(BASE)/man; fi
-	if [ ! -d $(BASE)/man/man1 ]; then mkdir $(BASE)/man/man1; fi
-	if [ ! -d $(BASE)/man/man3 ]; then mkdir $(BASE)/man/man3; fi
-	if [ ! -d $(BASE)/man/man8 ]; then mkdir $(BASE)/man/man8; fi
 	cp $(EXES) $(BASE)/bin
 	cp $(INCS) $(BASE)/include
 	cp $O/lmbench.a $(BASE)/lib/libmbench.a
-	cp $(MAN1) $(BASE)/man/man1
-	cp $(MAN3) $(BASE)/man/man3
-	cp $(MAN8) $(BASE)/man/man8
+	cd ../doc; env MAKEFLAGS="$(MAKEFLAGS)" make BASE="$(BASE)" install
 
 
 # No special handling for all these
-all: $(EXES)
+all: $(EXES) $O/lmbench
 opt: $(OPT_EXES)
 
 Wall:
@@ -208,6 +190,11 @@ testmake: $(SRCS) $(UTILS) # used by scripts/make to test gmake
 .PHONY: lmbench results rerun hardware os install all Wall debug \
 	install install-target dist get edit get-e clean clobber \
 	share depend testmake
+
+$O/lmbench : ../scripts/lmbench bk.ver
+	rm -f $O/lmbench
+	sed -e "s/<version>/`cat bk.ver`/g" < ../scripts/lmbench > $O/lmbench
+	chmod +x $O/lmbench
 
 $O/lmbench.a: $(LIBOBJS)
 	/bin/rm -f $O/lmbench.a
