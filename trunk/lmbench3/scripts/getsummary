@@ -21,6 +21,7 @@ foreach $file (@ARGV) {
 	$file = $_[$#_ - 1];
 	$file =~ s|/|-|;
 	push(@file, $file);
+	$lat_mem_rd_type = -1;
 	$mhz = 0;
 	while (<FD>) {
 		chop;
@@ -350,6 +351,12 @@ foreach $file (@ARGV) {
 			    	last if /^\s*$/ || /^20/;
 			}
 		}
+		if (/^Memory load latency/) {
+			$lat_mem_rd_type = 1;
+		}
+		if (/^Random load latency/) {
+			$lat_mem_rd_type = 2;
+		}
 		if (/^"stride=128/) {
 			$save = -1;
 			while (<FD>) {
@@ -359,16 +366,22 @@ foreach $file (@ARGV) {
 				@_ = split;
 				$size = $_[0];
 				$save = $_[1];
-				if ($size == 0.00098) {
+				if ($size == 0.00098 && $lat_mem_rd_type == 1) {
 					push(@lat_l1, $_[1]);
-				} elsif ($size == 0.12500) {
+				} elsif ($size == 0.12500 && $lat_mem_rd_type == 1) {
 					push(@lat_l2, $_[1]);
 				}
 			}
 			if ($size < 8.0) {
 				warn "$file: No 8MB memory latency, using $size\n";
 			}
-			push(@lat_mem, $save);
+			if ($lat_mem_rd_type == 1) {
+				push(@lat_mem, $save);
+			}
+			if ($lat_mem_rd_type == 2) {
+				warn "$file: lat_mem_rand = $save\n";
+				push(@lat_mem_rand, $save);
+			}
 		}
 	}
 	@warn = ();
@@ -385,7 +398,8 @@ foreach $file (@ARGV) {
 		'lat_ctx0_2', 'lat_ctx0_8', 'lat_ctx0_16',
 		'lat_ctx16_2', 'lat_ctx16_8', 'lat_ctx16_16',
 		'lat_ctx64_2', 'lat_ctx64_8', 'lat_ctx64_16', 
-		'lat_l1', 'lat_l2', 'lat_mappings', 'lat_mem', 'lat_nullproc',
+		'lat_l1', 'lat_l2', 'lat_mappings', 'lat_mem', 
+		'lat_mem_rand', 'lat_nullproc',
 		'lat_openclose', 'lat_pagefault', 'lat_pipe',
 		'lat_protfault', 'lat_read', 'lat_rpc_tcp_local', 
 		'lat_rpc_tcp_remote', 'lat_rpc_udp_local', 
@@ -873,9 +887,9 @@ sub print_mem
 
 Memory latencies in nanoseconds - smaller is better
     (WARNING - may not be correct, check graphs)
-------------------------------------------------------------------
-Host                 OS   Mhz   L1 \$   L2 \$    Main mem    Guesses
---------- -------------   ---   ----   ----    --------    -------
+------------------------------------------------------------------------------
+Host                 OS   Mhz   L1 \$   L2 \$    Main mem    Rand mem    Guesses
+--------- -------------   ---   ----   ----    --------    --------    -------
 EOF
 
 	for ($i = 0; $i <= $#uname; $i++) {
@@ -890,10 +904,11 @@ EOF
 			    "-", "-", "-",
 			    "Bad mhz?";
 		} else {
-			printf " %6.6s %6.6s %11.11s",
+			printf " %6.6s %6.6s %6.6s %11.11s",
 		            &num($lat_l1[$i], 6),
 		            &num($lat_l2[$i], 6),
-		            &num($lat_mem[$i], 6);
+		            &num($lat_mem[$i], 6),
+		            &num($lat_mem_rand[$i], 6);
 			print $msg if ($msg =~ /L/);
 		}
 		print "\n";
