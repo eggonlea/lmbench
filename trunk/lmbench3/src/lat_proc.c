@@ -32,11 +32,16 @@ void do_procedure(iter_t iterations, void* cookie);
 pid_t child_pid;
 
 void
-sigterm_handler(int n)
+initialize(void* cookie)
+{
+/*	signal(SIGCHLD, SIG_IGN); */
+}
+
+void
+cleanup(void* cookie)
 {
 	if (child_pid)
 		kill(SIGKILL, child_pid);
-	exit(0);
 }
 	
 int
@@ -70,22 +75,20 @@ main(int ac, char **av)
 		lmbench_usage(ac, av, usage);
 	}
 
-	signal(SIGTERM, sigterm_handler);
-
 	if (!strcmp("procedure", av[optind])) {
-		benchmp(NULL, do_procedure, NULL, 0, parallel, 
+		benchmp(initialize, do_procedure, cleanup, 0, parallel, 
 			warmup, repetitions, &ac);
 		micro("Procedure call", get_n());
 	} else if (!strcmp("fork", av[optind])) {
-		benchmp(NULL, do_fork, NULL, 0, parallel, 
+		benchmp(initialize, do_fork, cleanup, 0, parallel, 
 			warmup, repetitions, NULL);
 		micro(STATIC_PREFIX "Process fork+exit", get_n());
 	} else if (!strcmp("exec", av[optind])) {
-		benchmp(NULL, do_forkexec, NULL, 0, parallel,
+		benchmp(initialize, do_forkexec, cleanup, 0, parallel,
 			warmup, repetitions, NULL);
 		micro(STATIC_PREFIX "Process fork+execve", get_n());
 	} else if (!strcmp("shell", av[optind])) {
-		benchmp(NULL, do_shell, NULL, 0, parallel,
+		benchmp(initialize, do_shell, cleanup, 0, parallel,
 			warmup, repetitions, NULL);
 		micro(STATIC_PREFIX "Process fork+/bin/sh -c", get_n());
 	} else {
@@ -155,9 +158,10 @@ do_fork(iter_t iterations, void* cookie)
 			exit(1);
 	
 		default:
-			while (wait(0) != child_pid);
+			while (wait(0) != child_pid)
+				;
+			child_pid = 0;
 		}
-		child_pid = 0;
 	}
 }
 	
