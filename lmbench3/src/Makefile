@@ -67,12 +67,13 @@ EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
 	$O/lat_select $O/lat_pipe $O/lat_rpc $O/lat_syscall $O/lat_tcp	\
 	$O/lat_udp $O/lat_mmap $O/mhz $O/lat_proc $O/lat_pagefault	\
 	$O/lat_connect $O/lat_fs $O/lat_sig $O/lat_mem_rd $O/lat_ctx	\
-	$O/lat_sem $O/lat_usleep					\
+	$O/lat_sem 							\
 	$O/memsize $O/lat_unix $O/lmdd $O/timing_o $O/enough		\
 	$O/msleep $O/loop_o $O/lat_fifo $O/lmhttp $O/lat_http		\
 	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk		\
-	$O/lat_ops $O/line $O/tlb $O/cache $O/par_mem $O/par_ops 	\
-	$O/stream $O/lat_dram_page
+	$O/lat_ops $O/line $O/tlb $O/par_mem $O/par_ops 		\
+	$O/stream 
+OPT_EXES=$O/lat_dram_page $O/lat_usleep $O/cache 
 
 MAN1 =	lmdd.1 $D/bargraph.1 $D/graph.1 $D/pgraph.1 $D/rccs.1
 
@@ -92,6 +93,7 @@ LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o 	\
 
 lmbench: $(UTILS)
 	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
+	-@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="-k $(MAKEFLAGS)" ../scripts/build opt
 
 results: lmbench
 	@../scripts/config-run
@@ -136,6 +138,7 @@ install-target:
 
 # No special handling for all these
 all: $(EXES)
+opt: $(OPT_EXES)
 
 Wall:
 	@env CFLAGS="-Wall -ansi" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
