@@ -25,8 +25,8 @@ char	*id = "$Id$\n";
 #define	MINSZ	(sizeof(TYPE) * 128)
 
 void	*buf;		/* do the I/O here */
-int	xfersize;	/* do it in units of this */
-int	count;		/* bytes to move (can't be modified) */
+size_t	xfersize;	/* do it in units of this */
+size_t	count;		/* bytes to move (can't be modified) */
 
 typedef struct _state {
 	char filename[256];
@@ -36,15 +36,18 @@ typedef struct _state {
 
 void doit(int fd)
 {
-	int	size;
+	int	sum = 0;
+	size_t	size, chunk;
 
 	size = count;
+	chunk = xfersize;
 	while (size >= 0) {
-		if (read(fd, buf, MIN(size, xfersize)) <= 0) {
+		if (size < chunk) chunk = size;
+		if (read(fd, buf, MIN(size, chunk)) <= 0) {
 			break;
 		}
 		bread(buf, MIN(size, xfersize));
-		size -= xfersize;
+		size -= chunk;
 	}
 }
 
@@ -100,8 +103,8 @@ void time_io_only(iter_t iterations,void * cookie)
 	int fd = state->fd;
 
 	while (iterations-- > 0) {
-	  lseek(fd, 0, 0);
-	  doit(fd);
+		lseek(fd, 0, 0);
+		doit(fd);
 	}
 }
 
