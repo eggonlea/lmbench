@@ -65,12 +65,12 @@ procB()
 		perror("lock of fd2 failed\n");
 		exit(1);
 	}
-	if (waiton(fd1) == -1) {
-		perror("lock of fd1 failed\n");
-		exit(1);
-	}
 	if (release(fd2) == -1) {
 		perror("unlock of fd2 failed\n");
+		exit(1);
+	}
+	if (waiton(fd1) == -1) {
+		perror("lock of fd1 failed\n");
 		exit(1);
 	}
 }
@@ -91,6 +91,8 @@ main()
 		perror("create");
 		exit(1);
 	}
+	unlink("/tmp/lmbench-fcntl.1");
+	unlink("/tmp/lmbench-fcntl.2");
 	write(fd1, buf, sizeof(buf));
 	write(fd2, buf, sizeof(buf));
 	lock.l_type = F_WRLCK;
@@ -107,24 +109,20 @@ main()
 		perror("lock2");
 		exit(1);
 	}
-	if (fork()) {
-		wait(0);
-	}
-	pid = fork();
-	if (pid == -1) {
+	switch (pid = fork()) {
+	case -1:
 		perror("fork");
 		exit(1);
-	}
-	if (pid > 0) {
-		waiton(fd1);
-		BENCH(procA(), SHORT);
-		micro("Fcntl lock latency", get_n());
-		kill(pid, 15);
-	} else {
-		waiton(fd2);
+	case 0:
 		for ( ;; ) {
 			procB();
 		}
+		exit(0);
+	default:
+		break;
 	}
+	BENCH(procA(), SHORT);
+	micro("Fcntl lock latency", 2 * get_n());
+	kill(pid, 15);
 	return (0);
 }
