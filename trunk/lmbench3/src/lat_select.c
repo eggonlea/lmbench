@@ -53,8 +53,7 @@ int main(int ac, char **av)
 	}
 	state.num = 200;
 	if (optind + 1 == ac) {
-		state.num = atoi(av[optind]);
-		puts("num bumped");
+		state.num = bytes(av[optind]);
 	} else if (optind < ac) {
 		lmbench_usage(ac, av, usage);
 	}
