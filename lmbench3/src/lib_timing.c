@@ -114,6 +114,7 @@ void
 benchmp_child(support_f initialize, 
 	      bench_f benchmark,
 	      support_f cleanup,
+	      int childid,
 	      int response, 
 	      int start_signal, 
 	      int result_signal, 
@@ -235,6 +236,7 @@ benchmp(support_f initialize,
 			benchmp_child(initialize, 
 				      benchmark, 
 				      cleanup, 
+				      i,
 				      response[1], 
 				      start_signal[0], 
 				      result_signal[0], 
@@ -528,6 +530,7 @@ typedef struct {
 	support_f	initialize;
 	bench_f		benchmark;
 	support_f	cleanup;
+	int		childid;
 	int		response;
 	int		start_signal;
 	int		result_signal;
@@ -545,6 +548,12 @@ typedef struct {
 } benchmp_child_state;
 
 static benchmp_child_state _benchmp_child_state;
+
+int
+benchmp_childid()
+{
+	return _benchmp_child_state.childid;
+}
 
 void
 benchmp_child_sigterm(int signo)
@@ -565,6 +574,7 @@ void
 benchmp_child(support_f initialize, 
 		bench_f benchmark,
 		support_f cleanup,
+		int childid,
 		int response, 
 		int start_signal, 
 		int result_signal, 
@@ -588,6 +598,7 @@ benchmp_child(support_f initialize,
 	_benchmp_child_state.initialize = initialize;
 	_benchmp_child_state.benchmark = benchmark;
 	_benchmp_child_state.cleanup = cleanup;
+	_benchmp_child_state.childid = childid;
 	_benchmp_child_state.response = response;
 	_benchmp_child_state.start_signal = start_signal;
 	_benchmp_child_state.result_signal = result_signal;
@@ -1552,6 +1563,42 @@ morefds(void)
 	r.rlim_cur = r.rlim_max;
 	setrlimit(RLIMIT_NOFILE, &r);
 #endif
+}
+
+/* analogous to bzero, bcopy, etc. */
+long
+bread(char* buf, long nbytes)
+{
+	long sum = 0;
+	register long *p, *next, *end;
+
+	end = buf + nbytes;
+	for (p = buf, next = p + 128; next <= end; p = next, next += 128) {
+		sum +=
+			p[0]+p[1]+p[2]+p[3]+p[4]+p[5]+p[6]+p[7]+
+			p[8]+p[9]+p[10]+p[11]+p[12]+p[13]+p[14]+
+			p[15]+p[16]+p[17]+p[18]+p[19]+p[20]+p[21]+
+			p[22]+p[23]+p[24]+p[25]+p[26]+p[27]+p[28]+
+			p[29]+p[30]+p[31]+p[32]+p[33]+p[34]+p[35]+
+			p[36]+p[37]+p[38]+p[39]+p[40]+p[41]+p[42]+
+			p[43]+p[44]+p[45]+p[46]+p[47]+p[48]+p[49]+
+			p[50]+p[51]+p[52]+p[53]+p[54]+p[55]+p[56]+
+			p[57]+p[58]+p[59]+p[60]+p[61]+p[62]+p[63]+
+			p[64]+p[65]+p[66]+p[67]+p[68]+p[69]+p[70]+
+			p[71]+p[72]+p[73]+p[74]+p[75]+p[76]+p[77]+
+			p[78]+p[79]+p[80]+p[81]+p[82]+p[83]+p[84]+
+			p[85]+p[86]+p[87]+p[88]+p[89]+p[90]+p[91]+
+			p[92]+p[93]+p[94]+p[95]+p[96]+p[97]+p[98]+
+			p[99]+p[100]+p[101]+p[102]+p[103]+p[104]+
+			p[105]+p[106]+p[107]+p[108]+p[109]+p[110]+
+			p[111]+p[112]+p[113]+p[114]+p[115]+p[116]+
+			p[117]+p[118]+p[119]+p[120]+p[121]+p[122]+
+			p[123]+p[124]+p[125]+p[126]+p[127];
+	}
+	for (next = p + 1; next <= end; p = next, next++) {
+		sum += *p;
+	}
+	return sum;
 }
 
 void
