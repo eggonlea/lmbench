@@ -526,6 +526,8 @@ par_mem(int len, int warmup, int repetitions, struct mem_state* state)
 	__n = 1;
 
 	mem_initialize(state);
+	if (state->addr == NULL) return -1.;
+
 	for (i = 0; i < MAX_MEM_PARALLELISM; ++i) {
 		n = len / state->line;
 		for (j = 0; j <= i; j++) {
