@@ -34,7 +34,7 @@ main(int ac, char **av)
 	struct mem_state state;
 	char   *usage = "[-v] [-W <warmup>] [-N <repetitions>][-M len[K|M]]\n";
 
-	state.line = 2;
+	state.line = sizeof(char*);
 	state.pagesize = getpagesize();
 
 	while (( c = getopt(ac, av, "avM:W:N:")) != EOF) {
