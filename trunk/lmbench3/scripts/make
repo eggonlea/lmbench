@@ -4,7 +4,11 @@ if [ X$MAKE = X ]
 then	MAKE=make
 	for p in `echo $PATH | sed 's/:/ /g'`
 	do	if [ -f $p/gmake ]
-		then	MAKE=gmake
+		then	
+		    if $p/gmake testmake > /dev/null 2>&1
+		    then
+			MAKE=$p/gmake
+		    fi
 		fi
 	done
 fi
