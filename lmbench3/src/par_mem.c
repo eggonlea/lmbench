@@ -33,8 +33,7 @@ main(int ac, char **av)
 	int	repetitions = TRIES;
 	int	print_cost = 0;
 	int	maxlen = 32 * 1024 * 1024;
-	double	baseline, max_load_parallelism, load_parallelism;
-	result_t **results, *r_save;
+	double	par;
 	struct mem_state state;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 
@@ -66,47 +65,14 @@ main(int ac, char **av)
 		}
 	}
 
-	results = (result_t**)malloc(MAX_MEM_PARALLELISM * sizeof(result_t*));
-	for (i = 0; i < MAX_MEM_PARALLELISM; ++i) {
-		results[i] = (result_t*)malloc(sizeof(result_t));
-	}
-
 	for (i = MAX_MEM_PARALLELISM * state.line; i <= maxlen; i<<=1) { 
-		state.len = i;
-		r_save = get_results();
-		
-		for (k = 0; k < MAX_MEM_PARALLELISM; ++k) {
-			insertinit(results[k]);
-		}
+		par = par_mem(i, warmup, repetitions, &state);
 
-		for (j = 0; j < TRIES; ++j) {
-			for (k = 0; k < MAX_MEM_PARALLELISM; ++k) {
-				state.width = k + 1;
-				benchmp(mem_initialize, mem_benchmarks[k], mem_cleanup, 
-					0, 1, warmup, repetitions, &state);
-				insertsort(gettime(), state.width * get_n(), results[k]);
-			}
-		}
-		set_results(results[0]);
-		baseline = (double)gettime() / (double)get_n();
-		max_load_parallelism = 1.;
-
-		for (k = 1; k < MAX_MEM_PARALLELISM; ++k) {
-			set_results(results[k]);
-			load_parallelism = baseline;
-			load_parallelism /= (double)gettime() / (double)get_n();
-			if (load_parallelism > max_load_parallelism) {
-				max_load_parallelism = load_parallelism;
-			}
-		}
-
-		fprintf(stderr, "%.6f %.2f\n", 
-			state.len / (1000. * 1000.), max_load_parallelism);
-
-		set_results(r_save);
+		fprintf(stderr, "%.6f %.2f\n", i / (1000. * 1000.), par);
+		fflush(stderr);
 	}
 
-	return(0);
+	exit(0);
 }
 
 
