@@ -160,7 +160,7 @@ main(int ac, char **av)
 							repetitions, &state);
 			}
 			if (0 < r[i+3].line && r[i+3].line < line)
-				state.line = r[i+3].line;
+				line = r[i+3].line;
 		}
 
 		/* Compute memory parallelism for cache */
@@ -177,8 +177,7 @@ main(int ac, char **av)
 
 		fprintf(stderr, 
 		    "L%d cache: %d bytes %.2f nanoseconds %d linesize %.2f parallelism\n",
-		    level, r[i].len, r[min].latency, state.line, maxpar);
-		state.line = line;
+		    level, r[i].len, r[min].latency, line, maxpar);
 	}
 
 	/* Compute memory parallelism for main memory */
@@ -341,7 +340,7 @@ collect_sample(int repetitions, struct mem_state* state,
 	       struct cache_results* p)
 {
 	int	i, j, k, chunk, page, npages, ntotalpages, nsparepages;
-	int	modified, swapped;
+	int	modified, swapped, iters;
 	int	*pages, *pageset;
 	static int	available_index = 0;
 	double	baseline, t, tt, var, nodiff_chunk_baseline;
@@ -362,6 +361,7 @@ collect_sample(int repetitions, struct mem_state* state,
 		return (p->latency > 0);
 
 	nodiff_chunk_baseline = baseline;
+	iters = 0;
 	do {
 		modified = 0;
 		for (i = 0; i < npages; i+=chunk) {
@@ -423,7 +423,8 @@ collect_sample(int repetitions, struct mem_state* state,
 			if (swapped == 0 && t < nodiff_chunk_baseline)
 				nodiff_chunk_baseline = t;
 		}
-	} while (modified);
+		++iters;
+	} while (modified && iters < 4);
 
 	return (p->latency > 0);
 }
