@@ -74,27 +74,35 @@ main(int ac, char **av)
 
 	benchmp(initialize, copy, cleanup, 0, 1, warmup, repetitions, &state);
 	save_minimum();
-	nano("STREAM copy latency", state.len * get_n());
-	fprintf(stderr, "STREAM copy bandwidth: ");
-	mb(2 * sizeof(double) * state.len * get_n());
+	if (gettime() > 0) {
+		nano("STREAM copy latency", state.len * get_n());
+		fprintf(stderr, "STREAM copy bandwidth: ");
+		mb(2 * sizeof(double) * state.len * get_n());
+	}
 
 	benchmp(initialize, scale, cleanup, 0, 1, warmup, repetitions, &state);
 	save_minimum();
-	nano("STREAM scale latency", state.len * get_n());
-	fprintf(stderr, "STREAM scale bandwidth: ");
-	mb(2 * sizeof(double) * state.len * get_n());
+	if (gettime() > 0) {
+		nano("STREAM scale latency", state.len * get_n());
+		fprintf(stderr, "STREAM scale bandwidth: ");
+		mb(2 * sizeof(double) * state.len * get_n());
+	}
 
 	benchmp(initialize, sum, cleanup, 0, 1, warmup, repetitions, &state);
 	save_minimum();
-	nano("STREAM sum latency", state.len * get_n());
-	fprintf(stderr, "STREAM sum bandwidth: ");
-	mb(3 * sizeof(double) * state.len * get_n());
+	if (gettime() > 0) {
+		nano("STREAM sum latency", state.len * get_n());
+		fprintf(stderr, "STREAM sum bandwidth: ");
+		mb(3 * sizeof(double) * state.len * get_n());
+	}
 
 	benchmp(initialize, triad, cleanup, 0, 1, warmup, repetitions, &state);
 	save_minimum();
-	nano("STREAM triad latency", state.len * get_n());
-	fprintf(stderr, "STREAM triad bandwidth: ");
-	mb(3 * sizeof(double) * state.len * get_n());
+	if (gettime() > 0) {
+		nano("STREAM triad latency", state.len * get_n());
+		fprintf(stderr, "STREAM triad bandwidth: ");
+		mb(3 * sizeof(double) * state.len * get_n());
+	}
 
 	return(0);
 }

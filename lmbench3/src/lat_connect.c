@@ -85,7 +85,7 @@ void doclient(iter_t iterations, void *cookie)
 	register int 	sock;
 	
 	while (iterations-- > 0) {
-		sock = tcp_connect(server, TCP_CONNECT, SOCKOPT_NONE);
+		sock = tcp_connect(server, TCP_CONNECT, SOCKOPT_REUSE);
 		close(sock);
 	}
 }
