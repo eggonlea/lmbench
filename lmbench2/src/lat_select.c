@@ -108,6 +108,7 @@ main(int ac, char **av)
 		/* Create a temporary file for clients to open */
 		tmpnam(fname);
 		fd = open(fname, O_RDWR|O_APPEND|O_CREAT, 0666);
+		unlink(fname);
 		if (fd <= 0) {
 			char buf[L_tmpnam+128];
 			sprintf(buf, 
@@ -139,7 +140,6 @@ main(int ac, char **av)
 	}
 	close(fd);
 	if (pid) kill(pid, SIGTERM);
-	if (fname[0]) unlink(fname);
 
 	exit(0);
 }
