@@ -49,12 +49,12 @@ void cleanup(void* cookie);
 int
 main(int ac, char **av)
 {
-	int	line, l1_cache, l2_cache, c;
+	int	line, l1_cache, l2_cache, l3_cache, c;
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	print_cost = 0;
 	int	maxlen = 32 * 1024 * 1024;
-	double	l1_time, l2_time, mem_time, variation;
+	double	l1_time, l2_time, l3_time, mem_time, variation;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 
 	line = getpagesize() / 8;
@@ -84,9 +84,10 @@ main(int ac, char **av)
 		}
 	}
 
-	l2_cache = maxlen;
 
 	l1_cache = find_cache(512, line, maxlen, warmup, repetitions, &l1_time);
+	l2_cache = maxlen;
+	l3_cache = maxlen;
 
 	if (l1_cache < maxlen) {
 		int	start;
@@ -94,6 +95,14 @@ main(int ac, char **av)
 			;
 		l2_cache = find_cache(start, line, 
 				      maxlen, warmup, repetitions, &l2_time);
+	}
+
+	if (l2_cache < maxlen) {
+		int	start;
+		for (start = 512; start < l2_cache; start<<=1)
+			;
+		l3_cache = find_cache(start, line, 
+				      maxlen, warmup, repetitions, &l3_time);
 	}
 
 	mem_time = measure(maxlen, line, maxlen, warmup, repetitions, &variation);
@@ -106,6 +115,11 @@ main(int ac, char **av)
 	if (l2_cache < maxlen) {
 		fprintf(stderr, "L2 cache: %d bytes %.2f nanoseconds\n", 
 			l2_cache, l2_time);
+	}
+
+	if (l3_cache < maxlen) {
+		fprintf(stderr, "L3 cache: %d bytes %.2f nanoseconds\n", 
+			l3_cache, l3_time);
 	}
 
 	fprintf(stderr, "Memory latency: %.2f nanoseconds\n", mem_time);
@@ -248,8 +262,10 @@ initialize(void* cookie)
 	nlines = state->pagesize / state->line;
 	npages = (state->maxlen + state->pagesize) / state->pagesize;
 
-	words = (int*)malloc(nwords * sizeof(int));
-	lines = (int*)malloc(nlines * sizeof(int));
+	srand(getpid());
+
+	words = permutation(nwords);
+	lines = permutation(nlines);
 	pages = (char***)malloc(npages * sizeof(char**));
 	state->p = state->addr = (char*)malloc(state->maxlen + 2 * state->pagesize);
 
@@ -257,12 +273,10 @@ initialize(void* cookie)
 		state->p += state->pagesize - (unsigned long)state->p % state->pagesize;
 	}
 
-	if (state->addr == NULL || pages == NULL) {
+	if (state->addr == NULL || pages == NULL || words == NULL || lines == NULL) {
 		exit(0);
 	}
 	
-	srand((int)now() ^ getpid() ^ (getpid()<<16));
-
 	/* first, layout the sequence of page accesses */
 	p = state->p;
 	for (i = 0; i < npages; ++i) {
@@ -282,30 +296,7 @@ initialize(void* cookie)
 
 	/* layout the sequence of line accesses */
 	for (i = 0; i < nlines; ++i) {
-		lines[i] = i * nwords;
-	}
-
-	/* randomize the line sequences */
-	for (i = nlines - 2; i > 0; --i) {
-		int l;
-		r = (r << 1) ^ (rand() >> 4);
-		l = lines[(r % i) + 1];
-		lines[(r % i) + 1] = lines[i];
-		lines[i] = l;
-	}
-
-	/* layout the sequence of word accesses */
-	for (i = 0; i < nwords; ++i) {
-		words[i] = i;
-	}
-
-	/* randomize the word sequences */
-	for (i = nwords - 2; i > 0; --i) {
-		int l;
-		r = (r << 1) ^ (rand() >> 4);
-		l = words[(r % i) + 1];
-		words[(r % i) + 1] = words[i];
-		words[i] = l;
+		lines[i] *= nwords;
 	}
 
 	/* setup the run through the pages */
@@ -321,6 +312,7 @@ initialize(void* cookie)
 		}
 		k++;
 	}
+	state->p = (char*)(pages[0] + lines[0] + words[0]);
 /*
 fprintf(stderr, "initialize: i=%d, k=%d, npointers=%d, len=%d, line=%d\n", i, k, npointers, state->len, state->line);
 fprintf(stderr, "pages={");
