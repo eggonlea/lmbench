@@ -130,7 +130,8 @@ fi
 mkdir $FSDIR 2>/dev/null
 touch $STAT 2>/dev/null
 if [ ! -f $STAT ]
-then	echo "Can't make a file in $FSDIR" > /dev/tty
+then	echo "Can't make a file - $STAT - in $FSDIR" > /dev/tty
+	touch $STAT
 	exit 1
 fi
 if [ X$SYNC != X ]
