@@ -1095,9 +1095,13 @@ print_results(void)
 {
 	int	i;
 
+	fprintf(stderr, "N=%d, t={", results->N);
 	for (i = 0; i < results->N; ++i) {
-		fprintf(stderr, "%.2f ", (double)results->v[i].u/results->v[i].n);
+		fprintf(stderr, "%.2f", (double)results->v[i].u/results->v[i].n);
+		if (i < results->N - 1) 
+			fprintf(stderr, ", ");
 	}
+	fprintf(stderr, "}\n");
 }
 
 result_t*
