@@ -75,6 +75,7 @@ initialize(iter_t iterations, void *cookie)
 
 	if (iterations) return;
 
+	state->pid = 0;
 	sprintf(state->filename1,F1,getpid());
 	sprintf(state->filename2,F2,getpid());
 	
@@ -86,7 +87,6 @@ initialize(iter_t iterations, void *cookie)
 	}
 	switch (state->pid = fork()) {
 	    case 0:
-		signal(SIGTERM, exit);
 		state->rd = open(state->filename1, O_RDONLY);
 		state->wr = open(state->filename2, O_WRONLY);
 		writer(state->wr, state->rd);
@@ -105,7 +105,7 @@ initialize(iter_t iterations, void *cookie)
 	/*
 	 * One time around to make sure both processes are started.
 	 */
-	if (write(state->wr, &c, 1) != 1 ||read(state->rd, &c, 1) != 1) {
+	if (write(state->wr, &c, 1) != 1 || read(state->rd, &c, 1) != 1) {
 		perror("(i) read/write on pipe");
 		exit(1);
 	}
@@ -118,13 +118,16 @@ cleanup(iter_t iterations, void * cookie)
 
 	if (iterations) return;
 
-	signal(SIGCHLD, SIG_IGN);
-	if (state->pid) kill(state->pid, 15);
 	unlink(state->filename1);
 	unlink(state->filename2);
-	if (state->pid) kill(state->pid, 9);
 	close(state->wr);
 	close(state->rd);
+
+	if (state->pid > 0) {
+		kill(state->pid, 15);
+		waitpid(state->pid, NULL, 0);
+		state->pid = 0;
+	}
 }
 
 void 

@@ -31,19 +31,17 @@ void do_procedure(iter_t iterations, void* cookie);
 
 pid_t child_pid;
 
-void
-initialize(iter_t iterations, void* cookie)
-{
-/*	signal(SIGCHLD, SIG_IGN); */
-}
 
 void
 cleanup(iter_t iterations, void* cookie)
 {
 	if (iterations) return;
 
-	if (child_pid)
-		kill(SIGKILL, child_pid);
+	if (child_pid) {
+		kill(child_pid, SIGKILL);
+		waitpid(child_pid, NULL, 0);
+		child_pid = 0;
+	}
 }
 	
 int
@@ -78,19 +76,19 @@ main(int ac, char **av)
 	}
 
 	if (!strcmp("procedure", av[optind])) {
-		benchmp(initialize, do_procedure, cleanup, 0, parallel, 
+		benchmp(NULL, do_procedure, cleanup, 0, parallel, 
 			warmup, repetitions, &ac);
 		micro("Procedure call", get_n());
 	} else if (!strcmp("fork", av[optind])) {
-		benchmp(initialize, do_fork, cleanup, 0, parallel, 
+		benchmp(NULL, do_fork, cleanup, 0, parallel, 
 			warmup, repetitions, NULL);
 		micro(STATIC_PREFIX "Process fork+exit", get_n());
 	} else if (!strcmp("exec", av[optind])) {
-		benchmp(initialize, do_forkexec, cleanup, 0, parallel,
+		benchmp(NULL, do_forkexec, cleanup, 0, parallel,
 			warmup, repetitions, NULL);
 		micro(STATIC_PREFIX "Process fork+execve", get_n());
 	} else if (!strcmp("shell", av[optind])) {
-		benchmp(initialize, do_shell, cleanup, 0, parallel,
+		benchmp(NULL, do_shell, cleanup, 0, parallel,
 			warmup, repetitions, NULL);
 		micro(STATIC_PREFIX "Process fork+/bin/sh -c", get_n());
 	} else {
@@ -102,6 +100,7 @@ main(int ac, char **av)
 void 
 do_shell(iter_t iterations, void* cookie)
 {
+	signal(SIGCHLD, SIG_DFL);
 	while (iterations-- > 0) {
 		switch (child_pid = fork()) {
 		case -1:
@@ -114,8 +113,7 @@ do_shell(iter_t iterations, void* cookie)
 			exit(1);
 
 		default:
-			while (wait(0) != child_pid)
-				;
+			waitpid(child_pid, NULL,0);
 		}
 		child_pid = 0;
 	}
@@ -126,6 +124,7 @@ do_forkexec(iter_t iterations, void* cookie)
 {
 	char	*nav[2];
 
+	signal(SIGCHLD, SIG_DFL);
 	while (iterations-- > 0) {
 		nav[0] = PROG;
 		nav[1] = 0;
@@ -140,8 +139,7 @@ do_forkexec(iter_t iterations, void* cookie)
 			exit(1);
 
 		default:
-			while (wait(0) != child_pid)
-				;
+			waitpid(child_pid, NULL,0);
 		}
 		child_pid = 0;
 	}
@@ -150,6 +148,7 @@ do_forkexec(iter_t iterations, void* cookie)
 void 
 do_fork(iter_t iterations, void* cookie)
 {
+	signal(SIGCHLD, SIG_DFL);
 	while (iterations-- > 0) {
 		switch (child_pid = fork()) {
 		case -1:
@@ -160,10 +159,9 @@ do_fork(iter_t iterations, void* cookie)
 			exit(1);
 	
 		default:
-			while (wait(0) != child_pid)
-				;
-			child_pid = 0;
+			waitpid(child_pid, NULL,0);
 		}
+		child_pid = 0;
 	}
 }
 	

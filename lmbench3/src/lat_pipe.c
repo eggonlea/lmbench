@@ -100,7 +100,7 @@ initialize(iter_t iterations, void* cookie)
 	/*
 	 * One time around to make sure both processes are started.
 	 */
-	if (write(state->p1[1], &c, 1) != 1 ||read(state->p2[0], &c, 1) != 1) {
+	if (write(state->p1[1], &c, 1) != 1 || read(state->p2[0], &c, 1) != 1){
 		perror("(i) read/write on pipe");
 		exit(1);
 	}
@@ -113,9 +113,10 @@ cleanup(iter_t iterations, void* cookie)
 
 	if (iterations) return;
 
-	signal(SIGCHLD, SIG_IGN);
 	if (state->pid) {
 		kill(state->pid, SIGKILL);
+		waitpid(state->pid, NULL, 0);
+		state->pid = 0;
 	}
 }
 

@@ -98,9 +98,10 @@ cleanup(iter_t iterations, void* cookie)
 
 	if (iterations) return;
 
-	signal(SIGCHLD, SIG_IGN);
 	if (state->pid) {
 		kill(state->pid, SIGKILL);
+		waitpid(state->pid, NULL, 0);
+		state->pid = 0;
 	}
 	/* free the semaphores */
 	semctl(state->semid, 0, IPC_RMID);
