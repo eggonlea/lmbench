@@ -1,12 +1,5 @@
 $Id$
 
-Add "-W <warmup>" to each benchmark; this would make the benchmark_parent
-do a usleep(warmup) between receiving the "ready" messages from the
-children and sending the "go" messages to the children.
-
-Add "-N <times>" to each benchmark; this would specify the number of
-time to run the benchmark.
-
 Add standard deviation and other statistics calculations to "make stats"
 in results
 
@@ -20,6 +13,10 @@ Add "cache" benchmark to determine cache sizes (in bytes)
 Add "line" benchmark to determine cache line size (in bytes)
 
 Add "tlb" benchmark to determine effective TLB size (in pages)
+
+Add "load" benchmark to determine how many loads a CPU can do in parallel
+
+Add "bw_udp" benchmark to measure UDP bandwidth
 
 Make a bw_tcp mode that measures bandwidth for each block and graph that
 as offset/bandwidth.
