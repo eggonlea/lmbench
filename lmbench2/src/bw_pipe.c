@@ -13,8 +13,8 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-void	reader(int control[2], int pipes[2], int bytes);
-void	writer(int control[2], int pipes[2]);
+void	reader(int controlfd, int pipefd, int bytes);
+void	writer(int controlfd, int pipefd);
 
 int	XFER	= 10*1024*1024;
 int	pid;
@@ -26,8 +26,6 @@ main()
 	int	pipes[2];
 	int	control[2];
 
-	buf = valloc(XFERSIZE);
-	touch(buf, XFERSIZE);
 	if (pipe(pipes) == -1) {
 		perror("pipe");
 		return(1);
@@ -40,7 +38,13 @@ main()
 	    case 0:
 		close(control[1]);
 		close(pipes[0]);
-		writer(control, pipes);
+		buf = valloc(XFERSIZE);
+		if (buf == NULL) {
+			perror("no memory");
+			return(1);
+		}
+		touch(buf, XFERSIZE);
+		writer(control[0], pipes[1]);
 		return(0);
 		/*NOTREACHED*/
 	    
@@ -50,11 +54,18 @@ main()
 		/*NOTREACHED*/
 
 	    default:
-		close(control[0]);
-		close(pipes[1]);
 		break;
 	}
-	BENCH(reader(control, pipes, XFER), MEDIUM);
+	close(control[0]);
+	close(pipes[1]);
+	buf = valloc(XFERSIZE + getpagesize());
+	if (buf == NULL) {
+		perror("no memory");
+		return(1);
+	}
+	touch(buf, XFERSIZE + getpagesize());
+	buf += 128;	/* destroy page alignment */
+	BENCH(reader(control[1], pipes[0], XFER), 0);
 	fprintf(stderr, "Pipe bandwidth: ");
 	mb(get_n() * XFER);
 	kill(pid, 15);
@@ -62,29 +73,41 @@ main()
 }
 
 void
-writer(int control[2], int pipes[2])
+writer(int controlfd, int pipefd)
 {
 	int	todo, n;
 
 	for ( ;; ) {
-		read(control[0], &todo, sizeof(todo));
+		n = read(controlfd, &todo, sizeof(todo));
+		if (n < 0) perror("writer::read");
 		while (todo > 0) {
 #ifdef	TOUCH
 			touch(buf, XFERSIZE);
 #endif
-			n = write(pipes[1], buf, XFERSIZE);
-			todo -= n;
+			n = write(pipefd, buf, XFERSIZE);
+			if (n <= 0) {
+				perror("writer::write");
+				break;
+			}
+			else {
+				todo -= n;
+			}
 		}
 	}
 }
 
 void
-reader(int control[2], int pipes[2], int bytes)
+reader(int controlfd, int pipefd, int bytes)
 {
-	int	todo = XFER, done = 0, n;
+	int	todo = bytes, done = 0, n;
 
-	write(control[1], &bytes, sizeof(bytes));
-	while ((done < todo) && ((n = read(pipes[0], buf, XFERSIZE)) > 0)) {
+	n = write(controlfd, &bytes, sizeof(bytes));
+	if (n < 0) perror("reader::write");
+	while ((done < todo) && ((n = read(pipefd, buf, XFERSIZE)) > 0)) {
 		done += n;
+	}
+	if (n < 0) perror("reader::write");
+	if (done < bytes) {
+		fprintf(stderr, "reader: bytes=%d, done=%d, todo=%d\n", bytes, done, todo);
 	}
 }
