@@ -631,10 +631,12 @@ benchmp_interval(void* _state)
 	struct timeval	timeout;
 	benchmp_child_state* state = (benchmp_child_state*)_state;
 
+	iterations = (state->state == timing_interval ? state->iterations : state->iterations_batch);
+
 	if (!state->need_warmup) {
 		result = stop(0,0);
 		if (state->cleanup) {
-			(*state->cleanup)(state->iterations, state->cookie);
+			(*state->cleanup)(iterations, state->cookie);
 		}
 		save_n(state->iterations);
 		result -= t_overhead() + get_n() * l_overhead();
@@ -692,9 +694,8 @@ benchmp_interval(void* _state)
 				}
 			}
 		}
-		if (state->state != cooldown) {
-			state->iterations = iterations;
-		} else {
+		state->iterations = iterations;
+		if (state->state == cooldown) {
 			/* send 'done' */
 			write(state->response, (void*)&c, sizeof(char));
 			iterations = state->iterations_batch;
