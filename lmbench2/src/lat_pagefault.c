@@ -59,13 +59,14 @@ timeit(char *file, char *where, int size)
 	int	sum = 0;
 	int	n = 0, usecs = 0;
 
+	start(0);
 	while (end > where) {
-		start(0);
 		sum += *end;
 		end -= 256*1024;
-		usecs += stop(0,0);
 		n++;
 	}
+	usecs = stop(0,0);
+	fprintf(stderr, "n=%d, usecs=%lu\n", (int)n, (unsigned long)usecs);
 	use_int(sum);
 	fprintf(stderr, "Pagefaults on %s: %d usecs\n", file, usecs/n);
 }
