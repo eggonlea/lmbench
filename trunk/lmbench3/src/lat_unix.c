@@ -118,7 +118,10 @@ cleanup(iter_t iterations, void* cookie)
 
 	if (iterations) return;
 
-	if (pState->pid) kill(pState->pid, SIGKILL);
-	wait(0);
+	if (pState->pid) {
+		kill(pState->pid, SIGKILL);
+		waitpid(pState->pid, NULL, 0);
+		pState->pid = 0;
+	}
 }
 
