@@ -205,7 +205,7 @@ main(int ac, char **av)
 		bench_prot(av[optind+1], parallel, warmup, repetitions);
 		micro("Protection fault", get_n());
 	} else {
-		lmbench_usage(ac, av[optind+1], usage);
+		lmbench_usage(ac, av, usage);
 	}
 	return(0);
 }
