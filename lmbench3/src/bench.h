@@ -216,15 +216,13 @@ int	getopt(int ac, char **av, char *opts);
 typedef void (*bench_f)(uint64 iterations, void* cookie);
 typedef void (*support_f)(void* cookie);
 
-#define NOINIT NULL
-#define NOCLEANUP NULL
-
 extern void benchmp(support_f initialize, 
-		bench_f benchmark,
-		support_f cleanup,
-		int enough, 
-		int parallel,
-		void* cookie);
+		    bench_f benchmark,
+		    support_f cleanup,
+		    int enough, 
+		    int parallel,
+		    void* cookie
+	);
 
 
 /*
