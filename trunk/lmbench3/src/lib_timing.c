@@ -1588,6 +1588,14 @@ permutation(int max, int scale)
 	return (result);
 }
 
+#if defined(srand48) && srand48 == srand
+double
+drand48(void)
+{
+	return (double)rand() / RAND_MAX;
+}
+#endif
+
 #if defined(hpux) || defined(__hpux)
 int
 getpagesize()
