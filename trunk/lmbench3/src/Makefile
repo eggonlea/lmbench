@@ -125,6 +125,25 @@ Wall:
 debug:
 	@env CFLAGS=-g ../scripts/build all
 
+bk.ver: ../SCCS/s.ChangeSet
+	echo `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` \
+		> bk.ver
+
+dist:
+	@if [ "X`cd ..; bk sfiles -c`" != "X" ]; then \
+		echo "modified files!"; \
+		false; \
+	 fi
+	@if [ "X`cd ..; bk pending`" != "X" ]; then \
+		echo "pending changes!"; \
+		false; \
+	 fi
+	rm -rf ../bin/* bk.ver
+	cd ..; bk clean
+	cd ..; bk get
+	cd ..; for d in doc results scripts src; do bk get; done
+	make bk.ver
+
 get $(SRCS):
 	-get -s $(SRCS)
 
@@ -204,7 +223,7 @@ $O/bw_unix:  bw_unix.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/bw_unix bw_unix.c $O/lmbench.a $(LDLIBS)
 
 $O/disk:  disk.c flushdisk.c bench.h timing.h stats.h lib_tcp.h $O/lmbench.a
-	$(COMPILE) -o $O/disk disk.c flushdisk.c $O/lmbench.a $(LDLIBS)
+	$(COMPILE) -o $O/disk disk.c $O/lmbench.a $(LDLIBS)
 
 $O/clock:  clock.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/clock clock.c $O/lmbench.a $(LDLIBS)
