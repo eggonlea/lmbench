@@ -107,7 +107,6 @@
 .ds lmbench1 \f(CWlmbench1\fP
 .ds lmbench2 \f(CWlmbench2\fP
 .ds lmbench3 \f(CWlmbench3\fP
-.ds lmdd  \f(CWlmdd\fP
 .ds bcopy \f(CWbcopy\fP
 .ds connect \f(CWconnect\fP
 .ds execlp  \f(CWexeclp\fP
@@ -118,8 +117,13 @@
 .ds getpid \f(CWgetpid\fP
 .ds gettimeofday \f(CWgettimeofday\fP
 .ds kill \f(CWkill\fP
+.ds lat_mem_rd  \f(CWlat_mem_rd\fP
+.ds lat_ops  \f(CWlat_ops\fP
+.ds lmdd  \f(CWlmdd\fP
 .ds memmove \f(CWmemmove\fP
 .ds mmap \f(CWmmap\fP
+.ds par_mem  \f(CWpar_mem\fP
+.ds par_ops  \f(CWpar_ops\fP
 .ds popen  \f(CWpopen\fP
 .ds read \f(CWread\fP
 .ds stream \f(CWstream\fP
@@ -127,7 +131,6 @@
 .ds uiomove \f(CWuiomove\fP
 .ds write \f(CWwrite\fP
 .ds yield  \f(CWyield\fP
-.ds lat_mem_rd  \f(CWlat_mem_rd\fP
 .\" References stuff
 .de RN  \"Reference Name: .RN $1 -- prints the reference prettily
 .\" [\s-2\\$1\s+2]\\$2
@@ -234,7 +237,7 @@ of the particular hardware based on information
 provided by these utilities.
 .LP
 For example, 
-.RN Staelin01c
+.RN Staelin02c
 proposes variations on familiar data structures
 which take advantage of the increased memory
 parallelism afforded by modern processors to
@@ -631,8 +634,8 @@ in parallel, if the hardware supports it.
 For example, the float $mul$ benchmark to measure
 performance with two parallel streams of statements
 would look like something this:
-.DS
-#define TEN(a) a a a a a a a a a a
+.DS L
+\f(CW#define TEN(a) a a a a a a a a a a
 void benchmark_1(iter_t iterations, void* cookie)
 {
     register iter_t i = iterations;
@@ -645,7 +648,7 @@ void benchmark_1(iter_t iterations, void* cookie)
     }
     use_int((int)f0);
     use_int((int)f1);
-}
+}\fP
 .DE
 .LP
 If the processor had two floating point multiply
@@ -779,7 +782,7 @@ quite sufficient to determine the various
 characteristics of the memory hierarchy.
 .LP
 The first problem is that unless the stride is
-exactly the same size as the cache size, then
+exactly the same size as the cache line size, then
 there will either be multiple successive accesses
 to the same line, or some fraction of data
 will be completely skipped.  In the first case
@@ -1003,7 +1006,7 @@ and $t sub hit$, the cache hit latency.
 We can determine the cache line size by measuring
 the average memory access latency over a series of
 memory access patterns: accessing every word, every
-other word, every fourth word, every eigth word, ...
+other word, every fourth word, every eighth word, ...
 While the system is accessing multiple words per
 cache line, the average memory latency will be
 smaller than the cache miss latency, and as the
@@ -1060,9 +1063,9 @@ When the pages from the second chain fit into the TLB,
 the average access times for the two chains should be
 identical.  However, as soon as the number of pages in
 the second chain exceeds the TLB size, the second
-chain will start to pay TLB-miss costs.  Depending on
-the TLB replacement policy, the fraction of requests
-generating TLB-misses in the second chain can vary
+chain will start to pay frequent TLB-miss costs.
+Depending on the TLB replacement policy, the fraction of 
+requests generating TLB-misses in the second chain can vary
 dramatically\**.  
 .FS 
 Pure LRU would ensure that as soon as the chain was one 
@@ -1345,7 +1348,7 @@ Cache associativity
 .LP
 No modern caches are fully associative, meaning that
 no caches use LRU replacement, because the performance
-of such caches is insufficient.  Most caches are 
+overhead for LRU is so severe.  Most caches are 
 either set associative or direct mapped, meaning
 that data from a given location can only go to
 one of a small number of cache lines, and in the
@@ -1411,11 +1414,11 @@ supports more than sixteen accesses in parallel.
 Each routine dereferences $N$ pointers in parallel.
 For example, the inner loop of the routine where 
 $N=2$ would look something like this:
-.DS
-while (iterations-- > 0) {
-p	p0 = (char**)*p0;
+.DS L
+\f(CWwhile (iterations-- > 0) {
+	p0 = (char**)*p0;
 	p1 = (char**)*p1;
-}
+}\fP
 .DE
 .LP
 The available parallelism is the maximum speedup
@@ -1425,6 +1428,52 @@ Note that this value is often not integral because
 many factors go into the effective parallelism,
 such as TLB contention, can limit the effective
 parallelism.
+.NH 1
+DRAM pages
+.LP
+Within DRAM chips there is usually one or more
+lines of data which is "cached" in registers
+near the chip outputs.
+Accessing data contained in these lines is typically
+faster than accessing data from the body of the DRAM
+chip.
+The set of memory contained in a bank of DRAM chips
+for a single line (per DRAM chip) of memory is usually
+called a DRAM page.
+.LP
+Recently some systems have started taking advantage
+of this potential performance increase by keeping
+DRAM pages "open" (in the register bank) after an
+access in the hope that the next access will be
+to the same page.
+This means that main memory latency suddenly 
+depends on the access history, and that dramatic
+differences in "open" versus "closed" DRAM page
+performance may impact software and data structure
+design.
+.LP
+To measure DRAM page latency, we need to compare
+performance for accesses to "open" versus "closed"
+DRAM pages.
+The standard pointer chain developed for measuring
+cache and memory latency maximizes "open" DRAM page
+accesses while minimizing other overheads, such as
+TLB misses.
+This means that we need to develop another pointer
+chain which maximizes "closed" DRAM accesses while
+still minimizing other overheads such as TLB misses.
+.LP
+This can be done by clustering pages into \fIgroups\fP
+whose size is smaller than the TLB size.
+Within each group the pointer chain switches pages
+on each access to maximize the probability of a "closed" 
+DRAM page access.
+For all but the last page in the group, each access
+points to the same location within the page, except
+on the next page.
+The last page points to the next location in the
+first page, using the same location bit-switching
+selection logic used in the standard pointer chain.
 .NH 1
 Conclusion
 .LP
