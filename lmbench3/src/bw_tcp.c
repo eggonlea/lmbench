@@ -112,9 +112,10 @@ int main(int ac, char **av)
 	 */
 	benchmp(initialize, loop_transfer, cleanup, 
 		SHORT, parallel, SHORT + warmup, repetitions, &state );
-	/* (void)fprintf(stderr, "Socket bandwidth using %s\n", state.server); */
-	fprintf(stderr, "%.6f ", state.msize / (1000. * 1000.));
-	mb(state.move * get_n() * parallel);
+	if (gettime() > 0) {
+		fprintf(stderr, "%.6f ", state.msize / (1000. * 1000.));
+		mb(state.move * get_n() * parallel);
+	}
 }
 
 void
@@ -177,7 +178,7 @@ void server_main()
 	GO_AWAY;
 
 	signal(SIGCHLD, child);
-	data = tcp_server(TCP_DATA, SOCKOPT_WRITE);
+	data = tcp_server(TCP_DATA, SOCKOPT_WRITE|SOCKOPT_REUSE);
 
 	for ( ;; ) {
 		newdata = tcp_accept(data, SOCKOPT_WRITE);
