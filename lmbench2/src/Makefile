@@ -79,7 +79,7 @@ MAN8 =	$D/bw_file_rd.8 $D/bw_mem.8 $D/bw_pipe.8 $D/bw_pipe.8		\
 	$D/lat_pagefault.8 $D/lat_pipe.8 $D/lat_proc.8 $D/lat_rpc.8 	\
 	$D/lat_select.8 $D/lat_sig.8 $D/lat_syscall.8 $D/lat_tcp.8 	\
 	$D/lat_udp.8 $D/lat_unix.8 $D/lat_unix_connect.8		\
-	$D/lmbench.8 $D/disk.8 $D/lmdd.8 $D/mhz.8 
+	$D/lmbench.8 $D/disk.8 $D/lmdd.8 $D/mhz.8 			\
 	$D/clock.8 $D/enough.8 $D/loop_o.8 $D/timing_o.8
 
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o $O/lib_stats.o
