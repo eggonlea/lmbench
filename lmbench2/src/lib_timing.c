@@ -786,7 +786,7 @@ find_N(int enough)
 		}
 		usecs = time_N(N);
 	}
-	return (-1);
+	return (0);
 }
 
 /*
