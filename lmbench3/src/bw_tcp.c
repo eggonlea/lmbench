@@ -18,7 +18,7 @@ char	*id = "$Id$\n";
 
 typedef struct _state {
 	int	sock;
-	long	move;
+	uint64	move;
 	int	msize;
 	char	*server;
 	int	fd;
@@ -58,9 +58,8 @@ int main(int ac, char **av)
 		case 'S': /* shutdown serverhost */
 		{
 			int	conn;
-			int	n = htonl(0);
 			conn = tcp_connect(optarg, TCP_DATA, SOCKOPT_NONE);
-			write(conn, &n, sizeof(int));
+			write(conn, "0", 1);
 			exit(0);
 		}
 		case 'm':
@@ -122,6 +121,7 @@ void
 initialize(void *cookie)
 {
 	int	c;
+	char	buf[100];
 	state_t *state = (state_t *) cookie;
 
 	state->buf = valloc(state->msize);
@@ -132,8 +132,12 @@ initialize(void *cookie)
 	touch(state->buf, state->msize);
 
 	state->sock = tcp_connect(state->server, TCP_DATA, SOCKOPT_READ);
-	c = htonl(state->msize);
-	if (write(state->sock, &c, sizeof(int)) != sizeof(int)) {
+	if (state->sock < 0) {
+		perror("socket connection");
+		exit(1);
+	}
+	sprintf(buf, "%llu", state->msize);
+	if (write(state->sock, buf, strlen(buf) + 1) != strlen(buf) + 1) {
 		perror("control write");
 		exit(1);
 	}
@@ -143,7 +147,7 @@ void
 loop_transfer(iter_t iterations, void *cookie)
 {
 	int	c;
-	long	todo;
+	uint64	todo;
 	state_t *state = (state_t *) cookie;
 
 	while (iterations-- > 0) {
@@ -151,6 +155,7 @@ loop_transfer(iter_t iterations, void *cookie)
 			if ((c = read(state->sock, state->buf, state->msize)) <= 0) {
 				exit(1);
 			}
+			if (c > todo) c = todo;
 		}
 	}
 }
@@ -179,6 +184,10 @@ void server_main()
 
 	signal(SIGCHLD, child);
 	data = tcp_server(TCP_DATA, SOCKOPT_WRITE|SOCKOPT_REUSE);
+	if (data < 0) {
+		perror("server socket creation");
+		exit(1);
+	}
 
 	for ( ;; ) {
 		newdata = tcp_accept(data, SOCKOPT_WRITE);
@@ -197,22 +206,24 @@ void server_main()
 }
 
 /*
- * Read the number of bytes to be transfered.
- * Write that many bytes on the data socket.
+ * Read the message size.  Keep transferring 
+ * data in message-size sized packets until
+ * the socket goes away.
  */
 void source(int data)
 {
-	int	tmp, n, m, nbytes;
-	char	*buf;
+	size_t	count, m;
+	char	*buf, scratch[100];
 
 	/*
 	 * read the message size
 	 */
-	if (read(data, &tmp, sizeof(int)) != sizeof(int)) {
+	bzero(scratch, 100);
+	if (read(data, scratch, 100) <= 0) {
 		perror("control nbytes");
 		exit(7);
 	}
-	m = ntohl(tmp);
+	sscanf(scratch, "%llu", &m);
 
 	/*
 	 * A hack to allow turning off the absorb daemon.
@@ -229,7 +240,7 @@ void source(int data)
 	/*
 	 * Keep sending messages until the connection is closed
 	 */
-	while (write(data, buf, m) > 0) {
+	while (write(data, buf, m) == m) {
 #ifdef	TOUCH
 		touch(buf, m);
 #endif
