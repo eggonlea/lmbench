@@ -126,10 +126,13 @@ bk.ver: ../SCCS/s.ChangeSet
 dist:
 	@if [ "X`cd ..; bk sfiles -c`" != "X" ]; then echo "modified files!"; false; fi
 	@if [ "X`cd ..; bk pending`" != "X" ]; then echo "pending changes!"; false; fi
-	rm -rf ../bin/* bk.ver
-	cd ..; bk clean
-	cd ..; for d in doc results scripts src; do bk get; done
+	cd ..; for d in . doc results scripts src; do \
+		(cd $d; bk clean; bk get -s); \
+	done
+	rm -f bk.ver
 	make bk.ver
+	cp -rp .. ../../lmbench-2dist
+	rm -rf ../../lmbench-2dist/bin/*
 
 get $(SRCS):
 	get -s $(SRCS)
