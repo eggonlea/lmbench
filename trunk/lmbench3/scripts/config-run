@@ -91,13 +91,11 @@ done
 if [ -r /proc/meminfo ]
 then	TMP=`grep 'Mem:' /proc/meminfo | awk '{print $2}'`
 	if [ X$TMP != X ]
-	then	TMP=`expr $TMP / 1048576`
-		TMP=`expr $TMP \* 7`
-		TMP=`expr $TMP / 10`
+	then	TMP=`echo \(\( $TMP / 1048576 \) \* 7 \) / 10 | bc`
 	fi
-	if [ X$TMP != X ]
-	then	MB=$TMP
-	fi
+fi
+if [ X$TMP != X ]
+then	MB=$TMP
 else	MB=32
 fi
 
