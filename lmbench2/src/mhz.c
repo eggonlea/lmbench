@@ -189,7 +189,7 @@ filter_data(double values[], int size)
 	qsort(d, size, sizeof(double), double_compare);
 
 	median = d[size/2];
-	if (size % 2 == 0) median = (median + d[size/2 - 1]) / 2.0;
+	if (size > 0 && size % 2 == 0) median = (median + d[size/2 - 1]) / 2.0;
 
 	free(d);
 
@@ -377,8 +377,10 @@ compute_mhz(result_t *r)
 			for (j = 0, n = 0; j < NTESTS; ++j)
 				if (BIT_SET(subset, j) && r[j].N > TRIES/2)
 					data[n++] = r[j].u[r[j].N-1-i] / (double)r[j].n[r[j].N-1-i];
-			n = filter_data(data, n);
-			if (n < 2 || classes(data, n) < 2) continue;
+			if (n < 2
+			    || (n = filter_data(data, n)) < 2
+			    || classes(data, n) < 2) 
+				continue;
 			results[ntests++] = 1.0 / gcd(data, n);
 		}
 		mhz[i] = mode(results, ntests);
