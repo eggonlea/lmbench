@@ -104,6 +104,7 @@
 .nr VS \n(PS+1
 .ds title Measuring scalability
 .ds author Carl Staelin
+.ds micro \(*m
 .ds lmbench \f(CWlmbench\fP
 .ds lmbench1 \f(CWlmbench1\fP
 .ds lmbench2 \f(CWlmbench2\fP
@@ -119,6 +120,7 @@
 .ds bw_unix \f(CWbw_unix\fP
 .ds close \f(CWclose\fP
 .ds connect \f(CWconnect\fP
+.ds dd \f(CWdd\fP
 .ds execlp  \f(CWexeclp\fP
 .ds execve  \f(CWexecve\fP
 .ds exit \f(CWexit\fP
@@ -126,12 +128,15 @@
 .ds fork \f(CWfork\fP
 .ds fstat \f(CWfstat\fP
 .ds gcc \f(CWgcc\fP
+.ds get_n \f(CWget_n\fP
 .ds getpid \f(CWgetpid\fP
 .ds getppid \f(CWgetppid\fP
+.ds gettime \f(CWgettime\fP
 .ds gettimeofday \f(CWgettimeofday\fP
 .ds kill \f(CWkill\fP
 .ds lat_connect \f(CWlat_connect\fP
 .ds lat_ctx \f(CWlat_ctx\fP
+.ds lat_dram_page \f(CWlat_dram_page\fP
 .ds lat_fcntl \f(CWlat_fcntl\fP
 .ds lat_fifo \f(CWlat_fifo\fP
 .ds lat_fs \f(CWlat_fs\fP
@@ -151,12 +156,16 @@
 .ds lat_udp \f(CWlat_udp\fP
 .ds lat_unix \f(CWlat_unix\fP
 .ds lat_unix_connect \f(CWlat_unix_connect\fP
+.ds lat_usleep \f(CWlat_usleep\fP
 .ds line \f(CWline\fP
 .ds lmdd  \f(CWlmdd\fP
 .ds lmdd \f(CWlmdd\fP
+.ds mb \f(CWmb\fP
 .ds memmove \f(CWmemmove\fP
 .ds mhz  \f(CWmhz\fP
+.ds micro \f(CWmicro\fP
 .ds mmap \f(CWmmap\fP
+.ds nano \f(CWnano\fP
 .ds nanosleep \f(CWnanosleep\fP
 .ds open \f(CWopen\fP
 .ds par_mem  \f(CWpar_mem\fP
@@ -178,17 +187,13 @@
 .ds write \f(CWwrite\fP
 .ds yield  \f(CWyield\fP
 .\" References stuff
-.de RN  \"Reference Name: .RN $1 -- prints the reference prettily
-.\" [\s-2\\$1\s+2]\\$2
-[\s-1\\$1\s0]\\$2
-..
-.\" .R1
-.\" sort A+DT
-.\" database references
-.\" label-in-text
-.\" label A.nD.y-2
-.\" bracket-label \*([. \*(.] ", "
-.\" .R2
+.R1
+accumulate
+sort A+DT
+database references-lmbench3
+label-in-text
+bracket-label [ ] ", "
+.R2
 .EQ
 delim $$
 .EN
@@ -201,7 +206,6 @@ delim $$
 .SP
 .AB
 \*[lmbench3] extends the \*[lmbench2] 
-.RN Staelin98
 system to measure a system's performance under scalable 
 load to make it possible to assess parallel and 
 distributed computer performance with the same
@@ -243,7 +247,9 @@ understand application performance because
 key aspects of application performance can often be
 understood as linear combinations of the elements 
 measured by \*[lmbench]
-.RN Brown97 .
+.[[
+Brown97
+.]].
 .LP
 \*[lmbench3] extends the \*[lmbench] suite to
 encompass parallel and distributed system performance
@@ -273,22 +279,27 @@ benchmarks and process the results.
 \*[lmbench] history
 .LP
 \*[lmbench1] was written by Larry McVoy
-while he was at Sun Microsystems.  It focussed
-on two measures of system performance: latency
-and bandwidth.  It measured a number of basic
-operating system functions, such as file system
-read/write bandwidth or file creation time.  It
-also focussed a great deal of energy on measuring
+while he was at Sun Microsystems.
+It focussed on two measures of system performance: 
+latency and bandwidth.  
+It measured a number of basic operating system 
+functions, such as file system read/write bandwidth 
+or file creation time.  
+It also focussed a great deal of energy on measuring
 data transfer operations, such as \*[bcopy] and
 \*[pipe] latency and bandwidth as well as raw
 memory latency and bandwidth.
 .LP
-Shortly after the \*[lmbench1] 
-.RN McVoy96
-paper was published, Aaron Brown
-.RN Brown97
-examined the \*[lmbench] benchmark suite and published
-a detailed critique of its strengths and weaknesses.
+Shortly after the \*[lmbench1] paper 
+.[[
+McVoy96
+.]]
+was published, Aaron Brown examined the \*[lmbench] 
+benchmark suite and published a detailed critique 
+of its strengths and weaknesses
+.[[
+Brown97
+.]].
 Largely in response to these remarks, development
 of \*[lmbench2] began with a focus on improving the 
 experimental design and statistical data analysis.  
@@ -301,7 +312,9 @@ eleven times with the median result reported to the
 user.
 .LP
 The \*[lmbench2]
-.RN Staelin98
+.[[
+Staelin98
+.]]
 timing harness was implemented through a new macro, 
 BENCH(), that automatically manages nearly all aspects 
 of accurately timing operations.
@@ -367,7 +380,9 @@ variation on this approach by measuring
 several applications and combining the
 results to predict overall performance.
 SPEChpc96 
-.RN SPEChpc96
+.[[
+SPEChpc96
+.]]
 extends this approach to the
 parallel and distributed domain by measuring
 the performance of a selected parallel
@@ -381,31 +396,39 @@ performance, where the "kernel" is usually
 a simplification of the most expensive
 portion of a program.  
 Dhrystone 
-.RN Weicker84
+.[[
+Weicker84
+.]]
 is an example of this type of
 benchmark as it measures the performance
 of important matrix operations and was often
 used to predict system performance for
 numerical operations.
 .LP
-.RN Banga98
-developed a benchmark to measure HTTP server
+Banga developed a benchmark to measure HTTP server
 performance which can accurately measure
-server performance under high load.
+server performance under high load
+.[[
+Banga97
+.]].
 Due to the idiosyncracies of the HTTP protocol 
 and TCP design and implementation, there are 
 generally operating system limits on the rate 
 at which a single system can generate 
 independent HTTP requests.  
-However, 
-.RN Banga98
-developed a system which can scalably present
-load to HTTP servers in spite of this limitation.
+However, Banga developed a system which can 
+scalably present load to HTTP servers in spite 
+of this limitation
+.[[
+Banga98
+.]].
 .LP
 John McCalpin's STREAM benchmark measures
 memory bandwidth during four common vector
 operations
-.RN McCalpin95 .
+.[[
+McCalpin95
+.]].
 It does not measure memory latency, and
 strictly speaking it does not measure raw
 memory bandwith although memory bandwidth
@@ -415,17 +438,26 @@ measure distributed application performance
 using MPI to measure scalable memory subsystem
 performance, particularly for multi-processor
 machines.
-.\" .LP
-.\" Uros Prestor
-.\" .RN Prestor01
-.\" XXX
+.LP
+Prestor
+.[[
+Prestor01
+.]]
+and Saavedra
+.[[
+Saavedra95
+.]]
+have developed benchmarks which analyze 
+memory subsystem performance.
 .LP
 Micro-benchmarking extends the "kernel" 
 approach, by measuring the performance
 of operations or resources in isolation.
 \*[lmbench] and many other benchmarks, such 
 as nfsstone
-.RN Shein89 ,
+.[[
+Shein89
+.]],
 measure the performance of key operations so 
 users can predict performance for certain 
 workloads and applications by combining the 
@@ -433,7 +465,9 @@ performance of these operations in the right
 mixture.
 .LP
 Saavedra
-.RN Saavedra92
+.[[
+Saavedra92
+.]]
 takes the micro-benchmark approach and applies
 it to the problem of predicting application
 performance. 
@@ -446,7 +480,9 @@ performance across this set of micro-benchmarks
 and use a linear model to predict the application's
 performance on the computer system.
 Seltzer
-.RN Seltzer99
+.[[
+Seltzer99
+.]]
 applied this technique using the features
 measured by \*[lmbench] as the basis for
 application prediction.
@@ -463,11 +499,17 @@ laying out data contiguously on disk.
 .LP
 I/O benchmarks have a tendency to age poorly.
 For example, IOStone
-.RN Park90a ,
+.[[
+Park90a
+.]],
 IOBench
-.RN Wolman89 ,
+.[[
+Wolman89
+.]],
 and the Andrew benchmark
-.RN Howard88
+.[[
+Howard88
+.]]
 used fixed size datasets, whose size was
 significant at the time, but which no longer
 measure I/O performance as the data can now
@@ -480,14 +522,21 @@ and then delete a large number of files in
 a hierarchical file system.  
 .LP
 Bonnie
-.RN Bray90
+.[[
+Bray90
+.]]
 measures sequential, streaming I/O bandwidth
 for a single process, and random I/O latency
 for multiple processes.
 .LP
 Peter Chen developed an adaptive harness for
 I/O benchmarking
-.RN Chen94a ,
+.[[
+Chen93d
+.]]
+.[[
+Chen94a
+.]],
 which defines I/O load in terms of five parameters,
 uniqueBytes, sizeMean, readFrac, seqFrac, and
 processNum.  The benchmark then explores the
@@ -495,7 +544,9 @@ parameter space to measure file system performance
 in a scalable fashion.
 .LP
 Parkbench
-.RN Parkbench
+.[[
+Parkbench
+.]]
 is a benchmark suite that can analyze parallel
 and distributed computer performance.
 It contains a variety of benchmarks that measure
@@ -503,9 +554,13 @@ both aspects of system performance, such as
 communication overheads, and distributed application
 kernel performance.
 Parkbench contains benchmarks from both NAS
-.RN NAS
+.[[
+NAS
+.]]
 and Genesis
-.RN Glendinning94 .
+.[[
+Glendinning94
+.]].
 .NH 1
 Timing Harness
 .LP
@@ -552,7 +607,9 @@ by the clock resolution is insignificant.
 The basic elements of a good timing harness
 are discussed in 
 Staelin
-.RN Staelin98 .
+.[[
+Staelin98
+.]].
 .LP
 The new timing harness must also collect and process
 the timing results from all the child processes so
@@ -626,49 +683,54 @@ executing the benchmarked operation before any child
 starts taking measurements.
 .TSTART
 .TS
-box tab (/) allbox expand ;
+box tab (/) box expand ;
 c c
 l l .
 Parent/Child
 T{
-start up P child processes
+\(bu start up P child processes
+T}/
+T{
+\(bu wait for P \fIready\fR signals
 T}/T{
-run benchmark operation for a little while
+\(bu run benchmark operation for a little while
+T}
+\(da/T{
+\(bu send a \fIready\fR signal
 T}
 T{
-wait for P "ready" signals
+\(bu on reciept of \fIready\fR signals, sleep for \fIwarmup\fR \*[micro]s
 T}/T{
-send a "ready" signal
+\(bu run benchmark operation while polling for a \fIgo\fR signal
 T}
 T{
-[sleep for "warmup" microseconds]
+\(bu send \fIgo\fR signal to P children
+T}/\(da
+T{
+\(bu wait for P \fIdone\fR signals
 T}/T{
-run benchmark operation while polling for a "go" signal
+\(bu on receipt of \fIgo\fR signal, begin timing benchmark operation
+T}
+\(da/T{
+\(bu send a \fIdone\fR signal
 T}
 T{
-send "go" signal to P children
+\(bu one receipt of \fIdone\fR signals, iterate through children 
+sending \fIresults\fR signal and gathering results
 T}/T{
-begin timing benchmark operation
+\(bu run benchmark operation while polling for a \fIresults\fR signal
 T}
 T{
-wait for P "done" signals
+\(bu collate results
 T}/T{
-send a "done" signal
+\(bu on receipt of \fIresults\fR signal, send timing results 
+and wait for \fIexit\fR signal
 T}
 T{
-for each child, send "results" signal and gather results
-T}/T{
-run benchmark operation while polling for a "results" signal
-T}
-T{
-collate results
-T}/T{
-send timing results and wait for "exit" signal
-T}
-T{
-send "exit" signal
-T}/T{
-exit
+\(bu send \fIexit\fR signal
+T}/\(da
+/T{
+\(bu exit
 T}
 .TE
 .TEND "Timing harness sequencing"
@@ -680,6 +742,12 @@ that all children are actively running the
 benchmark activity while any child could be
 taking timing measurements.
 .LP
+The reason for the separate "exit" signal is
+to ensure that all properly managed children
+are alive until the parent allows them to die.
+This means that any SIGCHLD events that occur
+before the "exit" signal indicate a child 
+failure.
 .NH 2
 Accuracy
 .LP
@@ -715,6 +783,13 @@ slice is insignificant compared to the timing interval.
 Otherwise the timing results can be dramatically 
 affected by small variations in the scheduler's
 behavior.
+.LP
+Currently \*[lmbench] does not measure the scheduler
+timeslice; the design blithely assumes that timeslices
+are generally on the order of 10-20ms, so one second
+timing intervals are sufficient.
+Some schedulers may utilize longer time slices, but
+this has not (yet) been a problem.
 .NH 2
 Resource consumption
 .LP
@@ -862,11 +937,17 @@ is a crucial step in the benchmarking process.
 \*[lmbench] generally reports the \fImedian\fP
 result for $11$ measurements.  
 Most benchmarks report the results of a single measurement
-.RN Howard88 ,
+.[[
+Howard88
+.]],
 an average of several results
-.RN McCalpin95 ,
+.[[
+McCalpin95
+.]],
 or a trimmed mean
-.RN Brown97 .
+.[[
+Brown97
+.]].
 .\" XXX UNKNOWN:
 .\" .RN Weicker84,Shein89,Park,Wolman89,Banga97,Saavedra92,Chen94a,Bray90
 .LP
@@ -879,7 +960,9 @@ a small number of outliers with significantly
 larger values.
 The median is preferable to the mean when the data
 can be very skewed
-.RN Jain91 .
+.[[
+Jain91
+.]].
 Since the timing intervals are significantly longer
 when the desired load is larger than a single
 process, the results tend not to be as badly skewed.
@@ -912,7 +995,9 @@ Interface
 .LP
 Unfortunately we had to move away from the
 macro-based timing harness used in \*[lmbench2] 
-and migrate to a function-based system.  
+and migrate to a function-based system
+because the macros were too large for some
+C pre-processors.
 .TSTART 1
 .DS L
 \f(CWtypedef void (*bench_f)(iter_t iters,
@@ -926,19 +1011,26 @@ extern void benchmp(support_f initialize,
 		int parallel,
 		int warmup,
 		int repetitions,
-		void* cookie);\fP
+		void* cookie);
+
+extern uint64 gettime();
+extern uint64 get_n();
+extern void nano(char* s, uint64 n);
+extern void micro(char* s, uint64 n);
+extern void mb(uint64 bytes);\fP
 .DE
-.FEND "timing harness interface" 1
-.nr FIGharness \n[FIGURE]
+.FEND "Programming interface" 1
+.nr FIGinterface \n[FIGURE]
 .LP
-Figure \n[FIGharness] shows the new timing harness
+Figure \n[FIGinterface] shows the key elements
+of the new timing harness and result reporting 
 interface.
-A brief description of the parameters:
+A brief description of the \*[benchmp] parameters:
 .IP \fIenough\fR
 Enough can be used to ensure that a timing interval is at
 least 'enough' microseconds in duration.  For most benchmarks
 this should be zero, but some benchmarks have to run for more
-time due to startup effects or other strange behavior.
+time due to startup effects or other transient behavior.
 .IP \fIparallel\fR
 is simply the number of instances of the benchmark
 that will be run in parallel on the system.  
@@ -959,6 +1051,36 @@ size or other parameters needed by the inner loop.
 In \*[lmbench3] it is generally used to point
 to a structure containing the relevant configuration
 information.
+.LP
+\*[gettime] returns the median timing
+interval duration, while \*[get_n] returns
+the number of iterations executed during
+that timing interval.
+.LP
+\*[nano] and \*[micro] print the passed
+string latency followed by the latency
+in terms of nanoseconds and microseconds
+respectively.
+The latency is computed as $gettime()/n$,
+where $n$ is the passed parameter.
+The reason $n$ is passed as a parameter
+is because the benchmark can actually
+execute the operation of interest multiple
+times during a single iteration.
+For example, the memory latency benchmarks
+typically repeat the memory load operation
+a hundred times inside the loop, so the
+actual number of operations is 
+$100 times get_n()$, and it is this value
+that should be passed to \*[nano] or \*[micro].
+.LP
+\*[mb] reports the bandwidth in MB/s
+when given the total number of bytes
+processed during the timing interval.
+Note that for scalable benchmarks that
+process $"size"$ bytes per iteration, the
+total number of bytes processed is
+$get_n() times parallel times "size"$.
 .TSTART 1
 .DS L
 \f(CW#include "bench.h"
@@ -1041,14 +1163,21 @@ lat_http&http GET request latency
 \fIlat_mem_rd\fR&memory read
 \fIlat_mmap\fR&\*[mmap] operation
 \fIlat_ops\fR&T{
-basic operations (\fIadd\fR, \fImul\fR, \fIdiv\fR, \fImod\fR)
-on basic data types (\fIint\fR, \fIint64\fR, \fIfloat\fR, \fIdouble\fR)
+basic operations (\fIxor\fR, \fIadd\fR, \fImul\fR, \fIdiv\fR, \fImod\fR)
+on (relevant) basic data types (\fIint\fR, \fIint64\fR, \fIfloat\fR, 
+\fIdouble\fR)
 T}
 \fIlat_pagefault\fR&page fault handler
 \fIlat_pipe\fR&\*[pipe] ``hot-potato'' token passing
+\fIlat_pmake\fR&T{
+time to complete $N$ parallel jobs that each do $usecs$-worth of work
+T}
 \fIlat_proc\fR&T{
 procedure call overhead and process creation using \*[fork],
 \*[fork] and \*[execve], and \*[fork] and \*[sh]
+T}
+\fIlat_rand\fR&T{
+random number generator
 T}
 \fIlat_rpc\fR&SUN RPC procedure call
 \fIlat_select\fR&\*[select] operation
@@ -1059,16 +1188,15 @@ T}
 signal handle installation and handling
 T}
 \fIlat_syscall\fR&T{
-\*[getppid], \*[write], \*[stat], 
-\*[fstat], \*[open], \*[close]
+\*[open], \*[close], \*[getppid], \*[write], \*[stat], \*[fstat]
 T}
 \fIlat_tcp\fR&TCP ``hot-potato'' token passing
 \fIlat_udp\fR&UDP ``hot-potato'' token passing
 \fIlat_unix\fR&UNIX ``hot-potato'' token passing
 \fIlat_unix_connect\fR&UNIX socket connection
-lat_usleep&T{
-\*[nanosleep], \*[pselect], \*[select],
-\*[setitimer], \*[usleep] timer resolution
+\fIlat_usleep\fR&T{
+\*[usleep], \*[select], \*[pselect], \*[nanosleep], \*[setitimer] 
+timer resolution
 T}
 _
 &\fBOther\fR
@@ -1091,7 +1219,9 @@ Benchmarks that were converted to measure performance
 under scalable load are shown in italics, while the
 remaining benchmarks are shown with normal typeface.  
 A detailed description of most benchmarks can be found in
-.RN McVoy96 .
+.[[
+McVoy96
+.]].
 .NH 1
 Scaling Benchmarks
 .LP
@@ -1111,6 +1241,12 @@ For example, the Linux 2.2 and 2.4 kernels use a single lock to
 control access to the kernel data structures for a file.
 This means that multiple processes accessing that file
 will have their operations serialized by that lock.
+If one is interested in how well a system can handle
+multiple independent accesses to separate files and
+if the child processes all access the same file, then
+this file sharing is an artificial source of contention
+with potentially dramatic effects on the benchmark
+results.
 .NH 2
 File System
 .LP
@@ -1168,6 +1304,26 @@ Consequently, it is not really a good benchmark
 for measuring scheduler overhead in multi-processor
 machines.
 .LP
+The design currently used in \*[lmbench3] is to
+create $N$ \*[lmbench2]-style process rings and
+to measure the context switch times with all $N$
+rings running in parallel.
+This does extend the \*[lmbench2] context switch
+benchmark to a scalable form, but it still suffers
+from the same weaknesses.
+.LP
+One approach that was considered was to replace
+the ring with a star formation, so the master
+process would send tokens to each child and
+then wait for them all to be returned.  
+This has the advantage that more than one process
+is active at a time, reducing the sensitivity
+to "hand-off" scheduling.
+However, this same feature can cause problems
+on a multi-processor system because several
+of the context switches and working set accesses
+can occur in parallel.
+.LP
 The design and methodology for measuring context
 switching and scheduler overhead need to be revisited
 so that it can more accurately measure performance
@@ -1175,14 +1331,19 @@ for multi-processor machines.
 .NH 1
 Stream
 .LP
-\*[lmbench3] includes a new micro-benchmark which
-measures the performance of John McCalpin's \*[stream]
-benchmark kernels for \*[stream] version 1 
-.RN McCalpin95
+\*[lmbench3] includes a new micro-benchmark, 
+\*[stream] which measures the performance of 
+John McCalpin's STREAM benchmark kernels for 
+both STREAM version 1 
+.[[
+McCalpin95
+.]]
 and version 2
-.RN McCalpin2002 .
+.[[
+McCalpin2002
+.]].
 This benchmark faithfully recreates each of the
-kernel operations from both \*[stream] benchmarks,
+kernel operations from both STREAM benchmarks,
 and because of the powerful new timing harness it
 can easily measure memory system scalability.
 .TSTART
@@ -1199,7 +1360,7 @@ _
 COPY|$a[i]=b[i]$|8(+8)|8|0
 SCALE|$a[i]=q times b[i]$|8(+8)|8|1
 ADD|$a[i]=b[i]+c[i]$|16(+8)|8|1
-TRIAD|$a[i]=b[i]+q times c[i]$|16(+8)|8|2
+TRIAD|$a[i]=b[i]+q times c[i]$|16(+8)|8|2(-1)
 .TE
 .TS
 center box tab (|);
@@ -1213,22 +1374,34 @@ Kernel|Code|Bytes|FL
 _
 FILL|$a[i]=q$|0(+8)|8|0
 COPY|$a[i]=b[i]$|8(+8)|8|0
-DAXPY|$a[i]=a[i]+q times b[i]$|16|8|2
+DAXPY|$a[i]=a[i]+q times b[i]$|16|8|2(-1)
 SUM|$sum=sum + a[i]$|8|0|1
 .TE
 .TEND "Stream operations"
 .LP
-Table \n[TABLE] is based on tables from
-.RN McCalpin95
-and
-.RN McCalpin2002
+Table \n[TABLE] is based on McCalpin's tables
+.[[
+McCalpin95
+.]]
+.[[
+McCalpin2002
+.]]
 and shows the four kernels for each version
-of the \*[stream] benchmark.  Note that the
+of the \*[stream] benchmark.  
+Note that the
 .I read
 columns include numbers in parentheses, which
 represent the average number of bytes read into 
 the cache as a result of the write to that
-variable.  Cache lines are almost invariably
+variable\**.  
+.FS
+This number is independent of the cache
+line size because the STREAM uses dense
+arrays, so the cost is amortized over the
+subsequent operations on the rest of the
+line.
+.FE
+Cache lines are almost invariably
 bigger than a single double, and so when a
 write miss occurs the cache will read the line
 from memory and then modify the selected bytes.
@@ -1236,11 +1409,24 @@ Sometimes vector instructions such as SSE
 and 3DNow can avoid this load by writing an 
 entire cache line at once.
 .LP
-The \*[lmbench] STREAM benchmarks report 
-their results as bandwidth results (MB/s).
-The bandwidth is computed as a function of
-the amount of data explicitly read or written
-by the benchmark.  
+In addition, some architectures support
+multiply-add instructions which can do
+both the multiply and add operations for
+TRIAD and DAXPY in a single operation,
+so the physical FLOPS count would be 1 
+for these architectures on these
+instructions.
+The numbers in parenthesis in the
+.I FLOPS
+column reflect this reduction in
+FLOPS count.
+.LP
+Following the STREAM bandwidth reporting
+conventions, the \*[lmbench] STREAM benchmarks 
+report their results as bandwidth results 
+(MB/s) computed as a function of the amount 
+of data explicitly read or written by the 
+benchmark.  
 For example, \fIcopy\fR and \fIscale\fR copy 
 data from one array to the other, so the 
 bandwidth is measured as a function of the 
@@ -1294,6 +1480,37 @@ fast as possible, so it would essentially be
 guaranteed to run into the TIMEOUT problem.
 Consequently, \*[lat_connect] was not
 enhanced to measure scalable performance.
+.LP
+\*[lat_fs] has not yet been parallelized because
+of the difficulty in measuring file creation and
+file deletion times in the new timing harness.
+The timing harness assumes that it can ask the
+benchmarked operation to be repeated as many times
+as necessary.
+This would mean that the file creation benchmark
+could create any number of new files of a given
+size, which could well fill up the file system.
+The real problem lies in the file deletion benchmark.
+In order to delete files of a given size, they 
+must have been created before the benchmark begins.
+However, the number of files is not known in
+advance, so the benchmark would have a difficult
+time ensuring that it has created enough files.
+.LP
+The benchmarks that measure aspects of memory-subsystem 
+micro-architecture, \*[lat_dram_page], \*[line], 
+\*[par_mem], and \*[tlb], were not parallelized because 
+the multiple processes' memory access patterns would 
+likely interfere with one another.
+For example, in \*[lat_dram_page], those accesses 
+which were supposed to be to open DRAM pages could 
+well be accessing closed DRAM pages, invalidating 
+the benchmark.
+.LP
+\*[lmdd] was not parallelized because it is 
+supposed to be a clone of \*[dd], and it
+wasn't clear what a parallel form of \*[dd]
+would look like.  
 .NH 1
 Results
 .LP
@@ -1555,6 +1772,7 @@ Acknowledgments
 .LP
 Many people have provided invaluable help and insight into the benchmarks.
 We especially thank:
+Eric Anderson \s-1(HP)\s0,
 Bruce Chapman \s-1(SUN)\s0,
 Larry McVoy \s-1(BitMover)\s0,
 David Mosberger \s-1(HP)\s0,
@@ -1628,13 +1846,8 @@ project.
 .de ref*add-D
 .ref*field D ","
 ..
-.R1
-accumulate
-sort A+DT
-database references-lmbench3
-label-in-text
-label A.nD.y-2
-bracket-label [ ] ", "
-bibliography references-lmbench3
-.R2
+.\" References
+.[
+$LIST$
+.]
 .\" .so bios
