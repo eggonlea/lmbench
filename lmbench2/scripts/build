@@ -118,6 +118,20 @@ ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
 	&& CFLAGS="${CFLAGS} -DHAVE_uint64_t=1";
 rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
 
+# check that we have drand48 and srand48
+echo "#include <stdlib.h>" > ${BASE}$$.c
+echo "main() { srand48(973); return (int)(1.0E9 * drand48()); }" >> ${BASE}$$.c
+if ${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL}; then
+	true;
+else
+	rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
+	echo "#include <stdlib.h>" > ${BASE}$$.c
+	echo "main() { srand(973); return (10 * rand()) / RAND_MAX; }" >> ${BASE}$$.c
+	${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
+		|| CFLAGS="${CFLAGS} -Dsrand48=srand"
+fi
+rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
+
 # echo Building for $(TARGET)
 if [ ! -d ${BINDIR} ]; then mkdir -p ${BINDIR}; fi
 

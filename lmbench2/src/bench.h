@@ -111,9 +111,14 @@ typedef unsigned long long uint64;
 #define	streq		!strcmp
 #define	ulong		unsigned long
 
+#if defined(srand48) && srand48 == srand
+extern double		drand48(void);
+#endif
+
 #ifdef WIN32
 #include <process.h>
 #define getpid _getpid
+int	gettimeofday(struct timeval *tv, struct timezone *tz);
 #endif
 
 #define	SMALLEST_LINE	32		/* smallest cache line size */
