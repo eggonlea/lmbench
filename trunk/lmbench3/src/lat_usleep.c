@@ -30,6 +30,8 @@ char           *id = "$Id$\n";
 
 #include "bench.h"
 
+typedef     enum {ITIMER, USLEEP} timer_e;
+
 uint64          caught,
                 n;
 struct itimerval value;
@@ -96,21 +98,21 @@ bench_itimer(iter_t iterations, void *cookie)
 int
 main(int ac, char **av)
 {
-    int             u = 1;
     int             warmup = 0;
     int             repetitions = TRIES;
     int             c;
     char            buf[512];
+    timer_e	    what = USLEEP;
     char           *usage = "[-u|i] [-W <warmup>] [-N <repetitions>] usecs\n";
     unsigned long   usecs;
 
     while ((c = getopt(ac, av, "iuW:N:")) != EOF) {
 	switch (c) {
 	case 'i':
-	    u = 0;
+	    what = ITIMER;
 	    break;
 	case 'u':
-	    u = 1;
+	    what = USLEEP;
 	    break;
 	case 'W':
 	    warmup = atoi(optarg);
@@ -128,12 +130,20 @@ main(int ac, char **av)
     }
 
     usecs = bytes(av[optind]);
-    if (u) {
-	benchmp(NULL, bench_usleep, NULL, 0, 1, warmup, repetitions, &usecs);
+    switch (what) {
+    case USLEEP:
+	benchmp(NULL, bench_usleep, NULL, 
+		0, 1, warmup, repetitions, &usecs);
 	sprintf(buf, "usleep %lu microseconds", usecs);
-    } else {
-	benchmp(initialize, bench, NULL, 0, 1, warmup, repetitions, &usecs);
+	break;
+    case ITIMER:
+	benchmp(initialize, bench_itimer, NULL, 
+		0, 1, warmup, repetitions, &usecs);
 	sprintf(buf, "itimer %lu microseconds", usecs);
+	break;
+    default:
+	lmbench_usage(ac, av, usage);
+	break;
     }
     micro(buf, get_n());
     return (0);
