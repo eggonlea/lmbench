@@ -16,7 +16,7 @@ char	*id = "$Id: s.lat_mem_rd.c 1.13 98/06/30 16:13:49-07:00 lm@lm.bitmover.com 
 #define STRIDE  (512/sizeof(char *))
 #define	MEMTRIES	4
 #define	LOWER	512
-void	loads(int len, int range, int stride);
+void	loads(int len, int range, int stride, int parallel);
 int	step(int k);
 
 int
@@ -26,21 +26,38 @@ main(int ac, char **av)
 	int	range;
 	int	stride;
 	int	i;
-        char   *addr;
+	int	c;
+	int	parallel = 1;
+	char   *usage = "[-P <parallelism>] len [stride...]\n";
 
-        len = atoi(av[1]) * 1024 * 1024;
+	while (( c = getopt(ac, av, "P:")) != EOF) {
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
+	}
+	if (optind == ac) {
+		lmbench_usage(ac, av, usage);
+	}
 
-	if (av[2] == 0) {
+        len = atoi(av[optind]) * 1024 * 1024;
+
+	if (optind == ac - 1) {
 		fprintf(stderr, "\"stride=%d\n", STRIDE);
 		for (range = LOWER; range <= len; range = step(range)) {
-			loads(len, range, STRIDE);
+			loads(len, range, STRIDE, parallel);
 		}
 	} else {
-		for (i = 2; i < ac; ++i) {
+		for (i = optind + 1; i < ac; ++i) {
 			stride = bytes(av[i]);
 			fprintf(stderr, "\"stride=%d\n", stride);
 			for (range = LOWER; range <= len; range = step(range)) {
-				loads(len, range, stride);
+				loads(len, range, stride, parallel);
 			}
 			fprintf(stderr, "\n");
 		}
@@ -123,7 +140,7 @@ void cleanup_loads(void* cookie)
 
 
 void
-loads(int len, int range, int stride)
+loads(int len, int range, int stride, int parallel)
 {
 	int result;
 	struct _state state;
@@ -135,19 +152,13 @@ loads(int len, int range, int stride)
 	/*
 	 * Now walk them and time it.
 	 */
-	benchmp(initialize_loads, benchmark_loads, NOCLEANUP, 0, 1, &state);
+	benchmp(initialize_loads, benchmark_loads, NULL, 0, parallel, &state);
 
 	/* We want to get to nanoseconds / load. */
 	fprintf(stderr,"*****************************************\n");
 	result = (int)(((uint64)1000 * gettime()) / ((uint64)100 * get_n()));
 	fprintf(stderr, "%.5f %d\n", range / (1024. * 1024), result);
 
-	benchmp(initialize_loads, benchmark_loads, NOCLEANUP, 0, 2, &state);
-
-	/* We want to get to nanoseconds / load. */
-	fprintf(stderr,"*****************************************\n");
-	result = (int)(((uint64)1000 * gettime()) / ((uint64)100 * get_n()));
-	fprintf(stderr, "\t%.5f %d %d\n", range / (1024. * 1024), result, 2);
 }
 
 int
