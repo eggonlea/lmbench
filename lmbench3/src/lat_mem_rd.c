@@ -12,25 +12,23 @@
 char	*id = "$Id: s.lat_mem_rd.c 1.13 98/06/30 16:13:49-07:00 lm@lm.bitmover.com $\n";
 
 #include "bench.h"
-/*#define N       1000000	/* Don't change this */
 #define STRIDE  (512/sizeof(char *))
-#define	MEMTRIES	4
 #define	LOWER	512
-void	loads(int len, int range, int stride, int parallel, 
-	      int warmup, int repetitions);
-int	step(int k);
+void	loads(size_t len, size_t range, size_t stride, 
+	      int parallel, int warmup, int repetitions);
+size_t	step(size_t k);
 
 int
 main(int ac, char **av)
 {
-        int     len;
-	int	range;
-	int	stride;
 	int	i;
 	int	c;
 	int	parallel = 1;
 	int	warmup = 0;
 	int	repetitions = TRIES;
+        size_t	len;
+	size_t	range;
+	size_t	stride;
 	char   *usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] len [stride...]\n";
 
 	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
@@ -88,8 +86,8 @@ benchmark_loads(iter_t iterations, void *cookie)
 {
 	struct mem_state* state = (struct mem_state*)cookie;
 	register char **p = (char**)state->base;
-	register int i;
-	register int count = state->len / (state->line * 100) + 1;
+	register size_t i;
+	register size_t count = state->len / (state->line * 100) + 1;
 
 	while (iterations-- > 0) {
 		for (i = 0; i < count; ++i) {
@@ -102,10 +100,11 @@ benchmark_loads(iter_t iterations, void *cookie)
 
 
 void
-loads(int len, int range, int stride, int parallel, int warmup, int repetitions)
+loads(size_t len, size_t range, size_t stride, 
+	int parallel, int warmup, int repetitions)
 {
 	double result;
-	int count;
+	size_t count;
 	struct mem_state state;
 
 	state.width = 1;
@@ -127,8 +126,8 @@ loads(int len, int range, int stride, int parallel, int warmup, int repetitions)
 
 }
 
-int
-step(int k)
+size_t
+step(size_t k)
 {
 	if (k < 1024) {
 		k = k * 2;
