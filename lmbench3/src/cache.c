@@ -1,7 +1,7 @@
 /*
  * cache.c - guess the cache size(s)
  *
- * usage: tlb
+ * usage: cache [-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]
  *
  * Copyright (c) 2000 Carl Staelin.
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
@@ -215,8 +215,9 @@ initialize(void* cookie)
 void benchmark(uint64 iterations, void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
+	static char *addr_save = NULL;
 	static char **p_save = NULL;
-	register char **p = p_save ? p_save : (char**)state->p;
+	register char **p = addr_save == state->addr ? p_save : (char**)state->p;
 
 	while (iterations-- > 0) {
 		HUNDRED;
@@ -224,6 +225,7 @@ void benchmark(uint64 iterations, void *cookie)
 
 	use_pointer((void *)p);
 	p_save = p;
+	addr_save = state->addr;
 }
 
 void cleanup(void* cookie)
