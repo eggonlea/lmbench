@@ -37,19 +37,15 @@ do_integer_add(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	register int i;
-	register int r = pState->N;
+	register int a = pState->N;
+	register int b = pState->N;
 
 	while (iterations-- > 0) {
 		for (i = 1; i < 1001; ++i) {
-#ifndef __GNUC__
-			/* required because of an HP ANSI/C compiler bug */
-			HUNDRED(r=(r+i)^r;)
-#else
-			TEN(r=r+r+i;)
-#endif
+			HUNDRED(a+=b;b-=a;)
 		}
 	}
-	use_int(r);
+	use_int(a+b);
 }
 
 void
@@ -98,11 +94,11 @@ do_integer_mod(iter_t iterations, void* cookie)
 }
 
 void
-do_uint64_bitwise(iter_t iterations, void* cookie)
+do_int64_bitwise(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register uint64 i;
-	register uint64 r = pState->N;
+	register int64 i;
+	register int64 r = pState->N;
 
 	while (iterations-- > 0) {
 		for (i = 0; i < 1000; ++i) {
@@ -113,31 +109,27 @@ do_uint64_bitwise(iter_t iterations, void* cookie)
 }
 
 void
-do_uint64_add(iter_t iterations, void* cookie)
+do_int64_add(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register uint64 i;
-	register uint64 r = pState->N;
+	register int i;
+	register int64 a = pState->N;
+	register int64 b = pState->N;
 
 	while (iterations-- > 0) {
 		for (i = 1; i < 1001; ++i) {
-#ifndef __GNUC__
-			/* required because of an HP ANSI/C compiler bug */
-			HUNDRED(r=(r+i)^r;)
-#else
-			TEN(r=r+r+i;)
-#endif
+			HUNDRED(a+=b;b-=a;)
 		}
 	}
-	use_int((int)r);
+	use_int((int)a+(int)b);
 }
 
 void
-do_uint64_mul(iter_t iterations, void* cookie)
+do_int64_mul(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register uint64 i;
-	register uint64 r = pState->N;
+	register int64 i;
+	register int64 r = pState->N;
 
 	while (iterations-- > 0) {
 		for (i = 1; i < 1001; ++i) {
@@ -148,11 +140,11 @@ do_uint64_mul(iter_t iterations, void* cookie)
 }
 
 void
-do_uint64_div(iter_t iterations, void* cookie)
+do_int64_div(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register uint64 i;
-	register uint64 r = pState->N;
+	register int64 i;
+	register int64 r = pState->N;
 
 	while (iterations-- > 0) {
 		for (i = 1; i < 1001; ++i) {
@@ -163,11 +155,11 @@ do_uint64_div(iter_t iterations, void* cookie)
 }
 
 void
-do_uint64_mod(iter_t iterations, void* cookie)
+do_int64_mod(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register uint64 i;
-	register uint64 r = pState->N;
+	register int64 i;
+	register int64 r = pState->N;
 
 	while (iterations-- > 0) {
 		for (i = 1; i < 1001; ++i) {
@@ -366,6 +358,7 @@ do_double_bogomflops(iter_t iterations, void* cookie)
 int
 main(int ac, char **av)
 {
+	int	__n = 1;
 	int	c, i, j;
 	int	warmup = 0;
 	int	parallel = 1;
@@ -398,84 +391,74 @@ main(int ac, char **av)
 		}
 	}
 
-	benchmp(NULL, do_integer_bitwise, NULL, 0, parallel, warmup, repetitions, &state);
+	BENCH((*do_integer_bitwise)(__n, &state); __n = 1;, 0);
 	nano("integer bit", get_n() * 100000 * 2);
 	iop_time = gettime();
 	iop_N = get_n() * 100000 * 2;
 	
-	benchmp(NULL, do_integer_add, NULL, 0, 1, warmup, repetitions, &state);
-#ifndef __GNUC__
-	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
-	nano("integer add", get_n() * 100000);
-#else
-	nano("integer add", get_n() * 10000 * 2);
-#endif
+	BENCH((*do_integer_add)(__n, &state); __n = 1;, 0);
+	nano("integer add", get_n() * 100000 * 2);
 	
-	benchmp(NULL, do_integer_mul, NULL, 0, 1, warmup, repetitions, &state);
+	BENCH((*do_integer_mul)(__n, &state); __n = 1;, 0);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("integer mul", get_n() * 100000);
 	
-	benchmp(NULL, do_integer_div, NULL, 0, 1, warmup, repetitions, &state);
+	BENCH((*do_integer_div)(__n, &state); __n = 1;, 0);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("integer div", get_n() * 100000);
 	
-	benchmp(NULL, do_integer_mod, NULL, 0, 1, warmup, repetitions, &state);
+	BENCH((*do_integer_mod)(__n, &state); __n = 1;, 0);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
 	nano("integer mod", get_n() * 100000);
 	
-	benchmp(NULL, do_uint64_bitwise, NULL, 0, 1, warmup, repetitions, &state);
-	nano("uint64 bit", get_n() * 100000 * 2);
+	BENCH((*do_int64_bitwise)(__n, &state); __n = 1;, 0);
+	nano("int64 bit", get_n() * 100000 * 2);
 	iop_time = gettime();
 	iop_N = get_n() * 100000 * 2;
 
-	benchmp(NULL, do_uint64_add, NULL, 0, 1, warmup, repetitions, &state);
-#ifndef __GNUC__
-	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
-	nano("uint64 add", get_n() * 100000);
-#else
-	nano("uint64 add", get_n() * 10000 * 2);
-#endif
+	BENCH((*do_int64_add)(__n, &state); __n = 1;, 0);
+	nano("int64 add", get_n() * 100000 * 2);
 	
-	benchmp(NULL, do_uint64_mul, NULL, 0, 1, warmup, repetitions, &state);
+	BENCH((*do_int64_mul)(__n, &state); __n = 1;, 0);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
-	nano("uint64 mul", get_n() * 100000);
+	nano("int64 mul", get_n() * 100000);
 	
-	benchmp(NULL, do_uint64_div, NULL, 0, 1, warmup, repetitions, &state);
+	BENCH((*do_int64_div)(__n, &state); __n = 1;, 0);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
-	nano("uint64 div", get_n() * 100000);
+	nano("int64 div", get_n() * 100000);
 	
-	benchmp(NULL, do_uint64_mod, NULL, 0, 1, warmup, repetitions, &state);
+	BENCH((*do_int64_mod)(__n, &state); __n = 1;, 0);
 	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
-	nano("uint64 mod", get_n() * 100000);
+	nano("int64 mod", get_n() * 100000);
 	
-	benchmp(NULL, do_float_add, NULL, 0, 1, warmup, repetitions, &state);
+	BENCH((*do_float_add)(__n, &state); __n = 1;, 0);
 	nano("float add", get_n() * 1000 * 11);
 	
-	benchmp(NULL, do_float_mul, NULL, 0, 1, warmup, repetitions, &state);
+	BENCH((*do_float_mul)(__n, &state); __n = 1;, 0);
 #ifndef __GNUC__
 	nano("float mul", get_n() * 100000);
 #else
 	nano("float mul", get_n() * 10000);
 #endif
 	
-	benchmp(NULL, do_float_div, NULL, 0, 1, warmup, repetitions, &state);
+	BENCH((*do_float_div)(__n, &state); __n = 1;, 0);
 #ifndef __GNUC__
 	nano("float div", get_n() * 100000);
 #else
 	nano("float div", get_n() * 10000);
 #endif
 
-	benchmp(NULL, do_double_add, NULL, 0, 1, warmup, repetitions, &state);
+	BENCH((*do_double_add)(__n, &state); __n = 1;, 0);
 	nano("double add", get_n() * 1000 * 11);
 	
-	benchmp(NULL, do_double_mul, NULL, 0, 1, warmup, repetitions, &state);
+	BENCH((*do_double_mul)(__n, &state); __n = 1;, 0);
 #ifndef __GNUC__
 	nano("double mul", get_n() * 100000);
 #else
 	nano("double mul", get_n() * 10000);
 #endif
 	
-	benchmp(NULL, do_double_div, NULL, 0, 1, warmup, repetitions, &state);
+	BENCH((*do_double_div)(__n, &state); __n = 1;, 0);
 #ifndef __GNUC__
 	nano("double div", get_n() * 100000);
 #else
