@@ -136,11 +136,13 @@ initialize(iter_t iterations, void* cookie)
 		perror("lock2");
 		exit(1);
 	}
+	handle_scheduler(benchmp_childid(), 0, 1);
 	switch (state->pid = fork()) {
 	case -1:
 		perror("fork");
 		exit(1);
 	case 0:
+		handle_scheduler(benchmp_childid(), 1, 1);
 		for ( ;; ) {
 			procB(state);
 		}

@@ -44,9 +44,11 @@ initialize(iter_t iterations, void *cookie)
 		state->initerr = 1;
 		return;
 	}
+	handle_scheduler(benchmp_childid(), 0, 1);
 	switch (state->pid = fork()) {
 	    case 0:
 		close(pipes[0]);
+		handle_scheduler(benchmp_childid(), 1, 1);
 		state->buf = valloc(state->xfer);
 		if (state->buf == NULL) {
 			perror("child: no memory");

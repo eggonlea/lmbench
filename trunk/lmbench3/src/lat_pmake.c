@@ -89,6 +89,8 @@ setup(iter_t iterations, void* cookie)
 	state->x = (long*)malloc(sizeof(long*));
 	*(long**)state->x = state->x;
 	state->p = (long**)state->x;
+
+	handle_scheduler(benchmp_childid(), 0, state->jobs);
 }
 
 void 
@@ -109,6 +111,7 @@ bench(register iter_t iterations, void *cookie)
 	while (iterations-- > 0) {
 		for (i = 0; i < state->jobs; ++i) {
 			if ((state->pids[i] = fork()) == 0) {
+				handle_scheduler(benchmp_childid(), i+1, state->jobs);
 				work(state->iterations, state);
 				exit(0);
 			}

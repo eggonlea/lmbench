@@ -292,6 +292,11 @@ extern int benchmp_childid();
  */
 extern void sigchld_wait_handler(int signo);
 
+/*
+ * Handle optional pinning/placement of processes on an SMP machine.
+ */
+extern int handle_scheduler(int childno, int benchproc, int nbenchprocs);
+
 #include	"lib_mem.h"
 
 /*

@@ -244,6 +244,7 @@ benchmp(benchmp_f initialize,
 			close(start_signal[1]);
 			close(result_signal[1]);
 			close(exit_signal[1]);
+			handle_scheduler(i, 0, 0);
 			benchmp_child(initialize, 
 				      benchmark, 
 				      cleanup, 

@@ -19,7 +19,7 @@ else	echo Using defaults >> ${OUTPUT}
 	LOOP_O=0
 	LINE_SIZE=512
 fi
-export ENOUGH TIMING_O LOOP_O SYNC_MAX LINE_SIZE
+export ENOUGH TIMING_O LOOP_O SYNC_MAX LINE_SIZE LMBENCH_SCHED
 
 if [ X$FILE = X ]
 then	FILE=/tmp/XXX
@@ -87,6 +87,7 @@ echo \[REMOTE: ${REMOTE}] 1>&2
 echo \[SLOWFS: ${SLOWFS}] 1>&2
 echo \[OS: ${OS}] 1>&2
 echo \[SYNC_MAX: ${SYNC_MAX}] 1>&2
+echo \[LMBENCH_SCHED: $LMBENCH_SCHED] 1>&2
 echo \[TIMING_O: ${TIMING_O}] 1>&2
 echo \[LMBENCH VERSION: ${VERSION}] 1>&2
 echo \[USER: $USER] 1>&2

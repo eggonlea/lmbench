@@ -13,11 +13,6 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-#if	defined(sgi) && defined(PIN)
-#include <sys/sysmp.h>
-#include <sys/syssgi.h>
-int	ncpus;
-#endif
 
 #define	MAXPROC	2048
 #define	CHUNK	(4<<10)
@@ -95,11 +90,6 @@ main(int ac, char **av)
 
 	if (optind > ac - 1)
 		lmbench_usage(ac, av, usage);
-
-#if	defined(sgi) && defined(PIN)
-	ncpus = sysmp(MP_NPROCS);
-	sysmp(MP_MUSTRUN, 0);
-#endif
 
 	/* compute pipe + sumit overhead */
 	maxprocs = atoi(av[optind]);
@@ -311,15 +301,14 @@ create_daemons(int **p, pid_t *pids, int procs, int process_size)
 	 *
 	 * Do the sum in each process and get that time before moving on.
 	 */
+	handle_scheduler(benchmp_childid(), 0, procs-1);
      	for (i = 1; i < procs; ++i) {
 		switch (pids[i] = fork()) {
 		    case -1:	/* could not fork, out of processes? */
 			return i;
 
 		    case 0:	/* child */
-#if	defined(sgi) && defined(PIN)
-			sysmp(MP_MUSTRUN, i % ncpus);
-#endif
+			handle_scheduler(benchmp_childid(), i, procs-1);
 			for (j = 0; j < procs; ++j) {
 				if (j != i - 1) close(p[j][0]);
 				if (j != i) close(p[j][1]);
