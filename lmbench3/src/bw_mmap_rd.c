@@ -85,7 +85,8 @@ int main(int ac, char **av)
 	nbytes = state.nbytes = bytes(av[optind]);
 	strcpy(state.filename,av[optind+2]);
 	CHK(stat(state.filename, &sbuf));
-	if ((nbytes > sbuf.st_size) || (nbytes < MINSZ)) {
+	if ((S_ISREG(sbuf.st_mode) && nbytes > sbuf.st_size) 
+	    || (nbytes < MINSZ)) {
 		fprintf(stderr,"<size> out of range!\n");
 		exit(1);
 	}
