@@ -125,8 +125,8 @@
 .ds fork \f(CWfork\fP
 .ds fstat \f(CWfstat\fP
 .ds gcc \f(CWgcc\fP
-.ds getppid \f(CWgetppid\fP
 .ds getpid \f(CWgetpid\fP
+.ds getppid \f(CWgetppid\fP
 .ds gettimeofday \f(CWgettimeofday\fP
 .ds kill \f(CWkill\fP
 .ds lat_connect \f(CWlat_connect\fP
@@ -156,20 +156,24 @@
 .ds memmove \f(CWmemmove\fP
 .ds mhz  \f(CWmhz\fP
 .ds mmap \f(CWmmap\fP
+.ds nanosleep \f(CWnanosleep\fP
 .ds open \f(CWopen\fP
 .ds par_mem  \f(CWpar_mem\fP
 .ds par_ops  \f(CWpar_ops\fP
 .ds pipe  \f(CWpipe\fP
 .ds popen  \f(CWpopen\fP
+.ds pselect  \f(CWpselect\fP
 .ds read \f(CWread\fP
 .ds select  \f(CWselect\fP
 .ds semop \f(CWsemop\fP
+.ds setitimer \f(CWsetitimer\fP
 .ds sh  \f(CW/bin/sh\fP
-.ds stream \f(CWstream\fP
 .ds stat \f(CWstat\fP
+.ds stream \f(CWstream\fP
 .ds system  \f(CWsystem\fP
 .ds tlb \f(CWtlb\fP
 .ds uiomove \f(CWuiomove\fP
+.ds usleep \f(CWusleep\fP
 .ds write \f(CWwrite\fP
 .ds yield  \f(CWyield\fP
 .\" References stuff
@@ -195,8 +199,10 @@ delim $$
 \fI\s+2Hewlett-Packard Laboratories Israel\s0\fP
 .SP
 .AB
-\*[lmbench3] extends the \*[lmbench2] system to
-measure a system's performance under scalable load.
+\*[lmbench3] extends the \*[lmbench2] 
+.RN Staelin98
+system to measure a system's performance under scalable 
+load.
 There is a new timing harness, \*[benchmp], designed 
 to measure performance at specific levels of parallel 
 (simultaneous) load, and most existing benchmarks have
@@ -270,30 +276,31 @@ resolution detection.  In addition, each experiment
 was typically repeated eleven times with the median
 result reported to the user.
 .LP
+The \*[lmbench2]
+.RN Staelin98
+timing harness was implemented through a new macro, 
+BENCH(), that automatically manages nearly all aspects 
+of accurately timing operations.
+For example, it automatically detects the minimal timing 
+interval necessary to provide timing results within 1% 
+accuracy, and it automatically repeats most experiments 
+eleven times and reports the median result.
+.LP
 \*[lmbench3] focussed on extending 
 \*[lmbench]'s functionality along two dimensions:
 measuring multi-processor scalability and measuring
 basic aspects of processor micro-architecture.
 .LP
 An important feature of multi-processor systems is their
-ability to scale their performance.  \*[lmbench1]
-was able to measure various important aspects of 
-system performance, except that only one client process
-was active at a time
-.RN McVoy96 .
-\*[lmbench2] introduced a new macro, BENCH(), which
-implemented a sophisticated timing harness that
-automatically managed nearly all aspects of accurately
-timing operations
-.RN Staelin98 .
-For example, it automatically
-detects the minimal timing interval necessary to 
-provide timing results within 1% accuracy, and it
-automatically repeats most experiments eleven times
-and reports the median result.
+ability to scale their performance.  
+While \*[lmbench1] and \*[lmbench2] measure various 
+important aspects of system performance, they cannot
+measure performance with more than one client process
+active at a time.
+Consequently, measuring performance of multi-processor
+and clustered systems as a function of scalable load
+was impossible using those tools.
 .LP
-However, this timing harness is incapable of measuring
-the performance of a system under scalable loads.  
 \*[lmbench3] took the ideas and techniques
 developed in the earlier versions and extended them
 to create a new timing harness which can measure
@@ -377,12 +384,12 @@ More recently, work has begun on extending
 STREAM to measure scalable memory subsystem
 performance, particularly for multi-processor
 machines.
+.\" .LP
+.\" Uros Prestor
+.\" .RN Prestor01
+.\" XXX
 .LP
-Uros Prestor
-.RN Prestor01
-XXX
-.LP
-Micro-benchmarking extends this "kernel" 
+Micro-benchmarking extends the "kernel" 
 approach, by measuring the performance
 of operations or resources in isolation.
 \*[lmbench] and many other benchmarks, such 
@@ -394,6 +401,7 @@ workloads and applications by combining the
 performance of these operations in the right 
 mixture.
 .LP
+Saavedra
 .RN Saavedra92
 takes the micro-benchmark approach and applies
 it to the problem of predicting application
@@ -406,6 +414,7 @@ They then measure the computer system's
 performance across this set of micro-benchmarks
 and use a linear model to predict the application's
 performance on the computer system.
+Seltzer
 .RN Seltzer99
 applied this technique using the features
 measured by \*[lmbench] as the basis for
@@ -498,6 +507,7 @@ long enough to ensure that the error introduced
 by the clock resolution is insignificant.
 The basic elements of a good timing harness
 are discussed in 
+Staelin
 .RN Staelin98 .
 .LP
 The new timing harness must also collect and process
@@ -507,10 +517,6 @@ It currently reports the median performance over
 all timing intervals from all child processes.  It
 might perhaps be argued that it should report the
 median of the medians.
-.LP
-Most of the benchmarks now accept a "-P <parallelism>"
-flag, and the timing harness does the right thing to
-try and measure parallel application performance.
 .LP
 When running benchmarks with more than one child,
 the harness must first get a baseline estimate
@@ -622,8 +628,9 @@ exit
 T}
 .TE
 .TEND "Timing harness sequencing"
+.nr TABLEseq \n[TABLE]
 .LP
-Table \n[TABLE] shows how the parent and child
+Table \n[TABLEseq] shows how the parent and child
 processes coordinate their activities to ensure
 that all children are actively running the
 benchmark activity while any child could be
@@ -641,14 +648,15 @@ possible while ensuring that errors introduced by
 the clock resolution were negligible.  
 In many instances this meant that the timing intervals 
 were smaller than a single scheduler time slice.  
-The new timing harness must run benchmarked items 
+The new timing harness must run benchmarked operations
 long enough to ensure that timing intervals are longer
 than a single scheduler time slice.
 Otherwise, you can get results which are complete nonsense.  
 For example, running several copies of an \*[lmbench2] 
 benchmark on a uni-processor machine will often report 
-that the performance with $N$ jobs running in parallel 
-is equivalent to the performance with a single job running!\**
+that the per-process performance with $N$ jobs running in 
+parallel is equivalent to the performance with a single 
+job running!\**
 .FS
 This was discovered by someone who naively attempted
 to parallelize \*[lmbench2] in this fashion, and I
@@ -740,8 +748,9 @@ gather the next set of timing results.
 .TSTART 1
 .so lmbench3_signals.pic
 .FEND "Control signals" 1
+.nr FIGUREsig \n[FIGURE]
 .LP
-The design of the signals is shown in Figure \n[FIGURE].
+The design of the signals is shown in Figure \n[FIGUREsig].
 .NH 2
 Benchmark initialization
 .LP
@@ -814,15 +823,25 @@ an average of several results
 .RN McCalpin95 ,
 or a trimmed mean
 .RN Brown97 .
-XXX UNKNOWN:
-.RN Weicker84,Shein89,Park,Wolman89,Banga97,Saavedra92,Chen94a,Bray90
+.\" XXX UNKNOWN:
+.\" .RN Weicker84,Shein89,Park,Wolman89,Banga97,Saavedra92,Chen94a,Bray90
 .LP
 Since \*[lmbench] is able to use timing intervals
-that are often smaller than a scheduler time slice,
-the raw timing results are often severely skewed.
+that are often smaller than a scheduler time slice
+when measuring single-process performance, the raw 
+timing results are often severely skewed.
+Often most results cluster around a single value
+a small number of outliers with significantly
+larger values.
 The median is preferable to the mean when the data
 can be very skewed
 .RN Jain91 .
+Since the timing intervals are significantly longer
+when the desired load is larger than a single
+process, the results tend not to be as badly skewed.
+In these cases we could use the \fImean\fR instead,
+but we decide to use a uniform statistical framework,
+so we usually use the median.
 .LP
 In some instances, however, \*[lmbench] internally
 uses the \fIminimum\fP rather than the median, 
@@ -843,16 +862,16 @@ systems.
 \*[lmbench] does not currently report any statistics
 representing measurement variation, such as the 
 difference between the first and third quartiles.
+This is an enhancement under active consideration.
 .NH 1
 Interface
 .LP
 Unfortunately we had to move away from the
 macro-based timing harness used in \*[lmbench2] 
 and migrate to a function-based system.  
-.LP
-The new interface looks like:
-.DS
-typedef void (*bench_f)(uint64 iterations, 
+.TSTART 1
+.DS L
+\f(CWtypedef void (*bench_f)(iter_t iters,
 			void* cookie);
 typedef void (*support_f)(void* cookie);
 
@@ -863,9 +882,13 @@ extern void benchmp(support_f initialize,
 		int parallel,
 		int warmup,
 		int repetitions,
-		void* cookie);
+		void* cookie);\fP
 .DE
+.FEND "timing harness interface"
+.nr FIGharness \n[FIGURE]
 .LP
+Figure \n[FIGharness] shows the new timing harness
+interface.
 A brief description of the parameters:
 .IP \fIenough\fR
 Enough can be used to ensure that a timing interval is at
@@ -892,26 +915,42 @@ size or other parameters needed by the inner loop.
 In \*[lmbench3] it is generally used to point
 to a structure containing the relevant configuration
 information.
-.LP
-To write a simple benchmark for getppid() all you would need
-to do is:
-.DS
+.TSTART 1
+.DS L
+\f(CW#include "bench.h"
+
 void
-benchmark_getppid(uint64 iterations, 
-			void* cookie)
+bench(iter_t iters, void* cookie)
 {
-	while (iterations-- > 0) {
+	while (iters-- > 0) {
 		getppid();
 	}
 }
+
+int
+main(int argc, char* argv[])
+{
+	benchmp(NULL, bench, NULL,
+		0, 1, 0, TRIES, NULL);
+	micro("getppid", get_n());
+	return(0);
+}\fP
 .DE
+.FEND "A sample benchmark"
+.nr FIGsample \n[FIGURE]
 .LP
-and then somewhere in your program you might call:
-.DS
-benchmp(NULL, benchmark_getppid, NULL, 
-	0, 1, 0, NULL);
-micro("getppid", get_n());
-.DE
+Figure \n[FIGsample] shows a sample benchmark
+that measures the latency of the \*[getppid]
+system call using this timing harness.
+Since there is no setup or cleanup needed
+for this benchmark, the \fIinitialize\fR
+and \fIcleanup\fR parameters are NULL.
+The \fIbench\fR routine simply calls 
+\*[getppid] as many times as requested,
+and the rest of the parameters, \fIenough\fR,
+\fIparallel\fR, \fIwarmup\fR, 
+\fIrepetitions\fR, and \fIcookie\fR
+are given with the default values.
 .NH 1
 Benchmarks
 .LP
@@ -919,8 +958,8 @@ Benchmarks
 that measure various aspects of hardware and operating
 system performance.  The benchmarks generally measure
 latency or bandwidth, but some new benchmarks also
-measure parallelism.
-.TSTART
+measure instruction-level parallelism.
+.TSTART 1
 .TS
 center box tab (&);
 c c 
@@ -951,6 +990,10 @@ lat_fs&file creation and deletion
 lat_http&http GET request latency
 lat_mem_rd&memory read
 lat_mmap&\*[mmap] operation
+lat_ops&T{
+basic operations (\fIadd\fR, \fImul\fR, \fIdiv\fR, \fImod\fR)
+on basic data types (\fIint\fR, \fIint64\fR, \fIfloat\fR, \fIdouble\fR)
+T}
 lat_pagefault&page fault handler
 lat_pipe&\*[pipe] ``hot-potato'' token passing
 lat_proc&T{
@@ -966,25 +1009,30 @@ lat_sig&T{
 signal handle installation and handling
 T}
 lat_syscall&T{
-\*[getppid], 
-\*[write], 
-\*[stat], 
-\*[fstat], 
-\*[open], 
-\*[close]
+\*[getppid], \*[write], \*[stat], 
+\*[fstat], \*[open], \*[close]
 T}
 lat_tcp&TCP ``hot-potato'' token passing
 lat_udp&UDP ``hot-potato'' token passing
 lat_unix&UNIX ``hot-potato'' token passing
 lat_unix_connect&UNIX socket connection
+lat_usleep&T{
+\*[nanosleep], \*[pselect], \*[select],
+\*[setitimer], \*[usleep] timer resolution
+T}
 _
 &\fBOther\fR
-stream&STREAM clones
+line&cache line size
 lmdd&\fIdd\fR clone
+par_mem&memory subsystem ILP
+par_ops&basic operation ILP
+stream&STREAM clones
+tlb&TLB size
 .TE
 .TEND "\*[lmbench] micro-benchmarks"
+.nr TABLEbench \n[TABLE]
 .LP
-Table \n[TABLE] contains the full list of micro-benchmarks
+Table \n[TABLEbench] contains the full list of micro-benchmarks
 in \*[lmbench] that were converted to measure performance
 under scalable load.  A detailed description of each
 benchmark can be found in
@@ -1004,7 +1052,7 @@ contention issues is necessary to ensure that the
 benchmarks measure important aspects of system performance
 and not artifacts of artificial resource contention.
 .LP
-For example, the Linux 2.2 kernel uses a single lock to
+For example, the Linux 2.2 and 2.4 kernels use a single lock to
 control access to the kernel data structures for a file.
 This means that multiple processes accessing that file
 will have their operations serialized by that lock.
@@ -1125,6 +1173,26 @@ from memory and then modify the selected bytes.
 Sometimes vector instructions such as SSE
 and 3DNow can avoid this load by writing an 
 entire cache line at once.
+.LP
+The \*[lmbench] STREAM benchmarks report 
+their results as bandwidth results (MB/s).
+The bandwidth is computed as a function of
+the amount of data either read or written
+by the kernel.  
+For example, \fIcopy\fR and \fIscale\fR copy 
+data from one array to the other, so the 
+bandwidth is measured as a function of the 
+amount of data read plus the amount of data 
+written, or the sum of the two array sizes.
+Similarly, \fIsum\fR, \fItriad\fR, and \fIdaxpy\fR
+operate on three arrays, so the amount of data
+transferred is the sum of the sizes of the three
+arrays.
+Note that the actual amount of data that is
+transferred by the system may be larger 
+because in the write path the cache may
+need to fetch (read) the cache line before
+a portion of it is overwritten by dirty data.
 .NH 1
 Unscalable benchmarks
 .LP
@@ -1167,11 +1235,247 @@ enhanced to measure scalable performance.
 .NH 1
 Results
 .LP
-Some sample results
+The results presented here were obtained using
+\*[lmbench] version 3.0-a2 under 
+Linux 2.4.18-6mdk on a two processor 450MHz PIII 
+running a stock Mandrake 8.2 Linux 2.4.18 kernel.
+.TSTART
+.TS
+center box tab (&);
+c | c   s
+l | l | l.
+Benchmark&Latency (ms)
+_
+&1 process&2 processes
+_
+null call&0.79&0.81
+null I/O&1.39&2.39
+stat&9.26&25.9
+open/close&11.7&27.1
+select (TCP)&55.3&58.6
+signal install&1.89&1.95
+signal handler&6.34&7.21
+fork process&793.&868.
+exec process&2474&2622
+sh process&24.K&25.K
+pipe&17.7&23.3
+unix socket&51.6&37.6
+UDP&70.2&70.6
+TCP&91.2&92.3
+rpc (UDP)&120.0&120.4
+rpc (TCP)&157.1&159.1
+.TE
+.TEND "Latency results"
+.nr TABLElatency \n[TABLE]
+.TSTART
+.TS
+center box tab (&);
+c | c   s
+l | l | l.
+Benchmark&Bandwidth (MB/s)
+_
+&1 process&2 processes
+_
+pipe&155&268
+unix socket&142&179
+TCP&57.5&57.8
+bcopy(libc)&134&175
+bcopy(hand)&144&174
+memory read&319&486
+memory write&199&202
+STREAM copy&288.68&183.01
+STREAM scale&290.39&184.15
+STREAM sum&337.75&207.11
+STREAM triad&246.90&188.43
+STREAM2 fill&198.96&138.49
+STREAM2 copy&288.55&186.15
+STREAM2 daxpy&318.98&245.81
+STREAM2 sum&354.03&254.78
+.TE
+.TEND "Bandwidth results"
+.nr TABLEbandwidth \n[TABLE]
+.TSTART
+.TS
+center box tab (&);
+c | c   s   s
+l | l | l | l.
+Benchmark&Load
+_
+&1&2&2clone
+_
+bw_file_rd&151.04&266.74&273.51
+bw_mmap_rd&316.08&480.02&482.57
+lat_mmap&615&878&786
+lat_pagefault&2.9802&3.9159&3.4589
+.TE
+.TEND "File bandwidth results"
+.nr TABLEfile \n[TABLE]
 .LP
-bw_mem_rd performance vs. scaling on an SMP machine
+Table \n[TABLElatency] shows the latency of
+various system and communication operations
+for both 1 and 2 process loads, while 
+Table \n[TABLEbandwidth] shows the bandwidth
+of various data operations and
+Table \n[TABLEfile] shows how various file
+system operations scale.
+Table \n[TABLEfile] shows system performance 
+with one process, two processes sharing the 
+same file, and two processes accessing their 
+own files.
+.TSTART 1
+.G1
+label left "Latency (ns)"
+label bottom "Memory size (MB)"
+coord x 0.0004,32 y 5,300 log x
+draw solid
+0.00049 6.680
+0.00098 6.683
+0.00195 6.680
+0.00293 6.680
+0.00391 6.681
+0.00586 6.681
+0.00781 6.681
+0.00977 6.684
+0.01172 6.683
+0.01367 6.690
+0.01562 6.725
+0.01758 48.977
+0.01953 49.051
+0.02148 49.043
+0.02344 49.025
+0.02539 48.889
+0.02734 48.880
+0.02930 48.902
+0.03125 49.020
+0.03516 49.043
+0.03906 48.904
+0.04297 49.044
+0.04688 49.027
+0.05078 49.046
+0.05469 48.889
+0.05859 49.018
+0.06250 49.012
+0.07031 49.025
+0.07812 49.030
+0.08594 48.936
+0.09375 49.042
+0.10156 49.022
+0.10938 48.889
+0.11719 49.073
+0.12500 48.998
+0.14062 49.043
+0.15625 49.125
+0.17188 49.160
+0.18750 49.113
+0.20312 49.123
+0.21875 48.991
+0.23438 49.045
+0.25000 49.184
+0.28125 49.971
+0.31250 57.735
+0.34375 72.668
+0.37500 79.106
+0.40625 77.612
+0.43750 78.764
+0.46875 88.636
+0.50000 104.024
+1.00000 179.817
+1.50000 182.297
+2.00000 182.043
+2.50000 182.902
+3.00000 183.130
+3.50000 184.333
+4.00000 182.868
+5.00000 183.319
+6.00000 183.208
+7.00000 183.688
+8.00000 183.871
+10.00000 183.659
+12.00000 183.583
+14.00000 183.773
+16.00000 183.828
+18.00000 183.894
+20.00000 183.933
+30.00000 183.971
+new dotted
+0.00049 6.811
+0.00098 6.815
+0.00195 6.825
+0.00293 6.807
+0.00391 6.803
+0.00586 6.822
+0.00781 6.826
+0.00977 6.825
+0.01172 6.922
+0.01367 6.825
+0.01562 6.866
+0.01758 49.954
+0.01953 49.989
+0.02148 50.021
+0.02344 50.019
+0.02539 50.003
+0.02734 50.085
+0.02930 50.000
+0.03125 50.187
+0.03516 49.988
+0.03906 50.032
+0.04297 49.986
+0.04688 50.186
+0.05078 50.196
+0.05469 50.107
+0.05859 50.087
+0.06250 49.983
+0.07031 50.092
+0.07812 50.135
+0.08594 50.057
+0.09375 50.188
+0.10156 65.950
+0.10938 55.614
+0.11719 54.328
+0.12500 61.700
+0.14062 59.710
+0.15625 52.637
+0.17188 82.911
+0.18750 74.304
+0.20312 72.371
+0.21875 78.124
+0.23438 74.577
+0.25000 96.374
+0.28125 110.708
+0.31250 97.832
+0.34375 103.006
+0.37500 129.292
+0.40625 140.816
+0.43750 165.255
+0.46875 164.632
+0.50000 170.912
+1.00000 233.968
+1.50000 285.445
+2.00000 241.341
+2.50000 263.436
+3.00000 273.101
+3.50000 269.926
+4.00000 233.626
+5.00000 222.305
+6.00000 293.832
+7.00000 238.863
+8.00000 245.026
+10.00000 282.297
+12.00000 239.152
+14.00000 274.218
+16.00000 226.299
+18.00000 284.183
+20.00000 224.596
+30.00000 236.416
+"1 process" at 5,165
+"2 processes" at 0.3,280
+.G2
+.FEND "Memory subsystem performance"
+.nr FIGUREmem \n[FIGURE]
 .LP
-
+Figure \n[FIGUREmem] shows the memory latency
+curves with 32 byte strides for one and two 
+process loads versus memory size.
 .NH 1
 Conclusion
 .LP
@@ -1181,22 +1485,21 @@ system performance.
 \*[lmbench3] adds a number of important extensions,
 such as the ability to measure system scalability.
 .LP
-The benchmarks are available at
-.ft I
-http://ftp.bitmover.com/lmbench
-.ft
+The benchmarks are available via ftp from:
+.IP
+.I "http://ftp.bitmover.com/lmbench"
 .NH 1
 Acknowledgments
 .LP
-Many people have provided invaluable help and insight into both the
-benchmarks themselves and the paper.  The \s-1USENIX\s0 reviewers
-were especially helpful.
-We thank all of them
-and especially thank:
-Wayne Scott \s-1(BitMover)\s0,
+Many people have provided invaluable help and insight into the benchmarks.
+We especially thank:
+Bruce Chapman \s-1(SUN)\s0,
 Larry McVoy \s-1(BitMover)\s0,
+David Mosberger \s-1(HP)\s0,
+Wayne Scott \s-1(BitMover)\s0,
+John Wilkes \s-1(HP)\s0,
 and
-Bruce Chapman \s-1(SUN)\s0.
+Mitch Wright \s-1(HP)\s0.
 .LP
 We would also like to thank all of the people that have run the
 benchmark and contributed their results; none of this would have been possible
@@ -1205,8 +1508,6 @@ without their assistance.
 Our thanks to 
 all of the free software community for tools that were used during this
 project.
-\*[lmbench] is currently developed on Linux, a copylefted Unix written by 
-Linus Torvalds and his band of happy hackers.
 .\" .R1
 .\" bibliography references-lmbench3
 .\" .R2
