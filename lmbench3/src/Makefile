@@ -49,26 +49,28 @@ COMPILE=$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
 
 INCS =	bench.h lib_tcp.h lib_udp.h stats.h timing.h
 
-SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c bw_unix.c	\
+SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
+	bw_unix.c	\
 	cache.c clock.c disk.c enough.c flushdisk.c getopt.c hello.c	\
 	lat_connect.c lat_ctx.c	lat_fcntl.c lat_fifo.c lat_fs.c 	\
-	lat_mem_rd.c lat_mmap.c lat_pagefault.c lat_pipe.c lat_proc.c	\
-	lat_rpc.c lat_select.c lat_sig.c lat_syscall.c lat_tcp.c	\
-	lat_udp.c lat_unix.c lat_unix_connect.c				\
+	lat_mem_rd.c lat_mmap.c lat_ops.c lat_pagefault.c lat_pipe.c 	\
+	lat_proc.c lat_rpc.c lat_select.c lat_sig.c lat_syscall.c	\
+	lat_tcp.c lat_udp.c lat_unix.c lat_unix_connect.c		\
 	lib_stats.c lib_tcp.c lib_timing.c lib_udp.c lib_unix.c		\
 	line.c lmdd.c lmhttp.c loads.c loop_o.c memsize.c mhz.c 	\
 	msleep.c rhttp.c seek.c timing_o.c tlb.c			\
 	bench.h lib_tcp.h lib_udp.h lib_unix.h names.h stats.h		\
 	timing.h version.h
 
-EXES =	$O/bw_file_rd $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp $O/hello	\
+EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
+	$O/bw_udp $O/bw_unix $O/hello	\
 	$O/lat_select $O/lat_pipe $O/lat_rpc $O/lat_syscall $O/lat_tcp	\
 	$O/lat_udp $O/lat_mmap $O/mhz $O/lat_proc $O/lat_pagefault	\
 	$O/lat_connect $O/lat_fs $O/lat_sig $O/lat_mem_rd $O/lat_ctx	\
-	$O/memsize $O/lat_unix $O/bw_unix $O/lmdd $O/timing_o $O/enough	\
-	$O/msleep $O/loop_o $O/bw_mem $O/lat_fifo $O/lmhttp $O/lat_http	\
+	$O/memsize $O/lat_unix $O/lmdd $O/timing_o $O/enough	\
+	$O/msleep $O/loop_o $O/lat_fifo $O/lmhttp $O/lat_http	\
 	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk		\
-	$O/line $O/tlb $O/cache $O/loads $O/bw_udp
+	$O/lat_ops $O/line $O/tlb $O/cache $O/loads 
 
 MAN1 =	lmdd.1 $D/bargraph.1 $D/graph.1 $D/pgraph.1 $D/rccs.1
 
@@ -242,6 +244,9 @@ $O/lat_mmap:  lat_mmap.c timing.h stats.h bench.h $O/lmbench.a
 
 $O/lat_mmaprd:  lat_mmaprd.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/lat_mmaprd lat_mmaprd.c $O/lmbench.a $(LDLIBS)
+
+$O/lat_ops:  lat_ops.c timing.h stats.h bench.h $O/lmbench.a
+	$(COMPILE) -o $O/lat_ops lat_ops.c $O/lmbench.a $(LDLIBS)
 
 $O/lat_pagefault:  lat_pagefault.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/lat_pagefault lat_pagefault.c $O/lmbench.a $(LDLIBS)
