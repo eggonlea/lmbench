@@ -66,6 +66,8 @@ int main(int ac, char **av)
 	int	c;
 	char	*usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> what [conflict]\nwhat: rd wr rdwr cp fwr frd fcp bzero bcopy\n<size> must be larger than 512";
 
+	state.overhead = 0;
+
 	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
@@ -103,76 +105,36 @@ int main(int ac, char **av)
 	}
 		
 	if (streq(av[optind+1], "rd")) {
-		benchmp(init_overhead, rd, cleanup, 0, parallel, 
-			warmup, repetitions, &state);
-		state.overhead = gettime();
-		state.overhead /= get_n();
 		benchmp(init_loop, rd, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "wr")) {
-		benchmp(init_overhead, wr, cleanup, 0, parallel, 
-			warmup, repetitions, &state);
-		state.overhead = gettime();
-		state.overhead /= get_n();
 		benchmp(init_loop, wr, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "rdwr")) {
-		benchmp(init_overhead, rdwr, cleanup, 0, parallel, 
-			warmup, repetitions, &state);
-		state.overhead = gettime();
-		state.overhead /= get_n();
 		benchmp(init_loop, rdwr, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "cp")) {
-		benchmp(init_overhead, cp, cleanup, 0, parallel, 
-			warmup, repetitions, &state);
-		state.overhead = gettime();
-		state.overhead /= get_n();
 		benchmp(init_loop, cp, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "frd")) {
-		benchmp(init_overhead, frd, cleanup, 0, parallel, 
-			warmup, repetitions, &state);
-		state.overhead = gettime();
-		state.overhead /= get_n();
 		benchmp(init_loop, frd, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "fwr")) {
-		benchmp(init_overhead, fwr, cleanup, 0, parallel, 
-			warmup, repetitions, &state);
-		state.overhead = gettime();
-		state.overhead /= get_n();
 		benchmp(init_loop, fwr, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "fcp")) {
-		benchmp(init_overhead, fcp, cleanup, 0, parallel, 
-			warmup, repetitions, &state);
-		state.overhead = gettime();
-		state.overhead /= get_n();
 		benchmp(init_loop, fcp, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "bzero")) {
-		benchmp(init_overhead, loop_bzero, cleanup, 0, parallel, 
-			warmup, repetitions, &state);
-		state.overhead = gettime();
-		state.overhead /= get_n();
 		benchmp(init_loop, loop_bzero, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
 	} else if (streq(av[optind+1], "bcopy")) {
-		/* XXX - if gcc inlines this the numbers could be off */
-		/* But they are off in a good way - the bcopy will appear
-		 * to cost around 0...
-		 */
-		benchmp(init_overhead, loop_bcopy, cleanup, 0, parallel, 
-			warmup, repetitions, &state);
-		state.overhead = gettime();
-		state.overhead /= get_n();
 		benchmp(init_loop, loop_bcopy, cleanup, 0, parallel, 
 			warmup, repetitions, &state);
 	} else {
 		lmbench_usage(ac, av, usage);
 	}
-	adjusted_bandwidth(gettime(), nbytes,
+	adjusted_bandwidth(gettime(), nbytes, 
 			   get_n() * parallel, state.overhead);
 	return(0);
 }
@@ -180,9 +142,18 @@ int main(int ac, char **av)
 void init_overhead(void *cookie)
 {
 	state_t *state = (state_t *) cookie;
+}
+
+void init_loop(void *cookie)
+{
+	state_t *state = (state_t *) cookie;
+
         state->buf = (TYPE *)valloc(state->nbytes);
+	state->buf2_orig = NULL;
 	state->lastone = (TYPE*)state->buf - 1;
-	state->N = 0;
+	state->lastone = (TYPE*)((char *)state->buf + state->nbytes - 512);
+	state->N = state->nbytes;
+
 	if (!state->buf) {
 		perror("malloc");
 		exit(1);
@@ -195,6 +166,7 @@ void init_overhead(void *cookie)
 			perror("malloc");
 			exit(1);
 		}
+
 		/* default is to have stuff unaligned wrt each other */
 		/* XXX - this is not well tested or thought out */
 		if (state->aligned) {
@@ -206,21 +178,11 @@ void init_overhead(void *cookie)
 	}
 }
 
-void init_loop(void *cookie)
-{
-	state_t *state = (state_t *) cookie;
-	init_overhead(state);
-	state->lastone = (TYPE*)((char *)state->buf + state->nbytes - 512);
-	state->N = state->nbytes;
-}
-
 void cleanup(void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	free(state->buf);
-	if (state->need_buf2 == 1) {
-		free(state->buf2_orig);
-	}
+	if (state->buf2_orig) free(state->buf2_orig);
 }
 
 void
@@ -451,6 +413,7 @@ loop_bzero(iter_t iterations, void *cookie)
 		bzero(p, N);
 	}
 }
+
 void
 loop_bcopy(iter_t iterations, void *cookie)
 {	
@@ -492,3 +455,5 @@ void adjusted_bandwidth(uint64 time, uint64 bytes, uint64 iter, double overhd)
 		(void) fprintf(ftiming, "%.2f\n", mb/secs);
 	}
 }
+
+
