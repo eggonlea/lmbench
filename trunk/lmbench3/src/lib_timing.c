@@ -62,48 +62,74 @@ rusage(void)
 
 #endif	/* RUSAGE */
 
-jmp_buf benchmp_sigchld_env;
+void
+lmbench_usage(int argc, char *argv[], char* usage)
+{
+	fprintf(stderr,"Usage: %s %s", argv[0], usage);
+	exit(-1);
+}
+
+jmp_buf	benchmp_sigchld_env;
+pid_t	benchmp_sigalrm_pid;
+int	benchmp_sigalrm_timeout;
 void (*benchmp_sigchld_handler)(int);
+void (*benchmp_sigalrm_handler)(int);
+
 void benchmp_sigchld(int signo)
 {
 	signal(SIGCHLD, SIG_IGN);
 	longjmp(benchmp_sigchld_env, 1);
 }
 
+void benchmp_sigalrm(int signo)
+{
+	signal(SIGALRM, SIG_IGN);
+	kill(benchmp_sigalrm_pid, SIGKILL);
+	/* 
+	 * Since we already waited a full timeout period for the child
+	 * to die, we only need to wait a little longer for subsequent
+	 * children to die.
+	 */
+	benchmp_sigalrm_timeout = 1;
+}
+
 double bench(bench_f benchmark,
 	     uint64 iterations,
-		int enough,
-		void *cookie
-		);
-double measure(bench_f benchmark, uint64 iterations, void *cookie);
+	     int enough,
+	     void *cookie
+	     );
+double measure(bench_f benchmark, 
+	       uint64 iterations, 
+	       void *cookie
+	       );
+
 void 
 benchmp_child(support_f initialize, 
-		bench_f benchmark,
-		support_f cleanup,
-		int response, 
-		int start_signal, 
-		int exit_signal,
-		int parallel, 
-	        uint64 iterations,
-		int enough,
-		void* cookie
-		);
+	      bench_f benchmark,
+	      support_f cleanup,
+	      int response, 
+	      int start_signal, 
+	      int exit_signal,
+	      int parallel, 
+	      uint64 iterations,
+	      int enough,
+	      void* cookie
+	      );
 void
-benchmp_parent(	int response, 
-		int start_signal, 
-		int exit_signal, 
-		int parallel, 
-	        uint64 iterations,
-		int enough
-		);
+benchmp_parent(int response, 
+	       int start_signal, 
+	       int exit_signal, 
+	       int parallel, 
+	       uint64 iterations,
+	       int enough
+	       );
 
 void benchmp(support_f initialize, 
-		bench_f benchmark,
-		support_f cleanup,
-		int enough, 
-		int parallel,
-		void* cookie
-		)
+	     bench_f benchmark,
+	     support_f cleanup,
+	     int enough, 
+	     int parallel,
+	     void* cookie)
 {
 	uint64		iterations = 1;
 	double		result = 0.;
@@ -119,7 +145,7 @@ void benchmp(support_f initialize,
 	struct timeval	timeout;
 
 #ifdef _DEBUG
-fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): entering\n", (unsigned int)initialize, (unsigned int)benchmark, (unsigned int)cleanup, enough, parallel, (unsigned int)cookie);
+	fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): entering\n", (unsigned int)initialize, (unsigned int)benchmark, (unsigned int)cleanup, enough, parallel, (unsigned int)cookie);
 #endif
 	enough = get_enough(enough);
 
@@ -139,6 +165,7 @@ fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): entering\n", (unsigned
 		fprintf(stderr, "BENCHMP: Could not create control pipes\n");
 		return;
 	}
+
 	/* fork the necessary children */
 	signal(SIGTERM, SIG_IGN);
 	benchmp_sigchld_handler = signal(SIGCHLD, benchmp_sigchld);
@@ -150,9 +177,10 @@ fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): entering\n", (unsigned
 		save_n(1);
 		return;
 	}
+
 	for (i = 0; i < parallel; ++i) {
 #ifdef _DEBUG
-fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): creating child %d\n", (unsigned int)initialize, (unsigned int)benchmark, (unsigned int)cleanup, enough, parallel, (unsigned int)cookie, i);
+		fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): creating child %d\n", (unsigned int)initialize, (unsigned int)benchmark, (unsigned int)cleanup, enough, parallel, (unsigned int)cookie, i);
 #endif
 		switch(pid = fork()) {
 		case -1:
@@ -161,11 +189,11 @@ fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): creating child %d\n", 
 			/* clean up and kill all children */
 			signal(SIGCHLD, SIG_IGN);
 			while (i > 0) {
-			  kill(pids[--i], SIGKILL);
-			  waitpid(pids[i], NULL, 0);
+				kill(pids[--i], SIGKILL);
+				waitpid(pids[i], NULL, 0);
 			}
 			if (cleanup)
-			  (*cleanup)(cookie);
+				(*cleanup)(cookie);
 			if (pids) free(pids);
 			exit(-1);
 		case 0:
@@ -183,7 +211,7 @@ fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): creating child %d\n", 
 				      iterations,
 				      parallel,
 				      cookie
-				      );
+				);
 		default:
 			pids[i] = pid;
 			break;
@@ -198,26 +226,41 @@ fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): creating child %d\n", 
 		       parallel, 
 		       iterations,
 		       enough
-		       );
+		);
 
-	/* clean up and kill all children */
-	/*
-	 * Note that children themselves SHOULD exit, and
-	 * Killing them as below could prevent them from
-	 * cleanup up subprocesses, etc... so this is
-	 * commented out...should have some kind of timeout
-	 * and eventually kill them if they seem hung.
+	/* 
+	 * Clean up and kill all children
+	 *
+	 * NOTE: the children themselves SHOULD exit, and
+	 *   Killing them could prevent them from
+	 *   cleanup up subprocesses, etc... So, we only
+	 *   want to kill child processes when it appears
+	 *   that they will not die of their own accord.
+	 *   We wait twice the timing interval plus two seconds
+	 *   for children to die.  If they haven't died by 
+	 *   that time, then we start killing them.
 	 */
+	benchmp_sigalrm_timeout = (int)((2 * enough)/(uint64)1000000) + 2;
+	if (benchmp_sigalrm_timeout < 5)
+		benchmp_sigalrm_timeout = 5;
 	signal(SIGCHLD, SIG_IGN);
+	signal(SIGALRM, SIG_IGN);
 	while (i > 0) {
-	  i--;
-	  /*	  kill(pids[i], SIGKILL); */
-	  waitpid(pids[i], NULL, 0);
+		i--;
+		/* wait timeout seconds for child to die, then kill it */
+		benchmp_sigalrm_pid = pids[i];
+		signal(SIGALRM, benchmp_sigalrm);
+		alarm(benchmp_sigalrm_timeout); 
+
+		waitpid(pids[i], NULL, 0);
+
+		alarm(0);
+		signal(SIGALRM, SIG_IGN);
 	}
 
 	if (pids) free(pids);
 #ifdef _DEBUG
-fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): exiting\n", (unsigned int)initialize, (unsigned int)benchmark, (unsigned int)cleanup, enough, parallel, (unsigned int)cookie);
+	fprintf(stderr, "benchmp(0x%x, 0x%x, 0x%x, %d, %d, 0x%x): exiting\n", (unsigned int)initialize, (unsigned int)benchmark, (unsigned int)cleanup, enough, parallel, (unsigned int)cookie);
 #endif
 }
 
@@ -232,7 +275,7 @@ double bench(bench_f benchmark,
 	result_t r;
 
 #ifdef _DEBUG
-fprintf(stderr, "bench(0x%x, %d, 0x%x): entering\n", (unsigned int)benchmark, enough, (unsigned int)cookie);
+	fprintf(stderr, "bench(0x%x, %d, 0x%x): entering\n", (unsigned int)benchmark, enough, (unsigned int)cookie);
 #endif
 	insertinit(&r);
 	N = (enough == 0 || get_enough(enough) <= 100000) ? TRIES : 1;
@@ -261,7 +304,7 @@ fprintf(stderr, "bench(0x%x, %d, 0x%x): entering\n", (unsigned int)benchmark, en
 		if (gettime() > 0)
 			insertsort(gettime(), get_n(), &r);
 #ifdef _DEBUG
-fprintf(stderr, "bench(0x%x, %d, 0x%x): i=%d, gettime()=%lu, get_n()=%d\n", (unsigned int)benchmark, enough, (unsigned int)cookie, i, (unsigned long)gettime(), (int)get_n());
+		fprintf(stderr, "bench(0x%x, %d, 0x%x): i=%d, gettime()=%lu, get_n()=%d\n", (unsigned int)benchmark, enough, (unsigned int)cookie, i, (unsigned long)gettime(), (int)get_n());
 #endif
 	}
 	save_results(&r);
@@ -269,20 +312,20 @@ fprintf(stderr, "bench(0x%x, %d, 0x%x): i=%d, gettime()=%lu, get_n()=%d\n", (uns
 
 double measure(bench_f benchmark, uint64 iterations, void *cookie)
 {
-  double result = 0.;
+	double result = 0.;
 
-  start(0);
-  (*benchmark)(iterations, cookie);
-  result = stop(0,0);
-  save_n(iterations);
-  result -= t_overhead() + get_n() * l_overhead();
-  settime(result >= 0. ? (uint64)result : 0.);
+	start(0);
+	(*benchmark)(iterations, cookie);
+	result = stop(0,0);
+	save_n(iterations);
+	result -= t_overhead() + get_n() * l_overhead();
+	settime(result >= 0. ? (uint64)result : 0.);
 
 #ifdef _DEBUG
-fprintf(stderr, "measure(0x%x, %lu, 0x%x): result=%G\n", (unsigned int)benchmark, (unsigned long)iterations, (unsigned int)cookie, result);
+	fprintf(stderr, "measure(0x%x, %lu, 0x%x): result=%G\n", (unsigned int)benchmark, (unsigned long)iterations, (unsigned int)cookie, result);
 #endif
 
-  return result;
+	return result;
 }
 
 
@@ -434,13 +477,13 @@ benchmp_parent(	int response,
 	insertinit(merged_results);
 	for (i = 0; i < parallel; ++i) {
 #ifdef _DEBUG
-fprintf(stderr, "\tresults[%d]: N=%d, gettime()=%lu, get_n()=%lu\n", i, results[i].N, (unsigned long)gettime(), (unsigned long)get_n());
-if (results[i].N < 0 || results[i].N > TRIES) fprintf(stderr, "***Bad results!***\n");
-{
-for (k = 0; k < results[i].N; ++k) {
-fprintf(stderr, "\t\t{%lu, %lu}\n", (unsigned long)results[i].v[k].u, (unsigned long)results[i].v[k].n);
-}
-}
+		fprintf(stderr, "\tresults[%d]: N=%d, gettime()=%lu, get_n()=%lu\n", i, results[i].N, (unsigned long)gettime(), (unsigned long)get_n());
+		if (results[i].N < 0 || results[i].N > TRIES) fprintf(stderr, "***Bad results!***\n");
+		{
+			for (k = 0; k < results[i].N; ++k) {
+				fprintf(stderr, "\t\t{%lu, %lu}\n", (unsigned long)results[i].v[k].u, (unsigned long)results[i].v[k].n);
+			}
+		}
 #endif //_DEBUG
 		scratch_results = results[i];
 		for (j = 0; j < scratch_results.N; ++j) {
@@ -450,10 +493,10 @@ fprintf(stderr, "\t\t{%lu, %lu}\n", (unsigned long)results[i].v[k].u, (unsigned 
 		}
 	}
 #ifdef _DEBUG
-fprintf(stderr, "Merged results; N=%d\n", merged_results->N);
-for (i = 0; i < merged_results->N; ++i) {
-fprintf(stderr, "\t%lu\t%lu\n", (unsigned long)merged_results->v[i].u, (unsigned long)merged_results->v[i].n);
-}
+	fprintf(stderr, "Merged results; N=%d\n", merged_results->N);
+	for (i = 0; i < merged_results->N; ++i) {
+		fprintf(stderr, "\t%lu\t%lu\n", (unsigned long)merged_results->v[i].u, (unsigned long)merged_results->v[i].n);
+	}
 #endif //_DEBUG
 	if (merged_results->N <= TRIES) {
 		scratch_results = *merged_results;
@@ -470,14 +513,14 @@ fprintf(stderr, "\t%lu\t%lu\n", (unsigned long)merged_results->v[i].u, (unsigned
 	save_results(&scratch_results);
 
 #ifdef _DEBUG
-i = 0;
-fprintf(stderr, "*** Saving scratch_results: N=%d, gettime()=%lu, get_n()=%lu\n", scratch_results.N, (unsigned long)gettime(), (unsigned long)get_n());
-{
-int k;
-for (k = 0; k < scratch_results.N; ++k) {
-fprintf(stderr, "\t\t{%lu, %lu}\n", (unsigned long)scratch_results.v[k].u, (unsigned long)scratch_results.v[k].n);
-}
-}
+	i = 0;
+	fprintf(stderr, "*** Saving scratch_results: N=%d, gettime()=%lu, get_n()=%lu\n", scratch_results.N, (unsigned long)gettime(), (unsigned long)get_n());
+	{
+		int k;
+		for (k = 0; k < scratch_results.N; ++k) {
+			fprintf(stderr, "\t\t{%lu, %lu}\n", (unsigned long)scratch_results.v[k].u, (unsigned long)scratch_results.v[k].n);
+		}
+	}
 #endif
 	close(response);
 	close(start_signal);
