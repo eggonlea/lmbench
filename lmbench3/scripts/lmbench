@@ -313,7 +313,9 @@ if [ X$BENCHMARK_OS = XYES ]; then
 	done
 	echo "" 1>&2
 	rm -f $FILE
+fi
 
+if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_HARDWARE = XYES ]; then
 	echo \"libc bcopy unaligned 1>&2
 	for i in $HALF; do bw_mem -P $SYNC_MAX $i bcopy; done; echo "" 1>&2
 
