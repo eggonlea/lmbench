@@ -108,15 +108,23 @@ main(int argc, char *argv[])
 	struct _state state;
 	int parallel = 1;
 	int c;
+	char* usage = "[-P <parallelism>]\n";
 
 	state.bytes = XFER;
 
 	while (( c = getopt(argc,argv,"P:")) != EOF) {
-	  if (c == 'P') parallel = atoi(optarg);
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0) lmbench_usage(argc, argv, usage);
+			break;
+		default:
+			lmbench_usage(argc, argv);
+			break;
+		}
 	}
-	if (optind < argc || parallel <= 0) {
-	  fprintf(stderr,"Usage : %s [-P <parallelism>]\n",argv[0]);
-	  exit(-1);
+	if (optind < argc) {
+		lmbench_usage(argc, argv);
 	}
 	benchmp(initialize, reader, cleanup, MEDIUM, parallel, &state);
 
@@ -124,5 +132,6 @@ main(int argc, char *argv[])
 	mb(get_n() * parallel * XFER);
 	return(0);
 }
+
 
 
