@@ -82,7 +82,10 @@ int main(int ac, char **av)
 
 	benchmp(init, domapping, cleanup, 0, parallel, 
 		warmup, repetitions, &state);
-	micromb(state.size, get_n());
+
+	if (gettime() > 0) {
+		micromb(state.size, get_n());
+	}
 	return (0);
 }
 
