@@ -32,6 +32,8 @@ void cleanup(void* cookie);
 #define	FIFTY(m)	TEN(m) TEN(m) TEN(m) TEN(m) TEN(m)
 #define	HUNDRED(m)	FIFTY(m) FIFTY(m)
 
+#define MAX_LOAD_PARALLELISM 16
+
 #define REPEAT(m) m(0) m(1) m(2) m(3) m(4) m(5) m(6) m(7) m(8) m(9) m(10) m(11) m(12) m(13) m(14) m(15)
 #define DEREF(N) p##N = (char**)*p##N
 #define DECLARE(N) static char **sp##N; register char **p##N;
@@ -99,14 +101,14 @@ bench_f benchmarks[] = {
 int
 main(int ac, char **av)
 {
-	int	i, j, l, len;
+	int	i, j, k, l, len;
 	int	c;
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	print_cost = 0;
 	int	maxlen = 32 * 1024 * 1024;
-	double	load_parallelism;
-	result_t base, wide, *r_save;
+	double	baseline, max_load_parallelism, load_parallelism;
+	result_t **results, *r_save;
 	struct _state state;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 
@@ -146,31 +148,43 @@ main(int ac, char **av)
 		}
 	}
 
-	for (i = 16 * state.line; i <= maxlen; i<<=1) { 
+	results = (result_t**)malloc(MAX_LOAD_PARALLELISM * sizeof(result_t*));
+	for (i = 0; i < MAX_LOAD_PARALLELISM; ++i) {
+		results[i] = (result_t*)malloc(sizeof(result_t));
+	}
+
+	for (i = MAX_LOAD_PARALLELISM * state.line; i <= maxlen; i<<=1) { 
 		state.len = i;
-
 		r_save = get_results();
-		insertinit(&base);
-		insertinit(&wide);
 		
-		for (j = 0; j < TRIES; ++j) {
-			benchmp(initialize, benchmarks[0], cleanup, 0, 1, 
-				warmup, repetitions, &state);
-			insertsort(gettime(), get_n(), &base);
-
-			benchmp(initialize, benchmarks[15], cleanup, 0, 1, 
-				warmup, repetitions, &state);
-			insertsort(gettime(), 16 * get_n(), &wide);
+		for (k = 0; k < MAX_LOAD_PARALLELISM; ++k) {
+			insertinit(results[k]);
 		}
-		set_results(&base);
-		load_parallelism = (double)gettime() / (double)get_n();
 
-		set_results(&wide);
-		load_parallelism /= (double)gettime() / get_n();
+		for (j = 0; j < TRIES; ++j) {
+			for (k = 0; k < MAX_LOAD_PARALLELISM; ++k) {
+				benchmp(initialize, benchmarks[k], cleanup, 
+					0, 1, warmup, repetitions, &state);
+				insertsort(gettime(), (k + 1) * get_n(), results[k]);
+			}
+		}
+		set_results(results[0]);
+		baseline = (double)gettime() / (double)get_n();
+		max_load_parallelism = 1.;
+
+		for (k = 1; k < MAX_LOAD_PARALLELISM; ++k) {
+			set_results(results[k]);
+			load_parallelism = baseline;
+			load_parallelism /= (double)gettime() / (double)get_n();
+			if (load_parallelism > max_load_parallelism) {
+				max_load_parallelism = load_parallelism;
+			}
+		}
+
+		fprintf(stderr, "%.5f %.2f\n", 
+			state.len / (1000. * 1000.), max_load_parallelism);
+
 		set_results(r_save);
-
-		fprintf(stderr, "%.5f %.3f\n", 
-			state.len / (1000. * 1000.), load_parallelism);
 	}
 
 	return(0);
@@ -276,8 +290,8 @@ initialize(void* cookie)
 	free(words);
 
 	for (p = state->p[0], i = 0; i < k; ++i) {
-		if (i % (k/16) == 0) {
-			state->p[i / (k/16)] = p;
+		if (i % (k/MAX_LOAD_PARALLELISM) == 0) {
+			state->p[i / (k/MAX_LOAD_PARALLELISM)] = p;
 		}
 		p = *(char**)p;
 	}
