@@ -32,12 +32,12 @@ main(int ac, char **av)
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	print_cost = 0;
-	int	maxlen = 32 * 1024 * 1024;
+	int	maxlen = 64 * 1024 * 1024;
 	double	par;
 	struct mem_state state;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 
-	state.line = getpagesize() / 8;
+	state.line = getpagesize() / 16;
 	state.pagesize = getpagesize();
 
 	while (( c = getopt(ac, av, "cL:M:W:N:")) != EOF) {
