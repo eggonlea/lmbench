@@ -29,7 +29,7 @@ int	ncpus;
 int	sumit(int*, int);
 void	doit(int **p, int rd, int wr, int process_size);
 int	create_pipes(int **p, int procs);
-int	create_daemons(int **p, int pids[], int procs, int process_size);
+int	create_daemons(int **p, pid_t *pids, int procs, int process_size);
 void	initialize_overhead(void* cookie);
 void	cleanup_overhead(void* cookie);
 void	benchmark_overhead(iter_t iterations, void* cookie);
@@ -299,7 +299,7 @@ doit(int **p, int rd, int wr, int process_size)
 
 
 int
-create_daemons(int **p, int pids[], int procs, int process_size)
+create_daemons(int **p, pid_t *pids, int procs, int process_size)
 {
 	int	i;
 	int	msg;
