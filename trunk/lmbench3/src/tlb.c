@@ -36,6 +36,8 @@ void cleanup(void* cookie);
 #define	FIFTY	TEN TEN TEN TEN TEN
 #define	HUNDRED	FIFTY FIFTY
 
+#define THRESHOLD 1.15
+
 /*
  * Assumptions:
  *
@@ -46,7 +48,7 @@ void cleanup(void* cookie);
 int
 main(int ac, char **av)
 {
-	int	i, l, len, tlb, maxpages;
+	int	i, l, len, tlb, maxpages, lower, upper;
 	int	c;
 	int	print_cost = 0;
 	int	maxline = getpagesize() / sizeof(char*);
@@ -79,7 +81,8 @@ main(int ac, char **av)
 				maxpages = 1024;
 				optarg[l-1] = 0;
 			}
-			maxpages *= atoi(optarg);
+			maxpages *= atoi(optarg);	/* max in bytes */
+			maxpages /= getpagesize();	/* max in pages */
 			break;
 		case 'W':
 			state.warmup = atoi(optarg);
@@ -93,52 +96,42 @@ main(int ac, char **av)
 		}
 	}
 
-/*
-	state.pages = 4;
-	initialize_cache(&state);
-	benchmark(1000, &state);
-	cleanup(&state);
-	exit(0);
-/**/
-
 	for (i = 2; i <= maxpages; i<<=1) {
 		state.pages = i;
 		compute_times(&state, &tlb_time, &cache_time);
 
-		if (tlb_time / cache_time > 1.25) {
-			i>>=1;
+		if (tlb_time / cache_time > THRESHOLD) {
+			lower = i>>1;
+			upper = i;
+			i = lower + (upper - lower) / 2;
 			break;
 		}
-		tlb = state.pages;
 	}
 
 	/* we can't find any tlb effect */
-	if (i == maxpages)
+	if (i >= maxpages)
 		exit(0);
 
-	for (++i; i <= maxpages; ++i) {
+	/* use a binary search to locate point at which TLB effects start */
+	while (lower + 1 < upper) {
 		state.pages = i;
 		compute_times(&state, &tlb_time, &cache_time);
 
-		if (tlb_time / cache_time > 1.15) {
-			if (print_cost) {
-				state.pages *= 2;
-				compute_times(&state, &tlb_time, &cache_time);
-			}
-			break;
+		if (tlb_time / cache_time > THRESHOLD) {
+			upper = i;
+		} else {
+			lower = i;
 		}
-		tlb = state.pages;
+		i = lower + (upper - lower) / 2;
 	}
-
-	for (i = 2; i <= maxpages; i<<=1) {
-		state.pages = i;
-		compute_times(&state, &tlb_time, &cache_time);
-	}
+	tlb = lower;
 
 	if (print_cost) {
-		printf("tlb: %d pages %.5f nanoseconds\n", tlb, tlb_time - cache_time);
+		state.pages *= 2;
+		compute_times(&state, &tlb_time, &cache_time);
+		fprintf(stderr, "tlb: %d pages %.5f nanoseconds\n", tlb, tlb_time - cache_time);
 	} else {
-		printf("tlb: %d pages\n", tlb);
+		fprintf(stderr, "tlb: %d pages\n", tlb);
 	}
 
 	return(0);
@@ -173,7 +166,7 @@ compute_times(struct _state* state, double* tlb_time, double* cache_time)
 	*cache_time = (1000. * (double)gettime()) / (100. * (double)get_n());
 	set_results(r_save);
 
-	fprintf(stderr, "%d %.5f %.5f\n", state->pages, *tlb_time, *cache_time);
+	/* fprintf(stderr, "%d %.5f %.5f\n", state->pages, *tlb_time, *cache_time); */
 }
 
 /*
