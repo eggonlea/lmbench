@@ -1,7 +1,7 @@
 /*
- * loads.c - guess the cache size(s)
+ * par_mem.c - determine the memory hierarchy parallelism
  *
- * usage: loads [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]
+ * usage: par_mem [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]
  *
  * Copyright (c) 2000 Carl Staelin.
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
@@ -222,8 +222,10 @@ initialize(void* cookie)
 	nlines = state->pagesize / state->line;
 	npages = (nbytes + state->pagesize) / state->pagesize;
 
-	words = (int*)malloc(nwords * sizeof(int));
-	lines = (int*)malloc(nlines * sizeof(int));
+	srand(getpid());
+
+	words = permutation(nwords);
+	lines = permutation(nlines);
 	pages = (char***)malloc(npages * sizeof(char**));
 	state->p[0] = state->addr = (char*)malloc(nbytes + 2 * state->pagesize);
 
@@ -234,8 +236,6 @@ initialize(void* cookie)
 	if (state->addr == NULL || pages == NULL) {
 		exit(0);
 	}
-
-	srand(getpid());
 
 	/* first, layout the sequence of page accesses */
 	p = state->p[0];
@@ -256,30 +256,12 @@ initialize(void* cookie)
 
 	/* layout the sequence of line accesses */
 	for (i = 0; i < nlines; ++i) {
-		lines[i] = i * state->pagesize / (nlines * sizeof(char*));
-	}
-
-	/* randomize the line sequences */
-	for (i = nlines - 2; i > 0; --i) {
-		int l;
-		r = (r << 1) ^ (rand() >> 4);
-		l = lines[(r % i) + 1];
-		lines[(r % i) + 1] = lines[i];
-		lines[i] = l;
+		lines[i] *= state->pagesize / (nlines * sizeof(char*));
 	}
 
 	/* layout the sequence of word accesses */
 	for (i = 0; i < nwords; ++i) {
-		words[i] = i * state->line / (nwords * sizeof(char*));
-	}
-
-	/* randomize the word sequences */
-	for (i = nwords - 2; i > 0; --i) {
-		int l;
-		r = (r << 1) ^ (rand() >> 4);
-		l = words[(r % i) + 1];
-		words[(r % i) + 1] = words[i];
-		words[i] = l;
+		words[i] *= state->line / (nwords * sizeof(char*));
 	}
 
 	/* setup the run through the pages */
@@ -300,6 +282,7 @@ initialize(void* cookie)
 	free(lines);
 	free(words);
 
+	state->p[0] = (char*)(pages[0] + lines[0] + words[0]);
 	for (p = state->p[0], i = 0; i < k; ++i) {
 		if (i % (k/state->width) == 0) {
 			state->p[i / (k/state->width)] = p;
