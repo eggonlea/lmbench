@@ -404,4 +404,4 @@ draw solid
 254   54.730
 255   51.264
 256   52.391
-"Word/Page" rjust at 232,  52.391
+"Word/Page" rjust at 80,  52.391
