@@ -930,25 +930,17 @@ sub num
 		return ($str);
 	}
 	if ($val >= 10 * $M) {
-		$fmt = sprintf("%%%d.0fM", $len - 1);
-		$str = sprintf($fmt, $val / $M);
-	} elsif ($val >= $M) {
-		$fmt = sprintf("%%%d.%dfM", $len - 1, $len - 3);
-		$str = sprintf($fmt, $val / $M);
+		$nstr = sprintf("%.1f", $val / $M);
+		$fmt = sprintf("%%%d.%ds%%s", $len - 1, $len - 1);
+		$str = sprintf($fmt, $nstr, "M");
 	} elsif ($val >= 10 * $K) {
-		if ($len <= 4) {
-			$fmt = sprintf("%%%d.0fK", $len - 1);
-		} else {
-			$fmt = sprintf("%%%d.%dfK", $len - 1, $len - 4);
-		}
-		$str = sprintf($fmt, $val / $K);
+		$nstr = sprintf("%.1f", $val / $K);
+		$fmt = sprintf("%%%d.%ds%%s", $len - 1, $len - 1);
+		$str = sprintf($fmt, $nstr, "K");
 	} elsif ($val >= 10) {
-		if ($len <= 5) {
-			$fmt = sprintf("%%%d.0f", $len);
-		} else {
-			$fmt = sprintf("%%%d.%df", $len - 1, $len - 5);
-		}
-		$str = sprintf($fmt, $val);
+		$nstr = sprintf("%.1f", $val);
+		$fmt = sprintf("%%%d.%ds", $len, $len);
+		$str = sprintf($fmt, $nstr);
 	} else {
 		$fmt = sprintf("%%%d.%df", $len, $len - 2);
 		$str = sprintf($fmt, $val);
