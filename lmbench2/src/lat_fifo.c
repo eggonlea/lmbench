@@ -35,34 +35,35 @@ main()
 		perror("mknod");
 		exit(1);
 	}
-	pid = fork();
-	if (pid == -1) {
+	switch (pid = fork()) {
+	case -1:
 		perror("fork");
 		exit(1);
-	}
-	if (pid > 0) {
-		rd = open(F1, O_RDONLY);
-		wr = open(F2, O_WRONLY);
-		/*
-		 * One time around to make sure both processes are started.
-		 */
-		if (write(wr, &c, 1) != 1 || read(rd, &c, 1) != 1) {
-			perror("read/write on pipe");
-			exit(1);
-		}
-		BENCH(doit(rd, wr), SHORT);
-		micro("Pipe latency", get_n());
-		kill(pid, 15);
-	} else {
+	case 0:
 		wr = open(F1, O_WRONLY);
 		rd = open(F2, O_RDONLY);
 		for ( ;; ) {
 			if (read(rd, &c, 1) != 1 ||
 			    write(wr, &c, 1) != 1) {
-				perror("read/write on pipe");
+				perror("read/write on FIFO");
 				exit(1);
 			}
 		}
+		exit(1);
+	default:
+		break;
 	}
+	rd = open(F1, O_RDONLY);
+	wr = open(F2, O_WRONLY);
+	/*
+	 * One time around to make sure both processes are started.
+	 */
+	if (write(wr, &c, 1) != 1 || read(rd, &c, 1) != 1) {
+		perror("read/write on FIFO");
+		exit(1);
+	}
+	BENCH(doit(rd, wr), SHORT);
+	micro("FIFO latency", get_n());
+	kill(pid, 15);
 	return (0);
 }
