@@ -50,7 +50,7 @@ main(int ac, char **av)
 	int	c;
 	int	print_cost = 0;
 	int	maxline = getpagesize() / sizeof(char*);
-	double tlb_time, cache_time, diff;
+	double	tlb_time, cache_time, diff;
 	struct _state state;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 
@@ -120,7 +120,7 @@ main(int ac, char **av)
 		state.pages = i;
 		compute_times(&state, &tlb_time, &cache_time);
 
-		if (tlb_time / cache_time > 1.25) {
+		if (tlb_time / cache_time > 1.15) {
 			if (print_cost) {
 				state.pages *= 2;
 				compute_times(&state, &tlb_time, &cache_time);
@@ -147,17 +147,31 @@ main(int ac, char **av)
 void
 compute_times(struct _state* state, double* tlb_time, double* cache_time)
 {
-	benchmp(initialize_tlb, benchmark, cleanup, 0, 1, 
-		state->warmup, state->repetitions, state);
+	int i;
+	result_t tlb_results, cache_results, *r_save;
+
+	r_save = get_results();
+	insertinit(&tlb_results);
+	insertinit(&cache_results);
+
+	for (i = 0; i < TRIES; ++i) {
+		benchmp(initialize_tlb, benchmark, cleanup, 0, 1, 
+			state->warmup, state->repetitions, state);
+		insertsort(gettime(), get_n(), &tlb_results);
 	
+		benchmp(initialize_cache, benchmark, cleanup, 0, 1,
+			state->warmup, state->repetitions, state);
+		insertsort(gettime(), get_n(), &cache_results);
+	}
+
 	/* We want nanoseconds / load. */
+	set_results(&tlb_results);
 	*tlb_time = (1000. * (double)gettime()) / (100. * (double)get_n());
 
-	benchmp(initialize_cache, benchmark, cleanup, 0, 1,
-		state->warmup, state->repetitions, state);
-	
 	/* We want nanoseconds / load. */
+	set_results(&cache_results);
 	*cache_time = (1000. * (double)gettime()) / (100. * (double)get_n());
+	set_results(r_save);
 
 	fprintf(stderr, "%d %.5f %.5f\n", state->pages, *tlb_time, *cache_time);
 }

@@ -37,19 +37,20 @@ void cleanup(void* cookie);
  * Assumptions:
  *
  * 1) Cache lines are a multiple of pointer-size words
- * 2) Cache lines are smaller than 1/4 a page size
+ * 2) Cache lines are no larger than 1/4 a page size
  * 3) Pages are an even multiple of cache lines
  */
 int
 main(int ac, char **av)
 {
-	int	i, l;
+	int	i, j, l;
 	int	verbose = 0;
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	c;
 	int	maxline = getpagesize() / (4 * sizeof(char*));
-	double* times;
+	double	t, threshold;
+	result_t r, *r_save;
 	struct _state state;
 	char   *usage = "[-v] [-W <warmup>] [-N <repetitions>][-M len[K|M]]\n";
 
@@ -85,21 +86,30 @@ main(int ac, char **av)
 		}
 	}
 
-	times = (double*)malloc(maxline * sizeof(double));
-
-	for (i = 2; i < maxline; i<<=1) {
+	for (i = 2; i <= maxline; i<<=1) {
 		state.line = i;
-		benchmp(initialize, benchmark, cleanup, 0, 1, 
-			warmup, repetitions, &state);
 
-		/* We want to get to nanoseconds / load. */
-		times[i] = (1000. * (double)gettime()) / (100. * (double)get_n());
+		r_save = get_results();
+		insertinit(&r);
+		for (j = 0; j < 5; ++j) {
+			benchmp(initialize, benchmark, cleanup, 0, 1, 
+				warmup, repetitions, &state);
+			insertsort(gettime(), get_n(), &r);
+		}
+		set_results(&r);
+		t = (double)gettime() / (double)get_n();
+		set_results(r_save);
+
+		if (i == 2) {
+			threshold = 1.25 * t;
+			continue;
+		}
 
 		/*
-		fprintf(stderr, "%d %.5f\n", state.line * sizeof(char*), times[i]); 
+		fprintf(stderr, "%d %.5f\n", state.line * sizeof(char*), t); 
 		/**/
 		
-		if (i > 2 && times[i] / times[2] > 1.25) {
+		if (t > threshold) {
 			if (verbose) {
 				printf("cache line size: %d bytes\n", l);
 			} else {
