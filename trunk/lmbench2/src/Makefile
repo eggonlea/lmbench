@@ -10,15 +10,19 @@
 # shar		obsolete, use cd .. && make shar
 # depend	builds make dependencies (needs gcc)
 #
-# This is largely self configuring.  Most stuff is pretty portable.  You
-# may have problems with the mhz program.  
-#
-# OS config.  If you aren't one of the known OS's (see ../scripts/os)
-# then you need to make a target in this makefile with the flags that
-# you need.  First fix os to spit out your os and then create a target
-# here.  Please mail me that info so I can update the makefile.
+# This is largely self configuring.  Most stuff is pretty portable.  
 #
 # If you don't have gcc, try make CC=cc and see if that works.
+#
+# If you want to do cross-compilation try make OS=armv5tel-linux-gnu
+# or whatever your OS string should be in the target environment.
+# Since many embedded development environments also have a special
+# cross-compiler, you might want to also select a particular compiler,
+# so your build command would look something like:
+#	make OS=armv5tel-linux-gnu CC=gcc-arm
+#
+# Overriding the OS and CC make parameters needs to be done as an
+# argument to make, not as an environment variable.  See above comments.
 
 # I finally know why Larry Wall's Makefile says "Grrrr".
 SHELL=/bin/sh
@@ -85,15 +89,15 @@ MAN8 =	$D/bw_file_rd.8 $D/bw_mem.8 $D/bw_pipe.8 $D/bw_pipe.8		\
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o $O/lib_stats.o
 
 lmbench: $(UTILS)
-	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
+	@env OS="${OS}" CC="${CC}" CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
 
 results: lmbench
-	@../scripts/config-run
-	@../scripts/results
+	@env OS="${OS}" ../scripts/config-run
+	@env OS="${OS}" ../scripts/results
 
 rerun: lmbench
-	@if [ ! -f $(CONFIG) ]; then ../scripts/config-run; fi
-	@../scripts/results
+	@if [ ! -f $(CONFIG) ]; then env OS="${OS}" ../scripts/config-run; fi
+	@env OS="${OS}" ../scripts/results
 
 install: lmbench
 	$(MAKE) O=$(BINDIR) install-target
@@ -119,10 +123,10 @@ install-target:
 all: $(EXES) bk.ver
 
 Wall:
-	@env CFLAGS="-Wall -ansi" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
+	@env OS="${OS}" CC="${CC}" CFLAGS="-Wall -ansi" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
 
 debug:
-	@env CFLAGS="-g -O" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
+	@env OS="${OS}" CC="${CC}" CFLAGS="-g -O -D_DEBUG" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
 
 bk.ver: ../SCCS/s.ChangeSet
 	-echo  `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` > bk.ver
