@@ -112,7 +112,7 @@ then	TOTAL_MEM=$TMP
 else	$ECHON "Probing system for available memory: $ECHOC"
 	TOTAL_MEM=`../bin/$OS/memsize 1024`
 fi
-MB = $TOTAL_MEM
+MB=$TOTAL_MEM
 
 echo $L
 cat<<EOF;
