@@ -61,6 +61,31 @@ MEM_BENCHMARK_DEF(13, REPEAT_13, DEREF)
 MEM_BENCHMARK_DEF(14, REPEAT_14, DEREF)
 MEM_BENCHMARK_DEF(15, REPEAT_15, DEREF)
 
+
+void
+mem_cleanup(void* cookie)
+{
+	struct mem_state* state = (struct mem_state*)cookie;
+	free(state->addr);
+	state->addr = NULL;
+}
+
+/*
+ * mem_initialize
+ *
+ * Create a circular pointer chain that runs through memory.
+ *
+ * The chain threads through each cache line on a page before
+ * moving to the next page.  The order of cache line accesses
+ * is randomized to defeat cache prefetching algorithms.  In
+ * addition, the order of page accesses is randomized.  Finally,
+ * to reduce the impact of incorrect line-size estimates on
+ * machines with direct-mapped caches, we randomize which 
+ * word in the cache line is used to hold the pointer.
+ *
+ * It initializes state->width pointers to elements evenly
+ * spaced through the chain.
+ */
 void
 mem_initialize(void* cookie)
 {
@@ -85,13 +110,13 @@ mem_initialize(void* cookie)
 	pages = (char***)malloc(npages * sizeof(char**));
 	state->p[0] = state->addr = (char*)malloc(nbytes + 2 * state->pagesize);
 
+	if (state->addr == NULL || pages == NULL || lines == NULL || words == NULL) {
+		exit(0);
+	}
+
 	if ((unsigned long)state->p[0] % state->pagesize) {
 		state->p[0] += state->pagesize;
 		state->p[0] -= (unsigned long)state->p[0] % state->pagesize;
-	}
-
-	if (state->addr == NULL || pages == NULL) {
-		exit(0);
 	}
 
 	/* first, layout the sequence of page accesses */
@@ -113,12 +138,7 @@ mem_initialize(void* cookie)
 
 	/* layout the sequence of line accesses */
 	for (i = 0; i < nlines; ++i) {
-		lines[i] *= state->pagesize / (nlines * sizeof(char*));
-	}
-
-	/* layout the sequence of word accesses */
-	for (i = 0; i < nwords; ++i) {
-		words[i] *= state->line / (nwords * sizeof(char*));
+		lines[i] *= nwords;
 	}
 
 	/* setup the run through the pages */
@@ -134,20 +154,30 @@ mem_initialize(void* cookie)
 		}
 		k++;
 	}
+	state->p[0] = (char*)(pages[0] + lines[0] + words[0]);
 
 	free(pages);
 	free(lines);
 	free(words);
 
-	state->p[0] = (char*)(pages[0] + lines[0] + words[0]);
 	for (p = state->p[0], i = 0; i < k; ++i) {
 		if (i % (k/state->width) == 0) {
 			state->p[i / (k/state->width)] = p;
 		}
 		p = *(char**)p;
 	}
+
+	/* now, run through the chain once to clear the cache */
+	(*mem_benchmarks[state->width-1])((npointers + 100) / 100, state);
 }
 
+/*
+ * line_initialize
+ *
+ * This is very similar to mem_initialize, except that we always use
+ * the first element of the cache line to hold the pointer.
+ *
+ */
 void
 line_initialize(void* cookie)
 {
@@ -162,7 +192,7 @@ line_initialize(void* cookie)
 	last = state->line - 1;
 	line = state->line * sizeof(char*);
 	nlines = state->pagesize / line;
-	npages = state->len / state->pagesize;
+	npages = (state->len + state->pagesize - 1) / state->pagesize;
 
 	srand(getpid());
 
@@ -223,8 +253,22 @@ line_initialize(void* cookie)
 }
 
 /*
- * This will access one word per page, for a total of 
- * (line * pages) of data loaded into cache.
+ * tlb_initialize
+ *
+ * Build a pointer chain which accesses one word per page, for a total
+ * of (line * pages) bytes of data loaded into cache.  
+ *
+ * If the number of elements in the chain (== #pages) is larger than the
+ * number of pages addressed by the TLB, then each access should cause
+ * a TLB miss (certainly as the number of pages becomes much larger than
+ * the TLB-addressed space).
+ *
+ * In addition, if we arrange the chain properly, each word we access
+ * will be in the cache.
+ *
+ * This means that the average access time for each pointer dereference
+ * should be a cache hit plus a TLB miss.
+ *
  */
 void
 tlb_initialize(void* cookie)
@@ -249,7 +293,7 @@ tlb_initialize(void* cookie)
 	pages = (char***)malloc(npages * sizeof(char**));
 	state->addr = (char*)valloc(pagesize);
 
-	if (state->addr == NULL || pages == NULL || lines == NULL) {
+	if (state->addr == NULL || pages == NULL || lines == NULL || words == NULL) {
 		exit(0);
 	}
 
@@ -292,12 +336,51 @@ tlb_initialize(void* cookie)
 	mem_benchmark_0((npages + 100) / 100, state);
 }
 
-
-void
-mem_cleanup(void* cookie)
+int
+line_find(int len, int warmup, int repetitions, struct mem_state* state)
 {
-	struct mem_state* state = (struct mem_state*)cookie;
-	free(state->addr);
-	state->addr = NULL;
+	int 	i, j;
+	int 	l = 0;
+	int	maxline = getpagesize() / (8 * sizeof(char*));
+	double	t, threshold;
+
+	state->len = len;
+
+	threshold = .85 * line_test(maxline, warmup, repetitions, state);
+
+	for (i = maxline>>1; i >= 2; i>>=1) {
+		t = line_test(i, warmup, repetitions, state);
+
+		if (t <= threshold) {
+			return ((i<<1) * sizeof(char*));
+		}
+	}
+
+	return (0);
 }
 
+double
+line_test(int len, int warmup, int repetitions, struct mem_state* state)
+{
+	int	i;
+	double	t;
+	result_t r, *r_save;
+
+	state->line = len;
+	r_save = get_results();
+	insertinit(&r);
+	for (i = 0; i < 5; ++i) {
+		benchmp(line_initialize, mem_benchmark_0, mem_cleanup, 
+			0, 1, warmup, repetitions, state);
+		insertsort(gettime(), get_n(), &r);
+	}
+	set_results(&r);
+	t = 10. * (double)gettime() / (double)get_n();
+	set_results(r_save);
+	
+	/*
+	fprintf(stderr, "%d\t%.5f\t%d\n", len * sizeof(char*), t, state->len); 
+	/**/
+
+	return (t);
+}
