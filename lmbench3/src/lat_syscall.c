@@ -22,7 +22,7 @@ do_getppid(uint64 iterations, void *cookie)
 	struct _state *pState = (struct _state*)cookie;
 	char	c;
 
-	for (; iterations > 0; --iterations) {
+	while (iterations-- > 0) {
 		getppid();
 	}
 }
@@ -33,7 +33,7 @@ do_write(uint64 iterations, void *cookie)
 	struct _state *pState = (struct _state*)cookie;
 	char	c;
 
-	for (; iterations > 0; --iterations) {
+	while (iterations-- > 0) {
 		if (write(pState->fd, &c, 1) != 1) {
 			perror("/dev/null");
 			return;
@@ -47,7 +47,7 @@ do_read(uint64 iterations, void *cookie)
 	struct _state *pState = (struct _state*)cookie;
 	char	c;
 
-	for (; iterations > 0; --iterations) {
+	while (iterations-- > 0) {
 		if (read(pState->fd, &c, 1) != 1) {
 			perror("/dev/zero");
 			return;
@@ -61,7 +61,7 @@ do_stat(uint64 iterations, void *cookie)
 	struct _state *pState = (struct _state*)cookie;
 	struct	stat sbuf;
 
-	for (; iterations > 0; --iterations) {
+	while (iterations-- > 0) {
 		if (stat(pState->file, &sbuf) == -1) {
 			perror(pState->file);
 			return;
@@ -75,7 +75,7 @@ do_fstat(uint64 iterations, void *cookie)
 	struct _state *pState = (struct _state*)cookie;
 	struct	stat sbuf;
 
-	for (; iterations > 0; --iterations) {
+	while (iterations-- > 0) {
 		if (fstat(pState->fd, &sbuf) == -1) {
 			perror("fstat");
 			return;
@@ -102,41 +102,60 @@ do_openclose(uint64 iterations, void *cookie)
 int
 main(int ac, char **av)
 {
+	int parallel = 1;
+	int c;
 	struct _state state;
+	char* usage = "[-P <parallelism>] null|read|write|stat|open [file]\n";
 
-	if (ac < 2) goto usage;
-	state.file = av[2] ? av[2] : FNAME;
+	while (( c = getopt(ac, av, "P:")) != EOF) {
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
+	}
+	if (optind != ac - 1 && optind != ac - 2 ) {
+		lmbench_usage(ac, av, usage);
+	}
+	
+	state.file = FNAME;
+	if (optind == ac - 2) 
+		state.file = av[optind + 1];
 
-	if (!strcmp("null", av[1])) {
-		benchmp(NULL, do_getppid, NULL, 0, 1, &state);
+	if (!strcmp("null", av[optind])) {
+		benchmp(NULL, do_getppid, NULL, 0, parallel, &state);
 		micro("Simple syscall", get_n());
-	} else if (!strcmp("write", av[1])) {
+	} else if (!strcmp("write", av[optind])) {
 		state.fd = open("/dev/null", 1);
-		benchmp(NULL, do_write, NULL, 0, 1, &state);
+		benchmp(NULL, do_write, NULL, 0, parallel, &state);
 		micro("Simple write", get_n());
 		close(state.fd);
-	} else if (!strcmp("read", av[1])) {
+	} else if (!strcmp("read", av[optind])) {
 		state.fd = open("/dev/zero", 0);
 		if (state.fd == -1) {
 			fprintf(stderr, "Read from /dev/zero: -1");
 			return(1);
 		}
-		benchmp(NULL, do_read, NULL, 0, 1, &state);
+		benchmp(NULL, do_read, NULL, 0, parallel, &state);
 		micro("Simple read", get_n());
 		close(state.fd);
-	} else if (!strcmp("stat", av[1])) {
-		benchmp(NULL, do_stat, NULL, 0, 1, &state);
+	} else if (!strcmp("stat", av[optind])) {
+		benchmp(NULL, do_stat, NULL, 0, parallel, &state);
 		micro("Simple stat", get_n());
-	} else if (!strcmp("fstat", av[1])) {
+	} else if (!strcmp("fstat", av[optind])) {
 		state.fd = open(state.file, 0);
-		benchmp(NULL, do_fstat, NULL, 0, 1, &state);
+		benchmp(NULL, do_fstat, NULL, 0, parallel, &state);
 		micro("Simple fstat", get_n());
 		close(state.fd);
-	} else if (!strcmp("open", av[1])) {
-		benchmp(NULL, do_openclose, NULL, 0, 1, &state);
+	} else if (!strcmp("open", av[optind])) {
+		benchmp(NULL, do_openclose, NULL, 0, parallel, &state);
 		micro("Simple open/close", get_n());
 	} else {
-usage:		printf("Usage: %s null|read|write|stat|open\n", av[0]);
+		lmbench_usage(ac, av, usage);
 	}
 	return(0);
 }
