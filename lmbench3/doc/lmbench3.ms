@@ -110,7 +110,9 @@
 .ds bcopy \f(CWbcopy\fP
 .ds connect \f(CWconnect\fP
 .ds execlp  \f(CWexeclp\fP
+.ds execve  \f(CWexecve\fP
 .ds exit \f(CWexit\fP
+.ds fcntl \f(CWfcntl\fP
 .ds fork \f(CWfork\fP
 .ds gcc \f(CWgcc\fP
 .ds getpid \f(CWgetpid\fP
@@ -120,17 +122,51 @@
 .ds memmove \f(CWmemmove\fP
 .ds mmap \f(CWmmap\fP
 .ds popen  \f(CWpopen\fP
+.ds pipe  \f(CWpipe\fP
 .ds read \f(CWread\fP
+.ds semop \f(CWsemop\fP
 .ds stream \f(CWstream\fP
 .ds system  \f(CWsystem\fP
 .ds uiomove \f(CWuiomove\fP
 .ds write \f(CWwrite\fP
 .ds yield  \f(CWyield\fP
 .ds select  \f(CWselect\fP
+.ds sh  \f(CW/bin/sh\fP
 .ds benchmp  \f(CWbenchmp\fP
 .ds mhz  \f(CWmhz\fP
-.ds lat_ops  \f(CWlat_ops\fP
-.ds lat_connect  \f(CWlat_connect\fP
+.ds bw_file_rd \f(CWbw_file_rd\fP
+.ds bw_mem \f(CWbw_mem\fP
+.ds bw_mmap_rd \f(CWbw_mmap_rd\fP
+.ds bw_pipe \f(CWbw_pipe\fP
+.ds bw_tcp \f(CWbw_tcp\fP
+.ds bw_udp \f(CWbw_udp\fP
+.ds bw_unix \f(CWbw_unix\fP
+.ds lat_connect \f(CWlat_connect\fP
+.ds lat_ctx \f(CWlat_ctx\fP
+.ds lat_fcntl \f(CWlat_fcntl\fP
+.ds lat_fifo \f(CWlat_fifo\fP
+.ds lat_fs \f(CWlat_fs\fP
+.ds lat_http \f(CWlat_http\fP
+.ds lat_mem_rd \f(CWlat_mem_rd\fP
+.ds lat_mmap \f(CWlat_mmap\fP
+.ds lat_ops \f(CWlat_ops\fP
+.ds lat_pagefault \f(CWlat_pagefault\fP
+.ds lat_pipe \f(CWlat_pipe\fP
+.ds lat_proc \f(CWlat_proc\fP
+.ds lat_rpc \f(CWlat_rpc\fP
+.ds lat_select \f(CWlat_select\fP
+.ds lat_sem \f(CWlat_sem\fP
+.ds lat_sig \f(CWlat_sig\fP
+.ds lat_syscall \f(CWlat_syscall\fP
+.ds lat_tcp \f(CWlat_tcp\fP
+.ds lat_udp \f(CWlat_udp\fP
+.ds lat_unix \f(CWlat_unix\fP
+.ds lat_unix_connect \f(CWlat_unix_connect\fP
+.ds line \f(CWline\fP
+.ds tlb \f(CWtlb\fP
+.ds stream \f(CWstream\fP
+.ds lmdd \f(CWlmdd\fP
+.ds par_mem  \f(CWpar_mem\fP
 .ds par_ops  \f(CWpar_ops\fP
 .\" References stuff
 .de RN  \"Reference Name: .RN $1 -- prints the reference prettily
@@ -170,6 +206,65 @@ software development, and networking.
 .if t .MC 3.05i
 .NH 1
 Introduction
+.LP
+\*[lmbench] is a widely used suite of micro-benchmarks
+that measures important aspects of computer system
+performance, such as memory latency and bandwidth.
+Crucially, the suite is written in portable ANSI-C
+using POSIX interfaces and is intended to run on a 
+wide range of systems without modification.
+.LP
+The benchmarks included in the suite were chosen
+because in the \*[lmbench] developer's experience,
+they each represent an aspect of system performance
+which has been crucial to an application's
+performance.  
+.LP
+In general the benchmarks report either the latency
+or bandwidth of an operation or data pathway.  The
+exceptions are generally those benchmarks that
+report on a specific aspect of the hardware, such
+as the processor clock rate, which is reported 
+in MHz and nanoseconds.
+.LP
+\*[lmbench] consists of three major components:
+a timing harness, the individual benchmarks
+built on top of the timing harness, and the
+various scripts and glue that build and run the 
+benchmarks and process the results.
+.NH 2
+\*[lmbench] history
+.LP
+\*[lmbench] version 1 was written by Larry McVoy
+while he was at Sun Microsystems.  It 
+.LP
+\*[lmbench] version 3 focussed on extending 
+\*[lmbench]'s functionality along two dimensions:
+measuring multi-processor scalability and measuring
+basic aspects of processor architecture.
+.LP
+There are any number of aspects of a computer's
+micro-architecture that can impact a program's
+performance, such as the design of the memory
+hierarchy and the basic performance of the various
+arithmetic units.
+.LP
+All of the new benchmarks were added to \*[lmbench]
+because the author needed them to help guide his
+design decisions in one or more projects over the
+last few years.  
+For example, \*[lat_ops] was added because the
+author was trying to decide whether a particular
+image processing algorithm should be implemented
+using integer or floating point arithmetic.
+Floating point arithmetic was preferred for a
+variety of reasons, but it was feared that 
+floating point arithmetic would be prohibitively
+expensive compared to integer operations.
+By quickly building \*[lat_ops] the author was
+able to verify that the floating point performance
+should be no worse than integer performance.
+(See
 .LP
 An important feature of multi-processor systems is their
 ability to scale their performance.  \*[lmbench] version
@@ -231,8 +326,8 @@ Other benchmarks, such as SPECint, use a
 variation on this approach by measuring
 several applications and combining the
 results to predict overall performance.
-.LP
-XXX Byte benchmark
+.\" .LP
+.\" XXX Byte benchmark
 .LP
 Another variation takes the "kernel" of
 an important application and measures its
@@ -286,18 +381,22 @@ workloads and applications by combining the
 performance of these operations in the right 
 mixture.
 .LP
-.RN Seltzer99
+.RN Saavedra92
 takes the micro-benchmark approach and applies
 it to the problem of predicting application
 performance. 
-They instrument applications to determine the
-basic components of application usage in terms
-of the elements measured by \*[lmbench], and
-then they predict application performance on
-a variety of systems by combining the measured
-resource requirements with the measured system
-performance.
-XXX I think someone else did this before Margo
+They analyze applications or other benchmarks
+in terms of their ``narrow spectrum benchmarks''
+to create a linear model of the application's
+computing requirements.  
+They then measure the computer system's 
+performance across this set of micro-benchmarks
+and use a linear model to predict the application's
+performance on the computer system.
+.RN Seltzer99
+applied this technique using the features
+measured by \*[lmbench] as the basis for
+application prediction.
 .LP
 Benchmarking I/O systems has proven particularly
 troublesome over the years, largely due to the
@@ -383,45 +482,119 @@ and double precision floating point operations.
 .NH 2
 Memory Hierarchy
 .LP
-Nearly all modern processors use some form of virtual
-memory addressing, meaning that each process has its
-own virtual address space, or mapping of virtual 
-addresses to physical addresses.  The core of the
-system operates on virtual addresses, so addresses
-must be translated to physical addresses in order
-to actually read or write data to memory.  Most
-machines do the translation between the core and
-the top level cache using a ``translation look-aside
-buffer'' (TLB), which is really a cache of virtual
-to physical page mappings.
+Nearly all modern, general purpose computers use
+virtual memory with phyically addressed caches.
+As such, there is typically one or more caches
+between the physical memory and the processor,
+and virtual-to-physical address translation
+occurs between the processor and the top-level
+cache.  Cache staging and replacement is done
+in \fIcache line\fR units, which are typically
+several words in length, and caches lower in 
+the hierarchy sometimes have cache lines which
+are larger than those in the higher caches.
 .LP
-Nearly all machines use at least some form of
-data caching, and many machines have multiple
-levels of cache.  A rule of thumb is that moving
-down a level in hierarchy decreases the performance 
-by at least a factor of two while the size increases 
-by a factor of ten.
+Modern processors usually incorporate at least
+an L1 cache on-chip, and some are starting to
+also incorporate the L2 cache on-chip.  In
+addition, most include a translation look-aside
+buffer (TLB) on-chip for fast virtual-to-physical
+address translation.
 .LP
-Caches store and replace data in fixed size units, 
-called ``lines''.  Cache lines are some multiple 
-of the basic word size.  
+One key element of any cache design is its
+replacement strategy.  Most caches use either
+direct-mapped or set associative caches.  In
+the first instance any word in physical memory
+has exactly one cache line where into which it
+may be staged, while set associative caches
+allow a given word to be cached into one of a
+set of lines.  Direct-mapped caches have a 
+very simple replacement policy: the contents
+of the line that is needed is discarded.
+Set associative caches usually use LRU or
+some variant within each set, so the least
+recently used line in the set of possible
+cache lines is replaced.  The control logic
+for direct-mapped caches is much cheaper to
+build, but they are generally only as 
+effective as a set-associative cache half
+the size.\**
+.FS 
+See
+.RN Hennessy96
+page 396.
+.FE
 .LP
-In most cases, a write
-to any location in a cache line which is not
-currently resident in the cache will cause the
-line to be read into the cache before the
-dirty portion is over-written.  
+Another key element of memory hierarchy design
+is the management of dirty data; at what point
+are writes passed down the memory hierarchy to
+lower caches and main memory?  The two basic
+policies are write-through and write-back.
+A write-through policy means that writes are
+immediately passed through the cache to the
+next level in the hierarchy, so the lower
+levels are updated at the same time as the
+cache.  A write-back policy means that the
+cache line is marked as dirty in the cache,
+and only when the line is ejected from the
+cache is the data passed down the hierarchy.
+Write-through policies are often used in 
+higher (smaller) caches because multi-
+processor systems need to keep a coherent
+view of memory and the writes are often
+propagated to other processors by \fIsnoopy\fR
+caches.
 .LP
-Cache replacement policies need to be fast, so
-systems usually use some form of set-associative
-replacement policy.  In this case, each word in
-memory can be place into any of a set of lines.
-If the set has a single member, then the cache
-is called ``direct mapped'' because each location
-in memory has a direct mapping to a single cache
-line.  Typically large caches might be direct-
-mapped, while smaller caches tend to have higher
-levels of associativity.
+One often overlooked aspect of cache
+performance is cache behavior during
+writes.  Most cache lines contain
+several words, and most instructions
+only update the line a word at a time.
+This means that when the processor
+writes a word to a cache line that is
+not present, the cache will read the
+line from memory before completing the
+write operation.  For \*[bcopy]-like
+operations this means that the overall
+memory bandwidth requirement is actually
+two reads and one write per copied word,
+rather than the expected read and write.
+.LP
+Most modern processors now include some form
+of prefetch in the memory hierarchy.  For
+the most part these are simple systems that
+can recognize fixed strided accesses through
+memory, such as might be seen in many array
+operations.  However, prefetching systems
+appear to be growing in complexity and
+capability.
+.LP
+Additionally, modern memory subsystems can
+usually support multiple outstanding requests;
+the level of parallelism is usually dependent
+on the level of the hierarchy being accessed.
+Top-level caches can sometimes support as 
+many as six or eight outstanding requests,
+while main memory can usually support two
+outstanding requests.  Other elements of 
+the memory hierarchy, such as the TLB, often
+have additional limits on the level of
+achievable parallelism in practice.\**
+.FS 
+For example, if the TLB serializes all
+TLB misses, and if each memory access
+causes a TLB miss, then the memory
+accesses will be serialized even if
+the data was in a cache supporting
+six outstanding requests.
+.FE
+.LP
+For more information and details on memory 
+subsystem design, and computer architecture
+in general, please see
+.RN Hennessy96
+which has an excellent description of these
+and many other issues.
 .NH 2
 Some Recent Innovations
 .LP
@@ -520,6 +693,17 @@ median of the medians.
 Most of the benchmarks now accept a "-P <parallelism>"
 flag, and the timing harness does the right thing to
 try and measure parallel application performance.
+.LP
+When running benchmarks with more than one child,
+the harness must first get a baseline estimate
+of performance by running the benchmark in only
+one process using the standard \*[lmbench] timing
+interval, which is often 5,000 micro-seconds.
+Using this information, the harness can compute
+the average time per iteration for a single
+process, and it uses this figure to compute the
+number of iterations necessary to ensure that
+each child runs for at least one second.
 .NH 2
 Coordination
 .LP
@@ -539,27 +723,12 @@ processes and then stepping through a handshaking
 process to ensure that all children have started
 executing the benchmarked operation before any child
 starts taking measurements.
-Table 1 shows the various steps taken by the timing
-harness.
 .TSTART 1
 .TS
 box tab (/) allbox expand ;
 c c
 l l .
 Parent/Child
-T{
-running the benchmark with P==1 to get a 
-baseline estimate of performance.  The
-timing interval is auto-scaled to the system
-gettimeofday() clock resolution so this is 
-usually quite fast.  
-T}/
-T{
-compute the number of iterations required for 
-a single benchmark to run for one second.  
-During the timing intervals each child will 
-repeat the benchmark this number of times.
-T}
 T{
 start up P child processes
 T}/T{
@@ -602,6 +771,13 @@ exit
 T}
 .TE
 .TEND "Timing harness sequencing"
+.LP
+Table \n[TABLE] shows how the parent and child
+processes coordinate their activities to ensure
+that all children are actively running the
+benchmark activity while any child could be
+taking timing measurements.
+.LP
 .NH 2
 Accuracy
 .LP
@@ -928,12 +1104,69 @@ that measure various aspects of hardware and operating
 system performance.  The benchmarks generally measure
 latency or bandwidth, but some new benchmarks also
 measure parallelism.
+.TSTART
+.TS
+center box tab (&);
+c c 
+l & l .
+Name&Measures
+_
+&Bandwidth
+bw_file_rd&\*[read] and then load into processor
+bw_mem&read, write, and copy data to/from memory
+bw_mmap_rd&read from \*[mmap]'ed memory
+bw_pipe&\*[pipe] inter-process
+bw_tcp&TCP inter-process
+bw_unix&UNIX inter-process
+_
+&Latency
+lat_connect&TCP socket connection
+lat_ctx&context switch via \*[pipe]-based ``hot-potato'' token passing
+lat_fcntl&\*[fcntl]
+lat_fifo&FIFO ``hot-potato'' token passing
+lat_fs&file creation and deletion
+lat_http&
+lat_mem_rd&memory read
+lat_mmap&mmap
+lat_ops&basic operations
+lat_pagefault&page fault handler
+lat_pipe&\*[pipe] ``hot-potato'' token passing
+lat_proc&T{
+procedure call overhead and process creation using \*[fork],
+\*[fork] and \*[execve], and \*[fork] and \*[sh]
+T}
+lat_rpc&SUN RPC procedure call
+lat_select&\*[select]
+lat_sem&semaphore ``hot-potato'' token passing
+lat_sig&signal handle installation and handling
+lat_syscall&
+lat_tcp&TCP ``hot-potato'' token passing
+lat_udp&UDP ``hot-potato'' token passing
+lat_unix&UNIX ``hot-potato'' token passing
+lat_unix_connect&UNIX socket connection
+_
+&Parallelism
+par_mem&memory subsystem
+par_ops&T{
+instruction-level parallelism of basic arithmetic operations
+T}
+_
+mhz&CPU clock frequency
+line&cache line size
+tlb&number of pages mapped by TLB
+stream&STREAM clones
+lmdd&\fIdd\fR clone
+.TE
+.TEND "\*[lmbench] micro-benchmarks"
+.LP
+Table \n[TABLE] contains the full list of micro-benchmarks
+in \*[lmbench].
 .NH 2
 File System
 .LP
 A number of the benchmarks measure aspects of file system
-performance, such as bw_file_rd, bw_mmap_rd, lat_mmap, and 
-lat_pagefault.
+performance, such as \*[bw_file_rd], \*[bw_mmap_rd], 
+\*[lat_mmap], and \*[lat_pagefault].
 It is not immediately apparent how these benchmarks should
 be extended to the parallel domain.  For example, it may
 be important to know how file system performance scales
@@ -1030,7 +1263,7 @@ SUM|$sum=sum + a[i]$|8|0|1
 .TE
 .TEND "Stream operations"
 .LP
-Table 2 shows the four kernels for each version
+Table \n[TABLE] shows the four kernels for each version
 of the \*[stream] benchmark.  Note that the
 .I read
 columns include numbers in parenthesis, which
@@ -1054,8 +1287,7 @@ To measure the basic operation latency we construct
 a basic arithmetic statement containing the desired
 operands and operations.  This statement is repeated
 one hundred times and these repetitions are then
-embedded in a loop.  The statements used are shown
-in Table 3 below.
+embedded in a loop.  
 .TSTART
 .TS
 center box tab (&);
@@ -1078,6 +1310,16 @@ double&$add$&f+=f;
 &$div$&f=g/f;
 .TE
 .TEND "lat_ops statements"
+.LP
+Table \n[TABLE] shows the data type and expressions
+used for each basic operation type.  The variable
+$i$ indicates the loop variable and generally
+changes every ten or hundred evaluations of the
+basic expression.  All other variables are of
+the basic type being measured, and aside from
+being modified by the relevant expressions are
+only initialized once at the beginning of the
+benchmark routine.
 .LP
 Each statement has been designed to ensure that
 the statement instances are \fIinterlocked\fR,
@@ -1144,27 +1386,28 @@ the next instantiation of the statement.
 .TSTART
 .TS
 center box tab (&);
-c c c c
-c c c c
-l & l & r & r .
-Operand&Operation&PA-RISC 2.0&PIII
-&&180MHz&667MHz
+c c c c c
+c c c c c
+l & l & r & r & r .
+Operand&Op&HPPA2.0&PIII&AMD
+&&400MHz&667MHz&1.3GHz
 _
-int&$bit$&&1.16ns
-&$add$&&2.36ns
-&$mul$&&6.07ns
-&$div$&&58.52ns
-&$mod$&&65.01ns
+mhz&&2.50&1.50&0.75
+int&$bit$&2.53&1.16&0.75
+&$add$&2.50&2.36&0.75
+&$mul$&14.52&6.07&3.03
+&$div$&109.40&58.52&30.86
+&$mod$&75.14&65.01&32.59
 _
-float&$add$&&4.58ns
-&$mul$&&7.50ns
-&$div$&&35.26ns
+float&$add$&7.54&4.58&3.0
+&$mul$&7.50&7.50&3.0
+&$div$&45.00&35.26&13.21
 _
-double&$add$&&4.53ns
-&$mul$&&7.71ns
-&$div$&&35.51ns
+double&$add$&7.52&4.53&3.01
+&$mul$&7.52&7.71&3.01
+&$div$&85.01&35.51&13.16
 .TE
-.TEND "lat_ops results"
+.TEND "lat_ops results (ns)"
 .LP
 Table \n[TABLE] contains some sample results
 for two processors.  
@@ -1279,25 +1522,25 @@ or not.
 .TSTART
 .TS
 center box tab (&);
-c c c c
-c c c c
-l & l & r & r .
-Operand&Operation&PA-RISC 2.0&PIII
-&&180MHz&667MHz
+c c c c c
+c c c c c
+l & l & r & r & r .
+Operand&Op&HPPA2.0&PIII&AMD
+&&400MHz&667MHz&1.3GHz
 _
-int&$bit$&&1.00
-&$add$&&1.61
-&$mul$&&3.81
-&$div$&&1.20
-&$mod$&&1.11
+int&$bit$&1.99&1.00&1.87
+&$add$&1.99&1.61&1.90
+&$mul$&6.64&3.81&2.00
+&$div$&2.81&1.20&1.00
+&$mod$&2.78&1.11&1.03
 _
-float&$add$&&1.00
-&$mul$&&1.14
-&$div$&&1.03
+float&$add$&5.88&1.00&2.66
+&$mul$&5.86&1.14&2.47
+&$div$&2.12&1.03&1.14
 _
-double&$add$&&1.08
-&$mul$&&1.00
-&$div$&&1.03
+double&$add$&5.68&1.08&2.49
+&$mul$&5.58&1.00&2.53
+&$div$&2.19&1.03&1.14
 .TE
 .TEND "par_ops results"
 .LP
