@@ -22,7 +22,9 @@ struct _state {
 	int	pagesize;
 };
 
-void compute_times(struct _state* state, double* tlb_time, double* cache_time);
+int find_cache(int start, int line, 
+	       int maxlen, int warmup, int repetitions, double* time);
+double measure(int size, int line, int warmup, int repetitions);
 void initialize(void* cookie);
 void benchmark(iter_t iterations, void* cookie);
 void cleanup(void* cookie);
@@ -32,6 +34,8 @@ void cleanup(void* cookie);
 #define	TEN	FIVE FIVE
 #define	FIFTY	TEN TEN TEN TEN TEN
 #define	HUNDRED	FIFTY FIFTY
+
+#define THRESHOLD 1.75
 
 /*
  * Assumptions:
@@ -43,19 +47,16 @@ void cleanup(void* cookie);
 int
 main(int ac, char **av)
 {
-	int	i, j, l, len;
+	int	line, l1_cache, l2_cache;
 	int	c;
 	int	warmup = 0;
 	int	repetitions = TRIES;
 	int	print_cost = 0;
 	int	maxlen = 32 * 1024 * 1024;
 	double	time;
-	result_t r, *r_save;
-	struct _state state;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 
-	state.line = getpagesize() / 8;
-	state.pagesize = getpagesize();
+	line = getpagesize() / 8;
 
 	while (( c = getopt(ac, av, "cL:M:W:N:")) != EOF) {
 		switch(c) {
@@ -63,20 +64,12 @@ main(int ac, char **av)
 			print_cost = 1;
 			break;
 		case 'L':
-			state.line = atoi(optarg);
-			if (state.line < sizeof(char*))
-				state.line = sizeof(char*);
+			line = atoi(optarg);
+			if (line < sizeof(char*))
+				line = sizeof(char*);
 			break;
 		case 'M':
-			l = strlen(optarg);
-			if (optarg[l-1] == 'm' || optarg[l-1] == 'M') {
-				maxlen = 1024 * 1024;
-				optarg[l-1] = 0;
-			} else if (optarg[l-1] == 'k' || optarg[l-1] == 'K') {
-				maxlen = 1024;
-				optarg[l-1] = 0;
-			}
-			maxlen *= atoi(optarg);
+			maxlen = bytes(optarg);
 			break;
 		case 'W':
 			warmup = atoi(optarg);
@@ -90,37 +83,105 @@ main(int ac, char **av)
 		}
 	}
 
-	for (i = sizeof(char*); i <= maxlen; i<<=1) {
-		state.len = i;
+	l1_cache = find_cache(sizeof(char*), 
+			      line, maxlen, warmup, repetitions, &time);
 
-		r_save = get_results();
-		insertinit(&r);
+	if (l1_cache >= maxlen)
+		return (0);
 
-		for (j = 0; j < TRIES; ++j) {
-			benchmp(initialize, benchmark, cleanup, 0, 1, 
-				warmup, repetitions, &state);
-			insertsort(gettime(), get_n(), &r);
-		}
-		set_results(&r);
+	fprintf(stderr, "L1 cache: %d bytes %.2f nanoseconds\n", l1_cache, time);
 
-		/* We want nanoseconds / load. */
-		time = (1000. * (double)gettime()) / (100. * (double)get_n());
-		fprintf(stderr, "cache: %d bytes %.5f nanoseconds\n", state.len, time);
+	l2_cache = find_cache(l1_cache,
+			      line, maxlen, warmup, repetitions, &time);
 
-		set_results(r_save);
-	}
+	if (l2_cache >= maxlen)
+		return (0);
 
-#if 0
-	if (print_cost) {
-		fprintf(stderr, "cache: %d bytes %.5f nanoseconds\n", len, time);
-	} else {
-		fprintf(stderr, "cache: %d bytes\n", len);
-	}
-#endif
+	fprintf(stderr, "L2 cache: %d bytes %.2f nanoseconds\n", l2_cache, time);
 
 	return(0);
 }
 
+int
+find_cache(int start, int line, 
+	   int maxlen, int warmup, int repetitions, double *time)
+{
+	int	i, len, incr;
+	double	baseline, current;
+
+	/* get the baseline access time */
+	baseline = measure(2 * start, line, warmup, repetitions);
+
+	for (i = 4 * start; i <= maxlen; i<<=1) {
+		current = measure(i, line, warmup, repetitions);
+
+		/* we have crossed a cache boundary */
+		if (current / baseline > THRESHOLD)
+			break;
+	}
+	
+	if (i >= maxlen)
+		return i;
+
+	incr = i>>3;
+	maxlen = i;
+	i>>=1;
+	len = i;
+
+	/*
+	fprintf(stderr, "find_cache: baseline=%.2f, current=%.2f, ratio=%.2f, i=%d\n", baseline, current, current/baseline, i);
+	/**/
+
+	for (i; i <= maxlen; i+=incr) {
+		current = measure(i, line, warmup, repetitions);
+
+		/* we have crossed a cache boundary */
+		if (current / baseline > THRESHOLD)
+			break;
+		len = i;
+	}
+	
+	*time = baseline;
+	return len;
+}
+
+double
+measure(int size, int line, int warmup, int repetitions)
+{
+	int	i;
+	double	time;
+	result_t *r, *r_save;
+	struct _state state;
+
+	state.len = size;
+	state.line = line;
+	state.pagesize = getpagesize();
+
+	r_save = get_results();
+	r = (result_t*)malloc(sizeof_result(repetitions));
+	insertinit(r);
+
+	for (i = 0; i < repetitions; ++i) {
+		benchmp(initialize, benchmark, cleanup, 0, 1, 
+				warmup, TRIES, &state);
+		save_minimum();
+		insertsort(gettime(), get_n(), r);
+	}
+	save_minimum();
+	set_results(r);
+
+	/* We want nanoseconds / load. */
+	time = (1000. * (double)gettime()) / (100. * (double)get_n());
+
+	/*
+	fprintf(stderr, "%.6f %.2f\n", state.len / (1000. * 1000.), time);
+	/**/
+
+	set_results(r_save);
+	free(r);
+
+	return time;
+}
 
 /*
  * This will access len bytes
@@ -176,7 +237,7 @@ initialize(void* cookie)
 
 	/* layout the sequence of line accesses */
 	for (i = 0; i < nlines; ++i) {
-		lines[i] = i * state->pagesize / (nlines * sizeof(char*));
+		lines[i] = i * nwords;
 	}
 
 	/* randomize the line sequences */
@@ -190,7 +251,7 @@ initialize(void* cookie)
 
 	/* layout the sequence of word accesses */
 	for (i = 0; i < nwords; ++i) {
-		words[i] = i * state->line / (nwords * sizeof(char*));
+		words[i] = i;
 	}
 
 	/* randomize the word sequences */
