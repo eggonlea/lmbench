@@ -34,10 +34,10 @@ int main(int ac, char **av)
 	int parallel = 1;
 	int warmup = 0;
 	int repetitions = TRIES;
-	char	*usage = "-s\n OR [-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n OR -q\n";
+	char	*usage = "-s\n OR [-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n OR -S\n";
 	int	c;
 
-	/* Start the server "-s" or Shut down the server "-q" */
+	/* Start the server "-s" or Shut down the server "-S" */
 	if (ac == 2) {
 		if (!strcmp(av[1], "-s")) {
 			if (fork() == 0) {
@@ -45,7 +45,7 @@ int main(int ac, char **av)
 			}
 			exit(0);
 		}
-		if (!strcmp(av[1], "-q")) {
+		if (!strcmp(av[1], "-S")) {
 			int sock = unix_connect(CONNAME);
 			write(sock, "0", 1);
 			close(sock);
@@ -79,7 +79,7 @@ int main(int ac, char **av)
 	}
 
 	benchmp(NULL, benchmark, NULL, 0, parallel, warmup, repetitions, NULL);
-	micro("UNIX connection cost ", get_n());
+	micro("UNIX connection cost", get_n());
 }
 
 void server_main(void)

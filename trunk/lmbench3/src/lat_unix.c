@@ -1,13 +1,11 @@
 /*
- * tcp_xact.c - simple TCP transaction latency test
+ * tcp_unix.c - simple UNIX socket transaction latency test
  *
- * Three programs in one -
- *	server usage:	lat_unix -s
- *	client usage:	lat_unix [-P <parallelism>] [-W <warmup>] [-N <repetitions>] hostname
- *	shutdown:	lat_unix -S hostname
+ *	lat_unix [-P <parallelism>] [-W <warmup>] [-N <repetitions>]
  *
- * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
- * additional restriction that results may published only if
+ * Copyright (c) 1994-2000 Carl Staelin and Larry McVoy.  
+ * Distributed under the FSF GPL with additional restriction that 
+ * results may published only if
  * (1) the benchmark is unmodified, and
  * (2) the version in the sccsid below is included in the report.
  * Support for this development by Sun Microsystems is gratefully acknowledged.
