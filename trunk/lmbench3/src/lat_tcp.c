@@ -23,7 +23,6 @@ typedef struct _state {
 
 void	init(void *cookie);
 void	cleanup(void *cookie);
-void	doserver(int sock);
 void	doclient(uint64 iterations, void * cookie);
 void	server_main();
 void	doserver(int sock);
@@ -33,55 +32,52 @@ main(int ac, char **av)
 {
 	state_t state;
 	int	parallel = 1;
+	char 	c;
 	char	buf[256];
-	char	*usage = "-s\n OR [-P <parallelism>] server [size]\n OR [-]serverhost\n";
+	char	*usage = "-s\n OR [-P <parallelism>] server\n OR [-]serverhost\n";
 
 	if (ac == 2 && !strcmp(av[1], "-s")) { /* Server */
 		if (fork() == 0) {
 			server_main();
 		}
 		exit(0);
-		
-	} else { /* Client */
-		char c;
-		if (ac == 2) {
-			if (av[1][0] == '-') { /* shut down server */
-				if (!strcmp(av[1],"-"))
-					lmbench_usage(ac, av, usage);
-				else {
-					state.sock = tcp_connect(&av[1][1],
-								 TCP_XACT,
-								 SOCKOPT_NONE);
-					close(state.sock);
-					exit(0);
-				}
-			}
-		}
-
-		while (( c = getopt(ac, av, "P:")) != EOF) {
-			switch(c) {
-			case 'P':
-				parallel = atoi(optarg);
-				if (parallel <= 0)
-					lmbench_usage(ac, av, usage);
-				break;
-			default:
-				lmbench_usage(ac, av, usage);
-				break;
-			}
-		}
-
-		if (optind + 1 != ac) {
-			lmbench_usage(ac, av, usage);
-		}
-
-		state.server = av[optind][0] == '-' ?
-			                  &av[optind][1] : av[optind];
-
 	}
 
-	benchmp(init,doclient,cleanup,
-		MEDIUM, parallel, &state);
+       /*
+	* Client args are -server OR [-P <parallelism>] server
+	*/
+	if (ac == 2) {
+		if (!strcmp(av[1],"-"))
+			lmbench_usage(ac, av, usage);
+		if (av[1][0] == '-') { /* shut down server */
+			state.sock = tcp_connect(&av[1][1],
+						 TCP_XACT,
+						 SOCKOPT_NONE);
+			close(state.sock);
+			exit(0);
+		}
+	}
+
+	while (( c = getopt(ac, av, "P:")) != EOF) {
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+			if (parallel <= 0)
+				lmbench_usage(ac, av, usage);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
+		}
+	}
+
+	if (optind + 1 != ac) {
+		lmbench_usage(ac, av, usage);
+	}
+	state.server = av[optind];
+
+	benchmp(init, doclient, cleanup, MEDIUM, parallel, &state);
+
 	sprintf(buf, "TCP latency using %s", state.server);
 	micro(buf, get_n());
 }
