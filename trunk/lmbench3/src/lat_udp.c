@@ -51,7 +51,7 @@ int main(int ac, char **av)
 		return(1);
 	}
 
-	while (( c = getopt(ac, av, "sSm:P:")) != EOF) {
+	while (( c = getopt(ac, av, "sS:m:P:")) != EOF) {
 		switch(c) {
 		case 's': /* Server */
 			if (fork() == 0) {
@@ -61,7 +61,7 @@ int main(int ac, char **av)
 		case 'S': /* shutdown serverhost */
 		{
 			int seq, n;
-			int sock = udp_connect(av[optind],
+			int sock = udp_connect(optarg,
 					       UDP_XACT,
 					       SOCKOPT_NONE);
 			for (n = -1; n > -5; --n) {
@@ -135,6 +135,7 @@ doit(iter_t iterations, void *cookie)
 	int ret;
 
 	while (iterations-- > 0) {
+		if (iterations % 100 == 0) alarm(15);
 		*(int*)state->buf = htonl(seq++);
 		if (send(sock, state->buf, state->msize, 0) != state->msize) {
 			perror("lat_udp client: send failed");
