@@ -32,15 +32,14 @@ transfer(uint64 move, char *server)
 	todo = move;
 	/*printf("Move %lu MB\n", (unsigned long)(move>>20));
 	*/
-	data = tcp_connect(server, TCP_DATA, SOCKOPT_READ);
-	(void)sprintf(buf, "%lu", (unsigned long)move);
+	data = tcp_connect(server, TCP_DATA, SOCKOPT_READ|SOCKOPT_REUSE);
+	(void)sprintf(buf, "%llu", move);
 	if (write(data, buf, strlen(buf)) != strlen(buf)) {
 		perror("control write");
 		exit(1);
 	}
-	while (todo > 0 && (c = read(data, buf, XFERSIZE)) > 0) {
-		todo -= c;
-	}
+	for (; (c = read(data, buf, XFERSIZE)) > 0 && todo > c; todo -= c)
+		;
 	(void)close(data);
 }
 
@@ -87,13 +86,18 @@ client_main(int ac, char **av)
 	start(0);
 	transfer(move, server);
 	usecs = stop(0,0);
+	fprintf(stderr, "initial bandwidth measurement: move=%llu, usecs=%llu: ", move, usecs);
+	save_n(1);
+	settime(usecs);
+	mb(move);
 	if (usecs >= LONGER) {	/* must be 10Mbit ether or sloooow box */
 		save_n(1);
 		goto out;
 	}
-	usecs = 5000000 / usecs;
-	move *= usecs * 1.25;
+	usecs = LONGER / usecs;
+	move *= usecs * 1.05;
 	if (move < MINMOVE) move = MINMOVE;
+	fprintf(stderr, "move=%llu, XFERSIZE=%d\n", move, XFERSIZE);
 	BENCH(transfer(move, server), LONGER);
 out:	(void)fprintf(stderr, "Socket bandwidth using %s: ", server);
 	mb(move * get_n());
@@ -117,7 +121,7 @@ server_main(int ac, char **av)
 	GO_AWAY;
 
 	signal(SIGCHLD, child);
-	data = tcp_server(TCP_DATA, SOCKOPT_WRITE);
+	data = tcp_server(TCP_DATA, SOCKOPT_WRITE|SOCKOPT_REUSE);
 
 	for ( ;; ) {
 		newdata = tcp_accept(data, SOCKOPT_WRITE);
@@ -142,7 +146,8 @@ server_main(int ac, char **av)
 void
 source(int data)
 {
-	int	n, nbytes;
+	int	n;
+	uint64	nbytes;
 
 	if (!buf) {
 		perror("valloc");
@@ -153,7 +158,7 @@ source(int data)
 		perror("control nbytes");
 		exit(7);
 	}
-	nbytes = atoi(buf);
+	sscanf(buf, "%llu", &nbytes);
 
 	/*
 	 * A hack to allow turning off the absorb daemon.
@@ -163,13 +168,12 @@ source(int data)
 		kill(getppid(), SIGTERM);
 		exit(0);
 	}
-	while (nbytes > 0) {
+	printf("server: nbytes=%llu\n", nbytes);
+	for (; (n = write(data, buf, XFERSIZE)) > 0 && nbytes > n; nbytes-=n) {
 #ifdef	TOUCH
 		touch(buf, XFERSIZE);
 #endif
-		n = write(data, buf, XFERSIZE);
-		if (n <= 0) break;
-		nbytes -= n;
+		;
 	}
 }
 
