@@ -100,7 +100,7 @@ main(int ac, char **av)
 			0, parallel, warmup, repetitions, &state);
 		if (gettime() > 0) {
 			save_minimum();
-			/*nano("STREAM copy latency", state.len * get_n());*/
+			nano("STREAM copy latency", state.len * get_n());
 			fprintf(stderr, "STREAM copy bandwidth: ");
 			mb(2 * sizeof(double) * state.len * get_n());
 		}
@@ -109,7 +109,7 @@ main(int ac, char **av)
 			0, parallel, warmup, repetitions, &state);
 		if (gettime() > 0) {
 			save_minimum();
-			/*nano("STREAM scale latency", state.len * get_n());*/
+			nano("STREAM scale latency", state.len * get_n());
 			fprintf(stderr, "STREAM scale bandwidth: ");
 			mb(2 * sizeof(double) * state.len * get_n());
 		}
@@ -118,7 +118,7 @@ main(int ac, char **av)
 			0, parallel, warmup, repetitions, &state);
 		if (gettime() > 0) {
 			save_minimum();
-			/*nano("STREAM sum latency", state.len * get_n());*/
+			nano("STREAM sum latency", state.len * get_n());
 			fprintf(stderr, "STREAM sum bandwidth: ");
 			mb(3 * sizeof(double) * state.len * get_n());
 		}
@@ -127,7 +127,7 @@ main(int ac, char **av)
 			0, parallel, warmup, repetitions, &state);
 		if (gettime() > 0) {
 			save_minimum();
-			/*nano("STREAM triad latency", state.len * get_n());*/
+			nano("STREAM triad latency", state.len * get_n());
 			fprintf(stderr, "STREAM triad bandwidth: ");
 			mb(3 * sizeof(double) * state.len * get_n());
 		}
@@ -136,7 +136,7 @@ main(int ac, char **av)
 			0, parallel, warmup, repetitions, &state);
 		if (gettime() > 0) {
 			save_minimum();
-			/*nano("STREAM2 fill latency", state.len * get_n());*/
+			nano("STREAM2 fill latency", state.len * get_n());
 			fprintf(stderr, "STREAM2 fill bandwidth: ");
 			mb(sizeof(double) * state.len * get_n());
 		}
@@ -145,7 +145,7 @@ main(int ac, char **av)
 			0, parallel, warmup, repetitions, &state);
 		if (gettime() > 0) {
 			save_minimum();
-			/*nano("STREAM2 copy latency", state.len * get_n());*/
+			nano("STREAM2 copy latency", state.len * get_n());
 			fprintf(stderr, "STREAM2 copy bandwidth: ");
 			mb(2 * sizeof(double) * state.len * get_n());
 		}
@@ -154,7 +154,7 @@ main(int ac, char **av)
 			0, parallel, warmup, repetitions, &state);
 		if (gettime() > 0) {
 			save_minimum();
-			/*nano("STREAM2 daxpy latency", state.len * get_n());*/
+			nano("STREAM2 daxpy latency", state.len * get_n());
 			fprintf(stderr, "STREAM2 daxpy bandwidth: ");
 			mb(3 * sizeof(double) * state.len * get_n());
 		}
@@ -163,7 +163,7 @@ main(int ac, char **av)
 			0, parallel, warmup, repetitions, &state);
 		if (gettime() > 0) {
 			save_minimum();
-			/*nano("STREAM2 sum latency", state.len * get_n());*/
+			nano("STREAM2 sum latency", state.len * get_n());
 			fprintf(stderr, "STREAM2 sum bandwidth: ");
 			mb(sizeof(double) * state.len * get_n());
 		}
