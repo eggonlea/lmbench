@@ -37,7 +37,7 @@ CONFIG=../bin/$(OS)/`../scripts/config`
 UTILS=../scripts/target ../scripts/os ../scripts/gnu-os ../scripts/compiler \
 	../scripts/info ../scripts/info-template ../scripts/version \
 	../scripts/config ../scripts/config-run ../scripts/results \
-	../scripts/lmbench ../scripts/build
+	../scripts/lmbench ../scripts/build ../scripts/depend
 INSTALL=cp
 RESULTS=Results/$(OS)
 SAMPLES=lmbench/Results/aix/rs6000 lmbench/Results/hpux/snake \
