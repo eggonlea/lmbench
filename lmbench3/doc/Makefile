@@ -28,7 +28,7 @@ ALL = $(DESC) $(USENIX) $(PIC) $(MAN) $(REFER) references
 
 PS ps: $(ALL)
 	gindxbib references
-	groff -t -e -s -p -R $(USENIX) > USENIX.PS
+	groff -t -e -G -s -p -R $(USENIX) > USENIX.PS
 	#groff -s -p -mgs $(DESC) > DESC.PS
 	#groff -fH -man $(MAN) > MAN.PS
 
@@ -63,11 +63,11 @@ memhier.ps: $(ALL) memhier-color.d memhier-tlb.d memhier-line.d references-memhi
 lmbench3.ps: $(ALL) references-lmbench3 lmbench3.ms \
 		lmbench3_arch.pic lmbench3_signals.pic
 	gindxbib references-lmbench3
-	groff -t -e -s -p -R tmac.usenix lmbench3.ms > lmbench3.ps
+	groff -G -t -e -s -p -R tmac.usenix lmbench3.ms > lmbench3.ps
 
 parallel.ps: $(ALL) references-parallel parallel.ms
 	gindxbib references-parallel
-	groff -t -e -s -p -R tmac.usenix parallel.ms > parallel.ps
+	groff -G -t -e -s -p -R tmac.usenix parallel.ms > parallel.ps
 
 install: $(MAN)
 	for f in $(MAN); do \
