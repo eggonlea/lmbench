@@ -127,19 +127,12 @@ doclient(iter_t iterations, void* cookie)
 }
 
 void
-child()
-{
-	wait(0);
-	signal(SIGCHLD, child);
-}
-
-void
 server_main()
 {
 	int     newsock, sock;
 
 	GO_AWAY;
-	signal(SIGCHLD, child);
+	signal(SIGCHLD, sigchld_wait_handler);
 	sock = tcp_server(TCP_XACT, SOCKOPT_REUSE);
 	for (;;) {
 		newsock = tcp_accept(sock, SOCKOPT_NONE);
