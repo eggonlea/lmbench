@@ -406,6 +406,10 @@ EOF
 	HPUX_REV=`echo ${UNAME_RELEASE}|sed -e 's/[^.]*.[0B]*//'`
 	echo ${HP_ARCH}-hp-hpux${HPUX_REV}
 	exit 0 ;;
+    ia64:HP-UX:*:*)
+        HPUX_REV=`echo ${UNAME_RELEASE}|sed -e 's/[^.]*.[0B]*//'`
+        echo ia64-hp-hpux${HPUX_REV}
+        exit 0 ;;
     3050*:HI-UX:*:*)
 	sed 's/^	//' << EOF >/tmp/dummy$$.c
 	#include <unistd.h>
