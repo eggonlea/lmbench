@@ -11,9 +11,9 @@ PATH=.:../../scripts:$PATH:/etc:/usr/etc:/sbin:/usr/sbin
 export PATH
 
 if [ -f $1 ]
-then	echo Using config in $1 > ${OUTPUT}
-	. $1
-else	echo Using defaults > ${OUTPUT}
+then	. $1
+	echo Using config in $1 >> ${OUTPUT}
+else	echo Using defaults >> ${OUTPUT}
 	ENOUGH=1000000
 	TIMING_O=0
 	LOOP_O=0
@@ -22,7 +22,7 @@ export ENOUGH TIMING_O LOOP_O
 
 if [ X$FILE = X ]
 then	FILE=/tmp/XXX
-	touch $FILE || echo Can not create $FILE
+	touch $FILE || echo Can not create $FILE >> ${OUTPUT}
 fi
 if [ X$MB = X ]
 then	MB=8
@@ -104,13 +104,13 @@ STAT=$FSDIR/lmbench
 mkdir $FSDIR 2>/dev/null
 touch $STAT 2>/dev/null
 if [ ! -f $STAT ]
-then	echo "Can't make a file - $STAT - in $FSDIR" > ${OUTPUT}
+then	echo "Can't make a file - $STAT - in $FSDIR" >> ${OUTPUT}
 	touch $STAT
 	exit 1
 fi
 
-date > ${OUTPUT}
-echo Latency measurements > ${OUTPUT}
+date >> ${OUTPUT}
+echo Latency measurements >> ${OUTPUT}
 lat_syscall null
 lat_syscall read
 lat_syscall write
@@ -134,8 +134,8 @@ echo \"mappings 1>&2
 for i in $ALL; do lat_mmap $i $FILE; done
 echo "" 1>&2
 if [ X$SLOWFS != XYES ]
-then	date > ${OUTPUT}
-	echo Calculating file system latency > ${OUTPUT}
+then	date >> ${OUTPUT}
+	echo Calculating file system latency >> ${OUTPUT}
 	echo '"File system latency' 1>&2
 	lat_fs $FSDIR
 	echo "" 1>&2
@@ -144,15 +144,15 @@ fi
 if [ X"$DISKS" != X ]
 then	for i in $DISKS
 	do	if [ -r $i ]
-		then	echo "Calculating disk zone bw & seek times" > ${OUTPUT}
+		then	echo "Calculating disk zone bw & seek times" >> ${OUTPUT}
 			disk $i
 			echo "" 1>&2
 		fi
 	done
 fi
 
-date > ${OUTPUT}
-echo Local networking > ${OUTPUT}
+date >> ${OUTPUT}
+echo Local networking >> ${OUTPUT}
 if [ ! -d ../../src/webpage-lm ]
 then	(cd ../../src && tar xf webpage-lm.tar)
 	sync
@@ -181,7 +181,7 @@ do
 done
 
 for remote in $REMOTE 
-do	echo Networking to $remote > ${OUTPUT}
+do	echo Networking to $remote >> ${OUTPUT}
 	$RCP $SERVERS lmhttp ../../src/webpage-lm.tar ${remote}:/tmp
 	for server in $SERVERS
 	do	$RSH $remote -n /tmp/$server -s &
@@ -205,8 +205,8 @@ do	echo Networking to $remote > ${OUTPUT}
 	$RSH $remote rm $RM
 done
 
-date > ${OUTPUT}
-echo Bandwidth measurements > ${OUTPUT}
+date >> ${OUTPUT}
+echo Bandwidth measurements >> ${OUTPUT}
 bw_unix
 bw_pipe
 echo "" 1>&2
@@ -258,9 +258,9 @@ for i in $ALL; do bw_mem $i rdwr; done; echo "" 1>&2
 echo "Memory bzero bandwidth" 1>&2
 for i in $ALL; do bw_mem $i bzero; done; echo "" 1>&2
 
-date > ${OUTPUT}
+date >> ${OUTPUT}
 msleep 250
-echo Calculating context switch overhead > ${OUTPUT}
+echo Calculating context switch overhead >> ${OUTPUT}
 if [ $MB -ge 8 ]
 then	CTX="0 4 8 16 32 64"
 	N="2 4 8 16 24 32 64 96"
@@ -271,8 +271,8 @@ fi
 	
 for size in $CTX; do lat_ctx -s $size $N; done
 
-date > ${OUTPUT}
-echo Calculating memory load latency > ${OUTPUT}
+date >> ${OUTPUT}
+echo Calculating memory load latency >> ${OUTPUT}
 msleep 250
 echo "" 1>&2
 echo "Memory load latency" 1>&2
@@ -280,7 +280,7 @@ if [ X$FASTMEM = XYES ]
 then	lat_mem_rd $MB 128
 else	lat_mem_rd $MB 16 32 64 128 256 512 1024 
 fi
-date > ${OUTPUT}
+date >> ${OUTPUT}
 echo '' 1>&2
 echo \[`date`] 1>&2
 
