@@ -287,6 +287,11 @@ extern iter_t benchmp_interval(void* _state);
  */
 extern int benchmp_childid();
 
+/*
+ * harvest dead children to prevent zombies
+ */
+extern void sigchld_wait_handler(int signo);
+
 #include	"lib_mem.h"
 
 /*
