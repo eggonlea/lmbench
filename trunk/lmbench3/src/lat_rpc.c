@@ -203,7 +203,7 @@ xact_prog_1(rqstp, transp)
 		return;
 	}
 	bzero((char *)&argument, sizeof(argument));
-	if (!svc_getargs(transp, (void *)(xdr_argument)(), (char*)&argument)) {
+	if (!svc_getargs(transp, (void *)xdr_argument, (char*)&argument)) {
 		svcerr_decode(transp);
 		return;
 	}
@@ -211,7 +211,7 @@ xact_prog_1(rqstp, transp)
 	if (result != NULL && !svc_sendreply(transp, (xdrproc_t)xdr_result, result)) {
 		svcerr_systemerr(transp);
 	}
-	if (!svc_freeargs(transp, (void*)(xdr_argument)(), (char*)&argument)) {
+	if (!svc_freeargs(transp, (void*)xdr_argument, (char*)&argument)) {
 		fprintf(stderr, "unable to free arguments");
 		exit(1);
 	}
