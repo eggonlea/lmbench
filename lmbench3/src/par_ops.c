@@ -33,15 +33,16 @@ double
 max_parallelism(bench_f* benchmarks, 
 		int warmup, int repetitions, void* cookie)
 {
-	int		i, j, k;
+	int		i, j, k, __n;
 	double		baseline, max_load_parallelism, load_parallelism;
 	result_t	*results, *r_save;
 
+	__n = 1;
 	max_load_parallelism = 1.;
 
+	initialize(cookie);
 	for (i = 0; i < MAX_LOAD_PARALLELISM; ++i) {
-		benchmp(initialize, benchmarks[i], cleanup, 
-			0, 1, warmup, repetitions, cookie);
+		BENCH((*benchmarks[i])(__n, cookie); __n = 1;, 0);
 
 		if (gettime() == 0)
 			return -1.;
@@ -57,6 +58,7 @@ max_parallelism(bench_f* benchmarks,
 			}
 		}
 	}
+	cleanup(cookie);
 	return max_load_parallelism;
 }
 
@@ -148,22 +150,17 @@ PARALLEL_BENCHMARKS(integer_bit)
 #undef	DECLARE
 #undef	INIT
 #undef	SAVE
-#ifndef __GNUC__
-			/* required because of an HP ANSI/C compiler bug */
-			r##N = ( r##N + i ) ^ r##N;
-#else
-#define BODY(N)		r##N = r##N + r##N + i;
-#endif
-#define DECLARE(N)	register int r##N;
-#define INIT(N)		r##N = state->int_data[N];
-#define SAVE(N)		use_int((int)r##N);
+#define BODY(N)		a##N += b##N; b##N -= a##N;
+#define DECLARE(N)	register int a##N, b##N;
+#define INIT(N)		b##N = a##N = state->int_data[N];
+#define SAVE(N)		use_int(a##N + b##N);
 PARALLEL_BENCHMARKS(integer_add)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
 #undef	SAVE
-#define BODY(N)		r##N = ( r##N * i) ^ r##N;
+#define BODY(N)		r##N = (r##N * i) ^ r##N;
 #define DECLARE(N)	register int r##N;
 #define INIT(N)		r##N = state->int_data[N];
 #define SAVE(N)		use_int((int)r##N);
@@ -173,7 +170,7 @@ PARALLEL_BENCHMARKS(integer_mul)
 #undef	DECLARE
 #undef	INIT
 #undef	SAVE
-#define BODY(N)		r##N = ( r##N / i) ^ r##N;
+#define BODY(N)		r##N = (i / r##N) ^ r##N;
 #define DECLARE(N)	register int r##N;
 #define INIT(N)		r##N = state->int_data[N];
 #define SAVE(N)		use_int((int)r##N);
@@ -183,7 +180,7 @@ PARALLEL_BENCHMARKS(integer_div)
 #undef	DECLARE
 #undef	INIT
 #undef	SAVE
-#define BODY(N)		r##N = ( r##N % i) ^ r##N;
+#define BODY(N)		r##N = (i % r##N) ^ r##N;
 #define DECLARE(N)	register int r##N;
 #define INIT(N)		r##N = state->int_data[N];
 #define SAVE(N)		use_int((int)r##N);
@@ -194,55 +191,50 @@ PARALLEL_BENCHMARKS(integer_mod)
 #undef	INIT
 #undef	SAVE
 #define BODY(N)		r##N ^= i; r##N<<=1;
-#define DECLARE(N)	register uint64 r##N;
-#define INIT(N)		r##N = (uint64)state->int_data[N];
+#define DECLARE(N)	register int64 r##N;
+#define INIT(N)		r##N = (int64)state->int_data[N];
 #define SAVE(N)		use_int((int)r##N);
-PARALLEL_BENCHMARKS(uint64_bit)
+PARALLEL_BENCHMARKS(int64_bit)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
 #undef	SAVE
-#ifndef __GNUC__
-			/* required because of an HP ANSI/C compiler bug */
-			r##N = ( r##N + i ) ^ r##N;
-#else
-#define BODY(N)		r##N = r##N + r##N + i;
-#endif
-#define DECLARE(N)	register uint64 r##N;
-#define INIT(N)		r##N = (uint64)state->int_data[N];
-#define SAVE(N)		use_int((int)r##N);
-PARALLEL_BENCHMARKS(uint64_add)
+#define BODY(N)		a##N += b##N; b##N -= a##N;
+#define DECLARE(N)	register int64 a##N, b##N;
+#define INIT(N)		b##N = a##N = (int64)state->int_data[N];
+#define SAVE(N)		use_int((int)a##N + (int)b##N);
+PARALLEL_BENCHMARKS(int64_add)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
 #undef	SAVE
-#define BODY(N)		r##N = ( r##N * i) ^ r##N;
-#define DECLARE(N)	register uint64 r##N;
-#define INIT(N)		r##N = (uint64)state->int_data[N];
+#define BODY(N)		r##N = (r##N * i) ^ r##N;
+#define DECLARE(N)	register int64 r##N;
+#define INIT(N)		r##N = (int64)state->int_data[N];
 #define SAVE(N)		use_int((int)r##N);
-PARALLEL_BENCHMARKS(uint64_mul)
+PARALLEL_BENCHMARKS(int64_mul)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
 #undef	SAVE
-#define BODY(N)		r##N = ( r##N / i) ^ r##N;
-#define DECLARE(N)	register uint64 r##N;
-#define INIT(N)		r##N = (uint64)state->int_data[N];
+#define BODY(N)		r##N = (i / r##N) ^ r##N;
+#define DECLARE(N)	register int64 r##N;
+#define INIT(N)		r##N = (int64)state->int_data[N];
 #define SAVE(N)		use_int((int)r##N);
-PARALLEL_BENCHMARKS(uint64_div)
+PARALLEL_BENCHMARKS(int64_div)
 
 #undef	BODY
 #undef	DECLARE
 #undef	INIT
 #undef	SAVE
-#define BODY(N)		r##N = ( r##N % i) ^ r##N;
-#define DECLARE(N)	register uint64 r##N;
-#define INIT(N)		r##N = (uint64)state->int_data[N];
+#define BODY(N)		r##N = (i % r##N) ^ r##N;
+#define DECLARE(N)	register int64 r##N;
+#define INIT(N)		r##N = (int64)state->int_data[N];
 #define SAVE(N)		use_int((int)r##N);
-PARALLEL_BENCHMARKS(uint64_mod)
+PARALLEL_BENCHMARKS(int64_mod)
 
 #undef	BODY
 #undef	DECLARE
@@ -382,30 +374,30 @@ main(int ac, char **av)
 	if (par > 0.)
 		fprintf(stderr, "integer mod parallelism: %.2f\n", par);
 
-	par = max_parallelism(uint64_bit_benchmarks, 
+	par = max_parallelism(int64_bit_benchmarks, 
 			      warmup, repetitions, &state);
 	if (par > 0.)
-		fprintf(stderr, "uint64 bit parallelism: %.2f\n", par);
+		fprintf(stderr, "int64 bit parallelism: %.2f\n", par);
 
-	par = max_parallelism(uint64_add_benchmarks, 
+	par = max_parallelism(int64_add_benchmarks, 
 			      warmup, repetitions, &state);
 	if (par > 0.)
-		fprintf(stderr, "uint64 add parallelism: %.2f\n", par);
+		fprintf(stderr, "int64 add parallelism: %.2f\n", par);
 
-	par = max_parallelism(uint64_mul_benchmarks, 
+	par = max_parallelism(int64_mul_benchmarks, 
 			      warmup, repetitions, &state);
 	if (par > 0.)
-		fprintf(stderr, "uint64 mul parallelism: %.2f\n", par);
+		fprintf(stderr, "int64 mul parallelism: %.2f\n", par);
 
-	par = max_parallelism(uint64_div_benchmarks, 
+	par = max_parallelism(int64_div_benchmarks, 
 			      warmup, repetitions, &state);
 	if (par > 0.)
-		fprintf(stderr, "uint64 div parallelism: %.2f\n", par);
+		fprintf(stderr, "int64 div parallelism: %.2f\n", par);
 
-	par = max_parallelism(uint64_mod_benchmarks, 
+	par = max_parallelism(int64_mod_benchmarks, 
 			      warmup, repetitions, &state);
 	if (par > 0.)
-		fprintf(stderr, "uint64 mod parallelism: %.2f\n", par);
+		fprintf(stderr, "int64 mod parallelism: %.2f\n", par);
 
 	par = max_parallelism(float_add_benchmarks, 
 			      warmup, repetitions, &state);
