@@ -28,8 +28,8 @@ typedef struct _state {
 	int	size;
 	int	fd;
 	int	random;
+	int	clone;
 	char	*name;
-	char	myname[256];
 } state_t;
 
 void	init(void *cookie);
@@ -48,7 +48,8 @@ int main(int ac, char **av)
 	
 
 	state.random = 0;
-	while (( c = getopt(ac, av, "rP:W:N:")) != EOF) {
+	state.clone = 0;
+	while (( c = getopt(ac, av, "rP:W:N:C")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
@@ -63,6 +64,9 @@ int main(int ac, char **av)
 			break;
 		case 'r':
 			state.random = 1;
+			break;
+		case 'C':
+			state.clone = 1;
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -93,16 +97,33 @@ void init(void * cookie)
 {
 	state_t *state = (state_t *) cookie;
 	
-	sprintf(state->myname,"%s.%d",state->name,getpid());
-	CHK(state->fd = open(state->myname, O_CREAT|O_RDWR, 0666));
-	CHK(ftruncate(state->fd, state->size));
+	if (state->clone) {
+		char buf[128];
+		char* s;
+
+		/* copy original file into a process-specific one */
+		sprintf(buf, "%d", (int)getpid());
+		s = (char*)malloc(strlen(state->name) + strlen(buf) + 1);
+		sprintf(s, "%s%d", state->name, (int)getpid());
+		if (cp(state->name, s, S_IREAD|S_IWRITE) < 0) {
+			perror("Could not copy file");
+			unlink(s);
+			exit(1);
+		}
+		state->name = s;
+	}
+	CHK(state->fd = open(state->name, O_RDWR));
+	if (lseek(state->fd, 0, SEEK_END) < state->size) {
+		fprintf(stderr, "Input file too small\n");
+		exit(1);
+	}
 }
 
 void cleanup(void * cookie)
 {
 	state_t *state = (state_t *) cookie;
 	close(state->fd);
-	unlink(state->myname);
+	if (state->clone) unlink(state->name);
 }
 
 /*

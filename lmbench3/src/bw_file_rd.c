@@ -32,6 +32,7 @@ int	count;		/* bytes to move (can't be modified) */
 typedef struct _state {
 	char filename[256];
 	int fd;
+	int clone;
 } state_t;
 
 void doit(int fd)
@@ -73,19 +74,37 @@ void doit(int fd)
 	use_int(sum);
 }
 
+void
+initialize(void* cookie)
+{
+	state_t	*state = (state_t *) cookie;
+
+	state->fd = -1;
+	if (state->clone) {
+		char buf[128];
+		char* s;
+
+		/* copy original file into a process-specific one */
+		sprintf(buf, "%d", (int)getpid());
+		s = (char*)malloc(strlen(state->filename) + strlen(buf) + 1);
+		sprintf(s, "%s%d", state->filename, (int)getpid());
+		if (cp(state->filename, s, S_IREAD|S_IWRITE) < 0) {
+			perror("creating private tempfile");
+			unlink(s);
+			exit(1);
+		}
+		strcpy(state->filename, s);
+	}
+}
+
 void init_open(void * cookie)
 {
 	state_t	*state = (state_t *) cookie;
 	int	ofd;
 
+	initialize(cookie);
 	CHK(ofd = open(state->filename, O_RDONLY));
 	state->fd = ofd;
-}
-
-void cleanup_io(void * cookie)
-{
-	state_t *state = (state_t *) cookie;
-	close(state->fd);
 }
 
 void time_with_open(iter_t iterations, void * cookie)
@@ -112,6 +131,14 @@ void time_io_only(iter_t iterations,void * cookie)
 	}
 }
 
+void cleanup(void * cookie)
+{
+	state_t *state = (state_t *) cookie;
+
+	if (state->fd >= 0) close(state->fd);
+	if (state->clone) unlink(state->filename);
+}
+
 int main(int ac, char **av)
 {
 	int	fd;
@@ -125,7 +152,9 @@ int main(int ac, char **av)
 	sprintf(usage,"[-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> open2close|io_only <filename>"
 		"\nmin size=%d\n",(int) (XFERSIZE>>10)) ;
 
-	while (( c = getopt(ac, av, "P:")) != EOF) {
+	state.clone = 0;
+
+	while (( c = getopt(ac, av, "P:W:N:C")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
@@ -136,6 +165,9 @@ int main(int ac, char **av)
 			break;
 		case 'N':
 			repetitions = atoi(optarg);
+			break;
+		case 'C':
+			state.clone = 1;
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -162,9 +194,9 @@ int main(int ac, char **av)
 	bzero((void*)buf, XFERSIZE);
 
 	if (!strcmp("open2close", av[optind+1])) {
-	  benchmp(NULL,time_with_open,NULL,0,parallel,warmup,repetitions,&state);
+	  benchmp(initialize,time_with_open,cleanup,0,parallel,warmup,repetitions,&state);
 	} else if (!strcmp("io_only", av[optind+1])) {
-	  benchmp(init_open,time_io_only,cleanup_io,0,parallel,warmup,repetitions,&state);
+	  benchmp(init_open,time_io_only,cleanup,0,parallel,warmup,repetitions,&state);
 	} else lmbench_usage(ac, av, usage);
 	bandwidth(count, get_n() * parallel, 0);
 	return (0);
