@@ -38,6 +38,8 @@ main()
 	}
 	switch (pid = fork()) {
 	    case 0:
+		close(control[1]);
+		close(pipes[0]);
 		writer(control, pipes);
 		return(0);
 		/*NOTREACHED*/
@@ -48,6 +50,8 @@ main()
 		/*NOTREACHED*/
 
 	    default:
+		close(control[0]);
+		close(pipes[1]);
 		break;
 	}
 	BENCH(reader(control, pipes, XFER), MEDIUM);
