@@ -64,8 +64,6 @@ void		flush(void);
 #define	VALLOC	malloc
 #endif
 
-extern	double	drand48();
-
 #ifdef	__sgi
 #	define	LSEEK(a,b,c)	(uint64)lseek64(a, (off64_t)b, c)
 #	define	ATOL(s)		atoll(s)
@@ -896,3 +894,4 @@ error(char *s)
 	perror(s);
 	exit(1);
 }
+
