@@ -179,7 +179,7 @@ tcp_connect(char *host, int prog, int rdwr)
 		    || errno == ECONNREFUSED
 		    || errno == EAGAIN) {
 			close(sock);
-			if (++tries > 10) return(errno);
+			if (++tries > 10) return(-1);
 			return (tcp_connect(host, prog, rdwr));
 		}
 		perror("connect");
