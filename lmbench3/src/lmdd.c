@@ -39,7 +39,6 @@ char	*id = "$Id: lmdd.c,v 1.23 1997/12/01 23:47:59 lm Exp $\n";
 #include	<stdlib.h>
 #include	<signal.h>
 #include	<string.h>
-#include	<malloc.h>
 #include	<unistd.h>
 #include	<sys/types.h>
 #include	<sys/wait.h>
@@ -49,6 +48,7 @@ char	*id = "$Id: lmdd.c,v 1.23 1997/12/01 23:47:59 lm Exp $\n";
 #include	<sys/time.h>
 #include	"bench.h"
 
+#undef ALIGN
 #define ALIGN(x, bs)    ((x + (bs - 1)) & ~(bs - 1))
 
 #ifdef	FLUSH
