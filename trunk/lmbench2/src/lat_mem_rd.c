@@ -76,17 +76,11 @@ loads(char *addr, size_t range, size_t stride)
 	 * We really need to do a random pattern once we are doing one hit per 
 	 * page.
 	 */
-	for (i = range - stride; i >= 0; i -= stride) {
-		char	*next;
-
-		p = (char **)&addr[i];
-		if (i < stride) {
-			next = &addr[range - stride];
-		} else {
-			next = &addr[i - stride];
-		}
-		*p = next;
+	for (i = stride; i < range; i += stride) {
+		*(char **)&addr[i] = (char*)&addr[i - stride];
 	}
+	*(char **)&addr[0] = (char*)&addr[i - stride];
+	p = (char**)&addr[0];
 
 	/*
 	 * Now walk them and time it.
