@@ -1,7 +1,7 @@
 /*
  * lat_ctx.c - context switch timer 
  *
- * usage: lat_ctx [-s size] #procs [#procs....]
+ * usage: lat_ctx [-P parallelism] [-s size] #procs [#procs....]
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -51,14 +51,14 @@ int
 main(int ac, char **av)
 {
 	int	i;
+	char    c;
+	int	parallel = 1;
 	struct _state state;
+	char *usage = "[-P <parallelism>] [-s kbytes] processes [processes ...]\n";
+	double	time;
 
-	if (ac < 2) {
-usage:		printf("Usage: %s [-s kbytes] processes [processes ...]\n",
-		    av[0]);
-		exit(1);
-	}
-
+	if (ac < 2)
+		lmbench_usage(ac, av, usage);
 	/*
 	 * Need 4 byte ints.
 	 */
@@ -71,42 +71,49 @@ usage:		printf("Usage: %s [-s kbytes] processes [processes ...]\n",
 	state.overhead = 0.0;
 
 	/*
-	 * If they specified a context size, get it.
+	 * If they specified a context size, or parallelism level, get them.
 	 */
-	if (!strcmp(av[1], "-s")) {
-		if (ac < 4) {
-			goto usage;
+	while (( c = getopt(ac, av, "s:P:")) != EOF) {
+	printf("<%c>-index next %d : <%s>\n",c,optind,av[optind]);
+		switch(c) {
+		case 'P':
+			parallel = atoi(optarg);
+	printf("index next %d : <%s>.  %d,%d\n",optind,av[optind],parallel,state.process_size);
+			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 's':
+			state.process_size = atoi(optarg) * 1024;
+	printf("index next %d : <%s>.  %d,%d\n",optind,av[optind],parallel,state.process_size);
+			break;
+		default:
+			lmbench_usage(ac, av, usage);
+			break;
 		}
-		state.process_size = atoi(av[2]) * 1024;
-		ac -= 2;
-		av += 2;
 	}
+	printf("index next %d : <%s>.  %d,%d\n",optind,av[optind],parallel,state.process_size);
 
 #if	defined(sgi) && defined(PIN)
 	ncpus = sysmp(MP_NPROCS);
 	sysmp(MP_MUSTRUN, 0);
 #endif
 	fprintf(stderr, "\n\"size=%dk ovr=%.2f\n", state.process_size/1024, state.overhead);
-	for (i = 1; i < ac; ++i) {
-		int parallel;
-		double	time;
+	for (i = optind; i < ac; ++i) {
 		state.procs = atoi(av[i]);
-
-		benchmp(initialize_overhead, benchmark_overhead, cleanup_overhead, 0, 1, &state);
+		benchmp(initialize_overhead, benchmark_overhead,
+			cleanup_overhead, 0, parallel, &state);
 		if (gettime() == 0) continue;
 		state.overhead = gettime();
 		state.overhead /= get_n();
 
-		for (parallel = 1; parallel < 4; ++parallel) {
-			benchmp(initialize, benchmark, cleanup, 0, parallel, &state);
-			if (gettime() == 0) continue;
-			time = gettime();
-			time /= get_n();
-			time /= state.procs;
-			time -= state.overhead;
+		benchmp(initialize, benchmark, cleanup, 0, parallel, &state);
+		if (gettime() == 0) continue;
 
-		    	fprintf(stderr, "%d %.2f %d\n", state.procs, time, parallel);
-		}
+		time = gettime();
+		time /= get_n();
+		time /= state.procs;
+		time -= state.overhead;
+
+		fprintf(stderr, "%d %.2f %d\n", state.procs, time, parallel);
 	}
 
 	return (0);
