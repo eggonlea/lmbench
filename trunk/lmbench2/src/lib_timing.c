@@ -30,9 +30,6 @@ static	void	init_timing(void);
 #include <sys/mman.h>
 #endif
 
-#if !defined(hpux) && !defined(__hpux) && !defined(WIN32)
-#define RUSAGE
-#endif
 #ifdef	RUSAGE
 #include <sys/resource.h>
 #define	SECS(tv)	(tv.tv_sec + tv.tv_usec / 1000000.0)
@@ -374,7 +371,7 @@ tvdelta(struct timeval *start, struct timeval *stop)
 	usecs = td.tv_sec;
 	usecs *= 1000000;
 	usecs += td.tv_usec;
-	return usecs;
+	return (usecs);
 }
 
 void
@@ -382,10 +379,12 @@ tvsub(struct timeval * tdiff, struct timeval * t1, struct timeval * t0)
 {
 	tdiff->tv_sec = t1->tv_sec - t0->tv_sec;
 	tdiff->tv_usec = t1->tv_usec - t0->tv_usec;
-	while (tdiff->tv_usec < 0 && tdiff->tv_sec > 0) {
+	if (tdiff->tv_usec < 0 && tdiff->tv_sec > 0) {
 		tdiff->tv_sec--;
 		tdiff->tv_usec += 1000000;
+		assert(tdiff->tv_usec >= 0);
 	}
+
 	/* time shouldn't go backwards!!! */
 	if (tdiff->tv_usec < 0 || t1->tv_sec < t0->tv_sec) {
 		tdiff->tv_sec = 0;
@@ -499,6 +498,8 @@ insertsort(uint64 u, uint64 n, result_t *r)
 {
 	int	i, j;
 
+	if (u == 0) return;
+
 	for (i = 0; i < r->N; ++i) {
 		if (u/(double)n > r->u[i]/(double)r->n[i]) {
 			for (j = r->N; j > i; --j) {
@@ -599,7 +600,7 @@ l_overhead(void)
 	result_t one, two, r_save;
 
 	init_timing();
-	if (initialized) return overhead;
+	if (initialized) return (overhead);
 
 	initialized = 1;
 	if (getenv("LOOP_O")) {
@@ -610,10 +611,10 @@ l_overhead(void)
 		insertinit(&two);
 		for (i = 0; i < TRIES; ++i) {
 			use_pointer((void*)one_op(p));
-			if (gettime() > 0 && gettime() > t_overhead())
+			if (gettime() > t_overhead())
 				insertsort(gettime() - t_overhead(), get_n(), &one);
 			use_pointer((void *)two_op(p, q));
-			if (gettime() > 0 && gettime() > t_overhead())
+			if (gettime() > t_overhead())
 				insertsort(gettime() - t_overhead(), get_n(), &two);
 		}
 		/*
@@ -631,7 +632,7 @@ l_overhead(void)
 
 		save_results(&r_save); save_n(N_save); settime(u_save); 
 	}
-	return overhead;
+	return (overhead);
 }
 
 /*
@@ -647,7 +648,7 @@ t_overhead(void)
 	result_t	r_save;
 
 	init_timing();
-	if (initialized) return overhead;
+	if (initialized) return (overhead);
 
 	initialized = 1;
 	if (getenv("TIMING_O")) {
@@ -661,8 +662,7 @@ t_overhead(void)
 		insertinit(&r);
 		for (i = 0; i < TRIES; ++i) {
 			BENCH_INNER(gettimeofday(&tv, 0), 0);
-			if (gettime() > 0) 
-				insertsort(gettime(), get_n(), &r);
+			insertsort(gettime(), get_n(), &r);
 		}
 		save_results(&r);
 		save_minimum();
@@ -670,7 +670,7 @@ t_overhead(void)
 
 		save_results(&r_save); save_n(N_save); settime(u_save); 
 	}
-	return overhead;
+	return (overhead);
 }
 
 /*
@@ -710,7 +710,7 @@ enough_duration(register long N, register TYPE ** p)
 	while (N-- > 0) {
 		ENOUGH_DURATION_TEN(p = (TYPE **) *p;);
 	}
-	return p;
+	return (p);
 }
 
 static uint64
@@ -724,7 +724,7 @@ duration(long N)
 	p = enough_duration(N, p);
 	usecs = stop(0, 0);
 	use_pointer((void *)p);
-	return usecs;
+	return (usecs);
 }
 
 /*
@@ -740,12 +740,11 @@ time_N(long N)
 	insertinit(&r);
 	for (i = 1; i < TRIES; ++i) {
 		usecs = duration(N);
-		if (usecs > 0)
-			insertsort(usecs, N, &r);
+		insertsort(usecs, N, &r);
 	}
 	save_results(&r);
 	save_minimum();
-	return gettime();
+	return (gettime());
 }
 
 /*
@@ -762,7 +761,7 @@ find_N(int enough)
 
 	for (tries = 0; tries < 10; ++tries) {
 		if (0.98 * enough < usecs && usecs < 1.02 * enough)
-			return N;
+			return (N);
 		if (usecs < 1000)
 			N *= 10;
 		else {
@@ -774,7 +773,7 @@ find_N(int enough)
 		}
 		usecs = time_N(N);
 	}
-	return -1;
+	return (-1);
 }
 
 /*
@@ -789,7 +788,7 @@ test_time(int enough)
 	uint64	usecs, expected, baseline, diff;
 
 	if ((N = find_N(enough)) <= 0)
-		return 0;
+		return (0);
 
 	baseline = time_N(N);
 
@@ -798,9 +797,9 @@ test_time(int enough)
 		expected = (uint64)((double)baseline * test_points[i]);
 		diff = expected > usecs ? expected - usecs : usecs - expected;
 		if (diff / (double)expected > 0.0025)
-			return 0;
+			return (0);
 	}
-	return 1;
+	return (1);
 }
 
 
@@ -818,14 +817,14 @@ compute_enough()
 	}
 	for (i = 0; i < sizeof(possibilities) / sizeof(int); ++i) {
 		if (test_time(possibilities[i]))
-			return possibilities[i];
+			return (possibilities[i]);
 	}
 
 	/* 
 	 * if we can't find a timing interval that is sufficient, 
 	 * then use SHORT as a default.
 	 */
-	return SHORT;
+	return (SHORT);
 }
 
 /*
@@ -862,7 +861,7 @@ touch(char *buf, int nbytes)
 int
 getpagesize()
 {
-	return sysconf(_SC_PAGE_SIZE);
+	return (sysconf(_SC_PAGE_SIZE));
 }
 #endif
 
@@ -873,7 +872,7 @@ getpagesize()
 	SYSTEM_INFO s;
 
 	GetSystemInfo(&s);
-	return (int)s.dwPageSize;
+	return ((int)s.dwPageSize);
 }
 
 LARGE_INTEGER
@@ -894,7 +893,7 @@ getFILETIMEoffset()
 	t.QuadPart = f.dwHighDateTime;
 	t.QuadPart <<= 32;
 	t.QuadPart |= f.dwLowDateTime;
-	return t;
+	return (t);
 }
 
 int
@@ -933,6 +932,6 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 	t.QuadPart = microseconds;
 	tv->tv_sec = t.QuadPart / 1000000;
 	tv->tv_usec = t.QuadPart % 1000000;
-	return 0;
+	return (0);
 }
 #endif
