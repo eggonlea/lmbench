@@ -25,7 +25,6 @@ int
 main(int ac, char **av)
 {
 	int	i, j, l;
-	int	find_all = 0;
 	int	verbose = 0;
 	int	maxlen = 32 * 1024 * 1024;
 	int	warmup = 0;
@@ -39,9 +38,6 @@ main(int ac, char **av)
 
 	while (( c = getopt(ac, av, "avM:W:N:")) != EOF) {
 		switch(c) {
-		case 'a':
-			find_all = 1;
-			break;
 		case 'v':
 			verbose = 1;
 			break;
@@ -60,30 +56,14 @@ main(int ac, char **av)
 		}
 	}
 
-	if (!find_all) {
-		l = line_find(maxlen, warmup, repetitions, &state);
-		if (verbose) {
-			printf("cache line size: %d bytes\n", l);
-		} else {
-			printf("%d\n", l);
-		}
-	} else {
-		int len = 0;
-		int level = 1;
+	while(!(l = line_find(maxlen, warmup, repetitions, &state))) {
+		maxlen >>= 1;
+	}
 
-		for (i = getpagesize(); i <= maxlen; i<<=1) {
-			l = line_find(i, warmup, repetitions, &state);
-			if ((i<<1) <= maxlen && l != 0 &&
-			    (len == 0 || len != 0 && l != len)) {
-				/*
-				 * near edge of cache, move away from edge
-				 * to get more reliable reading
-				 */
-				l = line_find(i<<=1, warmup, repetitions, &state);
-				printf("L%d cache line size: %d bytes\n", level, l);
-				level++;
-			}
-		}
+	if (verbose) {
+		printf("cache line size: %d bytes\n", l);
+	} else {
+		printf("%d\n", l);
 	}
 
 	return (0);

@@ -89,7 +89,8 @@ struct _state {
 	int	stride;
 };
 
-void initialize_loads(void* cookie)
+void
+initialize_loads(void* cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 	register char **p = 0 /* lint */;
@@ -130,7 +131,8 @@ void initialize_loads(void* cookie)
 	}
 }
 
-void benchmark_loads(iter_t iterations, void *cookie)
+void
+benchmark_loads(iter_t iterations, void *cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 	register char **p = (char**)state->addr;
@@ -142,7 +144,8 @@ void benchmark_loads(iter_t iterations, void *cookie)
 	use_pointer((void *)p);
 }
 
-void cleanup_loads(void* cookie)
+void
+cleanup_loads(void* cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 	free(state->addr);

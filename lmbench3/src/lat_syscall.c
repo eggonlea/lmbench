@@ -107,7 +107,7 @@ main(int ac, char **av)
 	int repetitions = TRIES;
 	int c;
 	struct _state state;
-	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] null|read|write|stat|open [file]\n";
+	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] null|read|write|stat|fstat|open [file]\n";
 
 	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
