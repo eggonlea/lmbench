@@ -71,7 +71,7 @@ SRCS =  bw_file_rd.c bw_mem.c bw_mmap_rd.c bw_pipe.c bw_tcp.c bw_udp.c	\
 	lat_tcp.c lat_udp.c lat_unix.c lat_unix_connect.c lat_sem.c	\
 	lat_usleep.c lat_pmake.c  					\
 	lib_debug.c lib_mem.c lib_stats.c lib_tcp.c lib_timing.c 	\
-	lib_udp.c lib_unix.c						\
+	lib_udp.c lib_unix.c lib_sched.c				\
 	line.c lmdd.c lmhttp.c par_mem.c par_ops.c loop_o.c memsize.c 	\
 	mhz.c msleep.c rhttp.c seek.c timing_o.c tlb.c stream.c		\
 	bench.h lib_debug.h lib_tcp.h lib_udp.h lib_unix.h names.h 	\
@@ -88,7 +88,8 @@ ASMS =  $O/bw_file_rd.s $O/bw_mem.s $O/bw_mmap_rd.s $O/bw_pipe.s 	\
 	$O/lat_usleep.s $O/lat_pmake.s $O/lat_cmd.s 			\
 	$O/lib_debug.s $O/lib_mem.s	\
 	$O/lib_stats.s $O/lib_tcp.s $O/lib_timing.s $O/lib_udp.s	\
-	$O/lib_unix.s $O/line.s $O/lmdd.s $O/lmhttp.s $O/par_mem.s	\
+	$O/lib_unix.s $O/lib_sched.s					\
+	$O/line.s $O/lmdd.s $O/lmhttp.s $O/par_mem.s	\
 	$O/par_ops.s $O/loop_o.s $O/memsize.s $O/mhz.s $O/msleep.s	\
 	$O/rhttp.s $O/timing_o.s $O/tlb.s $O/stream.s			\
 	$O/cache.s $O/lat_dram_page.s $O/lat_pmake.s $O/lat_rand.s	\
@@ -107,7 +108,8 @@ EXES =	$O/bw_file_rd $O/bw_mem $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp 	\
 OPT_EXES=$O/cache $O/lat_dram_page $O/lat_pmake $O/lat_rand 		\
 	$O/lat_usleep $O/lat_cmd
 LIBOBJS= $O/lib_tcp.o $O/lib_udp.o $O/lib_unix.o $O/lib_timing.o 	\
-	$O/lib_mem.o $O/lib_stats.o $O/lib_debug.o $O/getopt.o
+	$O/lib_mem.o $O/lib_stats.o $O/lib_debug.o $O/getopt.o		\
+	$O/lib_sched.o
 
 lmbench: $(UTILS)
 	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" CC="$(CC)" OS="$(OS)" ../scripts/build all
@@ -251,6 +253,8 @@ $O/lib_debug.o : lib_debug.c $(INCS)
 	$(COMPILE) -c lib_debug.c -o $O/lib_debug.o
 $O/lib_stats.o : lib_stats.c $(INCS)
 	$(COMPILE) -c lib_stats.c -o $O/lib_stats.o
+$O/lib_sched.o : lib_sched.c $(INCS)
+	$(COMPILE) -c lib_sched.c -o $O/lib_sched.o
 $O/getopt.o : getopt.c $(INCS)
 	$(COMPILE) -c getopt.c -o $O/getopt.o
 

@@ -51,8 +51,10 @@ initialize(iter_t iterations, void* cookie)
 		state->initerr = 2;
 		return;
 	}
+	handle_scheduler(benchmp_childid(), 0, 1);
 	switch (state->pid = fork()) {
 	    case 0:
+	      handle_scheduler(benchmp_childid(), 1, 1);
 		close(state->control[1]);
 		close(state->pipes[0]);
 		writer(state->control[0], state->pipes[1], state->buf, state);

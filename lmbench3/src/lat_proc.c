@@ -101,6 +101,7 @@ void
 do_shell(iter_t iterations, void* cookie)
 {
 	signal(SIGCHLD, SIG_DFL);
+	handle_scheduler(benchmp_childid(), 0, 1);
 	while (iterations-- > 0) {
 		switch (child_pid = fork()) {
 		case -1:
@@ -108,6 +109,7 @@ do_shell(iter_t iterations, void* cookie)
 			exit(1);
 	    
 		case 0:	/* child */
+			handle_scheduler(benchmp_childid(), 1, 1);
 			close(1);
 			execlp("/bin/sh", "sh", "-c", PROG, 0);
 			exit(1);
@@ -125,6 +127,7 @@ do_forkexec(iter_t iterations, void* cookie)
 	char	*nav[2];
 
 	signal(SIGCHLD, SIG_DFL);
+	handle_scheduler(benchmp_childid(), 0, 1);
 	while (iterations-- > 0) {
 		nav[0] = PROG;
 		nav[1] = 0;
@@ -134,6 +137,7 @@ do_forkexec(iter_t iterations, void* cookie)
 			exit(1);
 
 		case 0: 	/* child */
+			handle_scheduler(benchmp_childid(), 1, 1);
 			close(1);
 			execve(PROG, nav, 0);
 			exit(1);
@@ -149,6 +153,7 @@ void
 do_fork(iter_t iterations, void* cookie)
 {
 	signal(SIGCHLD, SIG_DFL);
+	handle_scheduler(benchmp_childid(), 0, 1);
 	while (iterations-- > 0) {
 		switch (child_pid = fork()) {
 		case -1:
@@ -156,6 +161,7 @@ do_fork(iter_t iterations, void* cookie)
 			exit(1);
 	
 		case 0:	/* child */
+			handle_scheduler(benchmp_childid(), 1, 1);
 			exit(1);
 	
 		default:
@@ -169,6 +175,7 @@ void
 do_procedure(iter_t iterations, void* cookie)
 {
 	int r = *(int *) cookie;
+	handle_scheduler(benchmp_childid(), 0, 1);
 	while (iterations-- > 0) {
 		use_int(r);
 	}

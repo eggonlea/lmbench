@@ -85,6 +85,58 @@ do	echo $ECHON "MULTIPLE COPIES [default 1] $ECHOC"
 	fi
 done
 
+LMBENCH_SCHED=DEFAULT
+AGAIN=Y
+while [ $AGAIN = Y ]
+do	cat<<EOF 
+Options to control job placement
+1) Allow scheduler to place jobs
+2) Assign each benchmark process with any attendent child processes
+   to its own processor
+3) Assign each benchmark process with any attendent child processes
+   to its own processor, except that it will be as far as possible
+   from other processes
+4) Assign each benchmark and attendent processes to their own
+   processors
+5) Assign each benchmark and attendent processes to their own
+   processors, except that they will be as far as possible from
+   each other and other processes
+6) Custom placement: you assign each benchmark process with attendent
+   child processes to processors
+7) Custom placement: you assign each benchmark and attendent
+   processes to processors
+
+Note: some benchmarks, such as bw_pipe, create attendent child
+processes for each benchmark process.  For example, bw_pipe
+needs a second process to send data down the pipe to be read
+by the benchmark process.  If you have three copies of the
+benchmark process running, then you actually have six processes;
+three attendent child processes sending data down the pipes and 
+three benchmark processes reading data and doing the measurements.
+
+EOF
+	echo $ECHON "Job placement selection: $ECHOC"
+	read LMBENCH_SCHED
+	AGAIN=N
+	case "$LMBENCH_SCHED" in
+	    1) LMBENCH_SCHED=DEFAULT;;
+	    2) LMBENCH_SCHED=BALANCED;;
+	    3) LMBENCH_SCHED=BALANCED_SPREAD;;
+	    4) LMBENCH_SCHED=UNIQUE;;
+	    5) LMBENCH_SCHED=UNIQUE_SPREAD;;
+	    6) echo $ECHON "Please enter a space-separated list of CPU ids: $ECHOC"
+	       read LMBENCH_SCHED
+	       LMBENCH_SCHED="CUSTOM $LMBENCH_SCHED"
+	       ;;
+	    7) echo $ECHON "Please enter a space-separated list of CPU ids: $ECHOC"
+	       read LMBENCH_SCHED
+	       LMBENCH_SCHED="CUSTOM_SPREAD $LMBENCH_SCHED"
+	       ;;
+	    *) AGAIN=Y
+	       ;;
+	esac
+done
+
 ############################################################################
 # Figure out memory size.
 ############################################################################
@@ -700,6 +752,7 @@ echo PROCESSORS=\"$PROCESSORS\" >> $C
 echo REMOTE=\"$REMOTE\" >> $C
 echo SLOWFS=\"$SLOWFS\" >> $C
 echo SYNC_MAX=\"$SYNC_MAX\" >> $C
+echo LMBENCH_SCHED=\"$LMBENCH_SCHED\" >> $C
 echo TIMING_O=$TIMING_O >> $C
 echo RSH=$RSH >> $C
 echo RCP=$RCP >> $C

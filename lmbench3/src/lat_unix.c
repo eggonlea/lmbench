@@ -84,9 +84,12 @@ initialize(iter_t iterations, void* cookie)
 		fprintf(stderr, "buffer allocation\n");
 		exit(1);
 	}
+	handle_scheduler(benchmp_childid(), 0, 1);
 
 	if (pState->pid = fork())
 		return;
+
+	handle_scheduler(benchmp_childid(), 1, 1);
 
 	/* Child sits and ping-pongs packets back to parent */
 	signal(SIGTERM, exit);

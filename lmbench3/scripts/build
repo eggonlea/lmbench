@@ -208,6 +208,43 @@ if [ ${HAVE_RANDOM} -eq 0 ]; then
     rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
 fi
 
+# check that we have sysmp
+echo "#include <sys/types.h>" > ${BASE}$$.c
+echo "#include <sys/sysmp.h>" >> ${BASE}$$.c
+echo "main() { return (int)sysmp(MP_NPROCS); }" >> ${BASE}$$.c
+${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
+	&& CFLAGS="${CFLAGS} -DHAVE_SYSMP=1";
+rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
+
+# check that we have bindprocessor
+echo "#include <stdlib.h>" > ${BASE}$$.c
+echo "#include <unistd.h>" >> ${BASE}$$.c
+echo "#include <sys/types.h>" >> ${BASE}$$.c
+echo "#include <sys/processor.h>" >> ${BASE}$$.c
+echo "main() { return bindprocessor(BINDPROCESS, getpid(), 0); }" >> ${BASE}$$.c
+${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
+	&& CFLAGS="${CFLAGS} -DHAVE_BINDPROCESSOR=1";
+rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
+
+# check that we have processor_bind
+echo "#include <stdlib.h>" > ${BASE}$$.c
+echo "#include <sys/types.h>" >> ${BASE}$$.c
+echo "#include <sys/processor.h>" >> ${BASE}$$.c
+echo "#include <sys/procset.h>" >> ${BASE}$$.c
+echo "main() { return processor(P_PID, P_MYPID, 0, NULL); }" >> ${BASE}$$.c
+${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
+	&& CFLAGS="${CFLAGS} -DHAVE_BINDPROCESSOR=1";
+rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
+
+# check that we have sched_setaffinity
+echo "#include <stdlib.h>" > ${BASE}$$.c
+echo "#include <unistd.h>" >> ${BASE}$$.c
+echo "#include <sched.h>" >> ${BASE}$$.c
+echo "main() { unsigned long mask = 1; return sched_setaffinity(0, sizeof(unsigned long), &mask); }" >> ${BASE}$$.c
+${CC} ${CFLAGS} -o ${BASE}$$ ${BASE}$$.c 1>${NULL} 2>${NULL} \
+	&& CFLAGS="${CFLAGS} -DHAVE_SCHED_SETAFFINITY=1";
+rm -f ${BASE}$$ ${BASE}$$.o ${BASE}$$.c
+
 
 if [ ! -d ${BINDIR} ]; then mkdir -p ${BINDIR}; fi
 

@@ -76,9 +76,11 @@ initialize(iter_t iterations, void* cookie)
 	semctl(state->semid, 0, SETVAL, 0);
 	semctl(state->semid, 1, SETVAL, 0);
 
+	handle_scheduler(benchmp_childid(), 0, 1);
 	switch (state->pid = fork()) {
 	    case 0:
 		signal(SIGTERM, exit);
+		handle_scheduler(benchmp_childid(), 1, 1);
 		writer(state->semid);
 		return;
 
