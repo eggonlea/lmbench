@@ -186,29 +186,13 @@
 delim $$
 .EN
 .TL
-\s(14lmbench3: Measuring scalability\s0
+\s(14lmbench user guide\s0
 .AU
 \s+2\fR\*[author]\fP\s0
 .AI
 \fI\s+2Hewlett-Packard Laboratories Israel\s0\fP
 .SP
 .AB
-\*[lmbench] version 3 adds a number of new features
-and benchmarks which measure a system's scalability,
-instruction level parallelism, and basic features of
-the system architecture.  
-There is a new timing harness, \*[benchmp], designed 
-to measure performance at specific levels of parallel 
-(simultaneous) load, and most existing benchmarks have
-been converted to use the new harness.
-There are new benchmarks to measure instruction level
-parallelism, such as the effectiveness of overlapped
-memory accesses.
-There are other new benchmarks to measure various
-aspects of the architecture, such as the cache line
-size(s), TLB size, and latency costs for basic 
-arithmetic operations.
-.SP
 \*[lmbench] is a micro-benchmark suite designed to focus
 attention on the basic building blocks of many
 common system applications, such as databases, simulations, 
@@ -217,6 +201,10 @@ It is also designed to make it easy for users to create
 additional micro-benchmarks that can measure features, 
 algorithms, or subsystems of particular interest to the
 user.
+.SP
+There is a timing harness, \*[benchmp], designed 
+to measure performance at specific levels of parallel 
+(simultaneous) load.
 .AE
 .if t .MC 3.05i
 .NH 1
