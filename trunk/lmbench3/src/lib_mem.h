@@ -41,6 +41,8 @@ struct mem_state {
 	size_t*	words;
 };
 
+void stride_initialize(iter_t iterations, void* cookie);
+void thrash_initialize(iter_t iterations, void* cookie);
 void mem_initialize(iter_t iterations, void* cookie);
 void line_initialize(iter_t iterations, void* cookie);
 void tlb_initialize(iter_t iterations, void* cookie);

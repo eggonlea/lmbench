@@ -125,6 +125,129 @@ tlb_cleanup(iter_t iterations, void* cookie)
 	}
 }
 
+void
+base_initialize(iter_t iterations, void* cookie)
+{
+	int	nwords, nlines, nbytes, npages, nmpages;
+	size_t *pages;
+	size_t *lines;
+	size_t *words;
+	struct mem_state* state = (struct mem_state*)cookie;
+	register char *p = 0 /* lint */;
+
+	if (iterations) return;
+
+	state->initialized = 0;
+
+	nbytes = state->len;
+	nwords = state->line / sizeof(char*);
+	nlines = state->pagesize / state->line;
+	npages = (nbytes + state->pagesize - 1) / state->pagesize;
+	nmpages= (state->maxlen + state->pagesize - 1) / state->pagesize;
+
+	srand(getpid());
+
+	words = NULL;
+	lines = NULL;
+	pages = permutation(nmpages, state->pagesize);
+	p = state->addr = (char*)malloc(state->maxlen + 2 * state->pagesize);
+
+	state->nwords = nwords;
+	state->nlines = nlines;
+	state->npages = npages;
+	state->lines = lines;
+	state->pages = pages;
+	state->words = words;
+
+	if (state->addr == NULL || pages == NULL)
+		return;
+
+	if ((unsigned long)p % state->pagesize) {
+		p += state->pagesize - (unsigned long)p % state->pagesize;
+	}
+	state->base = p;
+	state->initialized = 1;
+	mem_reset();
+}
+
+/*
+ * Create a circular list of pointers using a simple striding
+ * algorithm.  
+ * 
+ * This access pattern corresponds to many array/matrix
+ * algorithms.  It should be easily and correctly predicted
+ * by any decent hardware prefetch algorithm.
+ */
+void
+stride_initialize(iter_t iterations, void* cookie)
+{
+	struct mem_state* state = (struct mem_state*)cookie;
+	size_t	i;
+	size_t	range = state->len;
+	size_t	stride = state->line;
+	char*	addr;
+
+	base_initialize(iterations, cookie);
+	if (!state->initialized) return;
+	addr = state->base;
+
+	for (i = stride; i < range; i += stride) {
+		*(char **)&addr[i - stride] = (char*)&addr[i];
+	}
+	*(char **)&addr[i - stride] = (char*)&addr[0];
+	state->p[0] = addr;
+	mem_reset();
+}
+
+void
+thrash_initialize(iter_t iterations, void* cookie)
+{
+	int	npages;
+	struct mem_state* state = (struct mem_state*)cookie;
+	size_t *pages;
+	size_t	i;
+	size_t	j;
+	size_t	cur;
+	size_t	next;
+	size_t	start;
+	size_t	range = state->len;
+	size_t	stride = state->line;
+	char*	addr;
+
+	base_initialize(iterations, cookie);
+	if (!state->initialized) return;
+	addr = state->base;
+
+	/*
+	 * Create a circular list of pointers with a random access
+	 * pattern.
+	 *
+	 * This stream corresponds more closely to linked list
+	 * memory access patterns.  For large data structures each
+	 * access will likely cause both a cache miss and a TLB miss.
+	 * 
+	 * Access a different page each time.  This will eventually
+	 * cause a tlb miss each page.  It will also cause maximal
+	 * thrashing in the cache between the user data stream and
+	 * the page table entries.
+	 */
+	pages = state->pages;
+	cur = pages[0];
+	for (i = 0; i < state->nlines; ++i) {
+	    for (j = 0; j < state->npages; ++j) {
+		if (j < state->npages - 1) {
+		    next = pages[j + 1] + ((i + j + 1) % state->nlines) * state->line;
+		} else {
+		    next = pages[0] + ((i + 1) % state->nlines) * state->line;
+		}
+		*(char **)&addr[cur] = (char*)&addr[next];
+		cur = next;
+	    }
+	}
+	state->p[0] = (char*)&addr[pages[0]];
+	mem_reset();
+}
+
 /*
  * mem_initialize
  *
@@ -144,7 +267,7 @@ tlb_cleanup(iter_t iterations, void* cookie)
 void
 mem_initialize(iter_t iterations, void* cookie)
 {
-	int i, j, k, l, np, nw, nwords, nlines, nbytes, npages, nmpages, npointers;
+	int i, j, k, l, np, nw, nwords, nlines, nbytes, npages, npointers;
 	unsigned int r;
 	size_t    *pages;
 	size_t    *lines;
@@ -154,40 +277,23 @@ mem_initialize(iter_t iterations, void* cookie)
 
 	if (iterations) return;
 
+	base_initialize(iterations, cookie);
+	if (!state->initialized) return;
 	state->initialized = 0;
-	mem_reset();
 
 	npointers = state->len / state->line;
-	nbytes = state->len;
-	nwords = state->line / sizeof(char*);
-	nlines = state->pagesize / state->line;
-	npages = (nbytes + state->pagesize - 1) / state->pagesize;
-	nmpages= (state->maxlen + state->pagesize - 1) / state->pagesize;
-
-	srand(getpid());
-
-	words = words_initialize(nwords, sizeof(char*));
-	lines = words_initialize(nlines, state->line);
-	pages = permutation(nmpages, state->pagesize);
-	p = state->addr = (char*)malloc(state->maxlen + 2 * state->pagesize);
-
-	state->nwords = nwords;
-	state->nlines = nlines;
-	state->npages = npages;
-	state->lines = lines;
-	state->pages = pages;
-	state->words = words;
+	nwords = state->nwords;
+	nlines = state->nlines;
+	npages = state->npages;
+	words = state->words = words_initialize(nwords, sizeof(char*));
+	lines = state->lines = words_initialize(nlines, state->line);
+	pages = state->pages;
+	p = state->base;
 
 	if (state->addr == NULL \
 	    || pages == NULL || lines == NULL || words == NULL) {
 		return;
 	}
-
-	if ((unsigned long)p % state->pagesize) {
-		p += state->pagesize;
-		p -= (unsigned long)p % state->pagesize;
-	}
-	state->base = p;
 
 	/* setup the run through the pages */
 	l = 0;
@@ -242,40 +348,20 @@ line_initialize(iter_t iterations, void* cookie)
 
 	if (iterations) return;
 
+	base_initialize(iterations, cookie);
+	if (!state->initialized) return;
 	state->initialized = 0;
 
+	nlines = state->nlines;
+	npages = state->npages;
+	lines = state->lines = words_initialize(nlines, state->line);
+	pages = state->pages;
+	p = state->base;
+
 	state->width = 1;
-	nlines = state->pagesize / state->line;
-	npages = (state->len + state->pagesize - 1) / state->pagesize;
-
-	srand(getpid());
-
-	lines = words_initialize(nlines, state->line);
-	pages = permutation(npages, state->pagesize);
-	p     = state->addr = (char*)valloc(state->len + state->pagesize);
-
-	state->nwords = 0;
-	state->nlines = nlines;
-	state->npages = npages;
-	state->words = NULL;
-	state->lines = lines;
-	state->pages = pages;
 	
-	if (state->addr == NULL || state->lines == NULL || state->pages == NULL) {
-		if (state->lines) free(state->lines);
-		if (state->pages) free(state->pages);
-		if (state->addr)  free(state->addr);
-		state->lines = NULL;
-		state->pages = NULL;
-		state->addr = NULL;
+	if (state->addr == NULL || lines == NULL || pages == NULL)
 		return;
-	}
-
-	if ((unsigned long)p % state->pagesize) {
-		p += state->pagesize;
-		p -= (unsigned long)p % state->pagesize;
-	}
-	state->base = p;
 
 	/* new setup runs through the lines */
 	for (i = 0; i < npages; ++i) {
