@@ -41,7 +41,7 @@ int main(int ac, char **av)
 	state_t state;
 	int	parallel = 1;
 	char	buf[256];
-	char	c;
+	int	c;
 	char	*usage = "[-r] [-P <parallelism>] size file\n";
 	
 
@@ -67,13 +67,15 @@ int main(int ac, char **av)
 	}
 
 	state.size = bytes(av[optind]);
-	if (state.size < MINSIZE)	
-		lmbench_usage(ac, av, usage);
+	if (state.size < MINSIZE) {
+		return (1);
+	}
 	state.name = av[optind+1];
 
 	benchmp(init, domapping, cleanup,
 		0, parallel, &state);
 	micromb(state.size, get_n());
+	return (0);
 }
 
 void init(void * cookie)
