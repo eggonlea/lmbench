@@ -9,7 +9,6 @@
  */
 #define	 _LIB /* bench.h needs this */
 #include "bench.h"
-#include <setjmp.h>
 
 /* #define _DEBUG */
 
@@ -68,16 +67,16 @@ lmbench_usage(int argc, char *argv[], char* usage)
 	exit(-1);
 }
 
-jmp_buf	benchmp_sigchld_env;
-pid_t	benchmp_sigalrm_pid;
-int	benchmp_sigalrm_timeout;
+static pid_t	benchmp_sigalrm_pid;
+static int	benchmp_sigalrm_timeout;
+static int	benchmp_child_died;
 void (*benchmp_sigchld_handler)(int);
 void (*benchmp_sigalrm_handler)(int);
 
 void benchmp_sigchld(int signo)
 {
 	signal(SIGCHLD, SIG_IGN);
-	longjmp(benchmp_sigchld_env, 1);
+	benchmp_child_died = 1;
 }
 
 void benchmp_sigalrm(int signo)
@@ -177,18 +176,10 @@ void benchmp(support_f initialize,
 	}
 
 	/* fork the necessary children */
+	benchmp_child_died = 0;
 	signal(SIGTERM, SIG_IGN);
 	benchmp_sigchld_handler = signal(SIGCHLD, benchmp_sigchld);
 	pids = (pid_t*)malloc(parallel * sizeof(pid_t));
-	if (setjmp(benchmp_sigchld_env)) {
-		/* error exit, child died unexpectedly */
-#ifdef _DEBUG
-		fprintf(stderr, "BENCHMP: Child died unexpectedly\n");
-#endif /* _DEBUG */
-		settime(0);
-		save_n(1);
-		return;
-	}
 
 	for (i = 0; i < parallel; ++i) {
 #ifdef _DEBUG
@@ -282,67 +273,6 @@ void benchmp(support_f initialize,
 #endif
 }
 
-double bench(bench_f benchmark,
-	     uint64 iterations,
-	     int repetitions,
-	     int enough,
-	     void *cookie
-	)
-{
-	long i, N;
-	double result;
-
-#ifdef _DEBUG
-	fprintf(stderr, "bench(0x%x, %d, 0x%x): entering\n", (unsigned int)benchmark, enough, (unsigned int)cookie);
-#endif
-	N = (enough == 0 || get_enough(enough) <= 100000) ? repetitions : 1;
-	/* warm the cache */
-	if (enough < LONGER) {
-		result = measure(benchmark, 1, cookie);
-	}
-	for (i = 0; i < N; ++i) {
-		do {
-			result = measure(benchmark, iterations, cookie);
-			if (result < 0.99 * enough
-			    || result > 1.2 * enough) {
-				if (result > 150.) {
-					double	tmp = iterations / result;
-					tmp *= 1.1 * enough;
-					iterations = (uint64)(tmp + 1);
-				} else {
-					if (iterations > (uint64)1<<40) {
-						result = 0.;
-						break;
-					}
-					iterations <<= 3;
-				}
-			}
-		} while(result < 0.95 * enough);
-		if (gettime() > 0)
-			insertsort(gettime(), get_n(), get_results());
-#ifdef _DEBUG
-		fprintf(stderr, "bench(0x%x, %d, 0x%x): i=%d, gettime()=%lu, get_n()=%d\n", (unsigned int)benchmark, enough, (unsigned int)cookie, i, (unsigned long)gettime(), (int)get_n());
-#endif
-	}
-}
-
-double measure(bench_f benchmark, uint64 iterations, void *cookie)
-{
-	double result = 0.;
-
-	start(0);
-	(*benchmark)(iterations, cookie);
-	result = stop(0,0);
-	save_n(iterations);
-	result -= t_overhead() + get_n() * l_overhead();
-	settime(result >= 0. ? (uint64)result : 0.);
-
-#ifdef _DEBUG
-	fprintf(stderr, "measure(0x%x, %lu, 0x%x): result=%G\n", (unsigned int)benchmark, (unsigned long)iterations, (unsigned int)cookie, result);
-#endif
-
-	return result;
-}
 
 typedef enum { warmup, timing_interval, cooldown } benchmp_state;
 
@@ -371,7 +301,7 @@ static benchmp_child_state _benchmp_child_state;
 void*
 benchmp_getstate()
 {
-	return (void*)&_benchmp_child_state;
+	return ((void*)&_benchmp_child_state);
 }
 
 uint64
@@ -457,7 +387,7 @@ benchmp_interval(void* _state)
 		}
 	};
 	start(0);
-	return iterations;
+	return (iterations);
 }
 
 void 
@@ -512,65 +442,13 @@ benchmp_child(support_f initialize,
 	if (initialize)
 		(*initialize)(cookie);
 
-	/* work, and poll for 'start'  */
-	FD_ZERO(&fds);
-	while (!FD_ISSET(start_signal, &fds)) {
-		result = measure(benchmark, iterations_batch, cookie);
-		if (need_warmup) {
-			need_warmup = 0;
-			/* send 'ready' */
-			write(response, &i, sizeof(int));
-		}
-		FD_SET(start_signal, &fds);
-		select(start_signal+1, &fds, NULL,
-		       NULL, &timeout);
-	}
-
-	/* find out how much work to do */
-	read(start_signal, &iterations, sizeof(uint64));
-
 	/* start experiments, collecting results */
 	insertinit(_benchmp_child_state.r);
-	if (parallel > 1) {
-		for (i = 0; i < repetitions; ++i) {
-			result = measure(benchmark, iterations, cookie);
-			insertsort(gettime(), get_n(), _benchmp_child_state.r);
-		}
-	} else {
-		bench(benchmark, iterations, repetitions, enough, cookie);
+
+	start(0);
+	while (1) {
+		(*benchmark)(benchmp_interval(&_benchmp_child_state), cookie);
 	}
-
-	/* send results and 'done' */
-#ifdef _DEBUG
-	fprintf(stderr, "\tchild results: N=%d, gettime()=%lu, get_n()=%lu\n", _benchmp_child_state.r->N, (unsigned long)gettime(), (unsigned long)get_n());
-	if (_benchmp_child_state.r->N < 0 || _benchmp_child_state.r->N > repetitions) 
-		fprintf(stderr, "***Bad results!***\n");
-	{
-		int k;
-		for (k = 0; k < _benchmp_child_state.r->N; ++k) {
-			fprintf(stderr, "\t\t{%lu, %lu}\n", (unsigned long)_benchmp_child_state.r->v[k].u, (unsigned long)_benchmp_child_state.r->v[k].n);
-		}
-	}
-#endif //_DEBUG
-	write(response, _benchmp_child_state.r, _benchmp_child_state.r_size);
-
-	/* keep working, poll for 'exit' */
-	FD_ZERO(&fds);
-	while (!FD_ISSET(exit_signal, &fds)) {
-		result = measure(benchmark, iterations_batch, cookie);
-		FD_SET(exit_signal, &fds);
-		select(exit_signal+1, &fds, NULL, NULL, &timeout);
-	}
-
-	/* exit */
-	close(response);
-	close(start_signal);
-	/* close(exit_signal); */
-
-	if (cleanup)
-		(*cleanup)(cookie);
-
-	exit(0);
 }
 
 void
@@ -589,25 +467,51 @@ benchmp_parent(	int response,
 	result_t*	results;
 	result_t*	merged_results;
 	unsigned char*	buf;
+	fd_set		fds_read, fds_error;
+	struct timeval	timeout;
+
+	if (benchmp_child_died) {
+		goto error_exit;
+	}
 
 	results = (result_t*)malloc(parallel * sizeof_result(repetitions));;
 	bzero(results, parallel * sizeof_result(repetitions));
+	FD_ZERO(&fds_read);
+	FD_ZERO(&fds_error);
+	timeout.tv_sec = 1;
+	timeout.tv_usec = 0;
 
 	merged_results = (result_t*)malloc(sizeof_result(parallel * repetitions));
 	bzero(merged_results, sizeof_result(parallel * repetitions));
 
 	/* Collect 'ready' signals */
 	for (i = 0; i < parallel * sizeof(int); i += bytes_read) {
+		bytes_read = 0;
+		FD_SET(response, &fds_read);
+		FD_SET(response, &fds_error);
+
+		select(response+1, &fds_read, NULL, &fds_error, &timeout);
+		if (benchmp_child_died || FD_ISSET(response, &fds_error)) {
+			goto error_exit;
+		}
+		if (!FD_ISSET(response, &fds_read)) {
+			continue;
+		}
+
 		bytes_read = read(response, results, parallel * sizeof(int) - i);
 		if (bytes_read < 0) {
-			/* error exit */
-			break;
+			goto error_exit;
 		}
 	}
 
 	/* let the children run for warmup microseconds */
-	if (warmup > 0) 
-		usleep(warmup);
+	if (warmup > 0) {
+		struct timeval timeout;
+		timeout.tv_sec = warmup / 1000000;
+		timeout.tv_usec = warmup % 1000000;
+
+		select(0, NULL, NULL, NULL, &timeout);
+	}
 
 	/* calculate iterations for 1sec runtime */
 	iterations = get_n();
@@ -627,13 +531,25 @@ benchmp_parent(	int response,
 	for (i = 0, buf = (unsigned char*)results; 
 	     i < parallel * sizeof(result_t); 
 	     i += bytes_read, buf += bytes_read) {
+		bytes_read = 0;
+		FD_SET(response, &fds_read);
+		FD_SET(response, &fds_error);
+
+		select(response+1, &fds_read, NULL, &fds_error, &timeout);
+		if (benchmp_child_died || FD_ISSET(response, &fds_error)) {
+			goto error_exit;
+		}
+		if (!FD_ISSET(response, &fds_read)) {
+			continue;
+		}
+
 		bytes_read = read(response, buf, parallel * sizeof_result(repetitions) - i);
 		if (bytes_read < 0) {
-			/* error exit */
 #ifdef _DEBUG
 			fprintf(stderr, "Only read %d/%d bytes of results!\n", i, parallel * sizeof(result_t));
 #endif /* _DEBUG */
-			break;
+			goto error_exit;
+
 		}
 	}
 
@@ -674,6 +590,10 @@ benchmp_parent(	int response,
 		}
 	}
 #endif
+	goto cleanup_exit;
+error_exit:
+	free(merged_results);
+cleanup_exit:
 	close(response);
 	close(start_signal);
 	close(exit_signal);
@@ -723,7 +643,7 @@ stop(struct timeval *begin, struct timeval *end)
 	if (begin == NULL) {
 		begin = &start_tv;
 	}
-	return tvdelta(begin, end);
+	return (tvdelta(begin, end));
 }
 
 uint64
@@ -1107,8 +1027,8 @@ int
 sizeof_result(int repetitions)
 {
 	if (repetitions <= TRIES)
-		return sizeof(result_t);
-	return sizeof(result_t) + (repetitions - TRIES) * sizeof(value_t);
+		return (sizeof(result_t));
+	return (sizeof(result_t) + (repetitions - TRIES) * sizeof(value_t));
 }
 
 void
@@ -1154,7 +1074,7 @@ print_results(void)
 result_t*
 get_results()
 {
-	return results;
+	return (results);
 }
 
 void
@@ -1228,7 +1148,7 @@ l_overhead(void)
 	result_t one, two, *r_save;
 
 	init_timing();
-	if (initialized) return overhead;
+	if (initialized) return (overhead);
 
 	initialized = 1;
 	if (getenv("LOOP_O")) {
@@ -1262,7 +1182,7 @@ l_overhead(void)
 
 		set_results(r_save); save_n(N_save); settime(u_save); 
 	}
-	return overhead;
+	return (overhead);
 }
 
 /*
@@ -1278,7 +1198,7 @@ t_overhead(void)
 	result_t	*r_save;
 
 	init_timing();
-	if (initialized) return overhead;
+	if (initialized) return (overhead);
 
 	initialized = 1;
 	if (getenv("TIMING_O")) {
@@ -1301,7 +1221,7 @@ t_overhead(void)
 
 		set_results(r_save); save_n(N_save); settime(u_save); 
 	}
-	return overhead;
+	return (overhead);
 }
 
 /*
@@ -1341,7 +1261,7 @@ enough_duration(register long N, register TYPE ** p)
 	while (N-- > 0) {
 		ENOUGH_DURATION_TEN(p = (TYPE **) *p;);
 	}
-	return p;
+	return (p);
 }
 
 static uint64
@@ -1355,7 +1275,7 @@ duration(long N)
 	p = enough_duration(N, p);
 	usecs = stop(0, 0);
 	use_pointer((void *)p);
-	return usecs;
+	return (usecs);
 }
 
 /*
@@ -1379,7 +1299,7 @@ time_N(long N)
 	save_minimum();
 	usecs = gettime();
 	set_results(r_save);
-	return usecs;
+	return (usecs);
 }
 
 /*
@@ -1396,7 +1316,7 @@ find_N(int enough)
 
 	for (tries = 0; tries < 10; ++tries) {
 		if (0.98 * enough < usecs && usecs < 1.02 * enough)
-			return N;
+			return (N);
 		if (usecs < 1000)
 			N *= 10;
 		else {
@@ -1408,7 +1328,7 @@ find_N(int enough)
 		}
 		usecs = time_N(N);
 	}
-	return -1;
+	return (-1);
 }
 
 /*
@@ -1423,7 +1343,7 @@ test_time(int enough)
 	uint64	usecs, expected, baseline, diff;
 
 	if ((N = find_N(enough)) <= 0)
-		return 0;
+		return (0);
 
 	baseline = time_N(N);
 
@@ -1432,9 +1352,9 @@ test_time(int enough)
 		expected = (uint64)((double)baseline * test_points[i]);
 		diff = expected > usecs ? expected - usecs : usecs - expected;
 		if (diff / (double)expected > 0.0025)
-			return 0;
+			return (0);
 	}
-	return 1;
+	return (1);
 }
 
 
@@ -1452,14 +1372,14 @@ compute_enough()
 	}
 	for (i = 0; i < sizeof(possibilities) / sizeof(int); ++i) {
 		if (test_time(possibilities[i]))
-			return possibilities[i];
+			return (possibilities[i]);
 	}
 
 	/* 
 	 * if we can't find a timing interval that is sufficient, 
 	 * then use SHORT as a default.
 	 */
-	return SHORT;
+	return (SHORT);
 }
 
 /*
@@ -1496,7 +1416,7 @@ touch(char *buf, int nbytes)
 int
 getpagesize()
 {
-	return sysconf(_SC_PAGE_SIZE);
+	return (sysconf(_SC_PAGE_SIZE));
 }
 #endif
 
@@ -1507,7 +1427,7 @@ getpagesize()
 	SYSTEM_INFO s;
 
 	GetSystemInfo(&s);
-	return (int)s.dwPageSize;
+	return ((int)s.dwPageSize);
 }
 
 LARGE_INTEGER
@@ -1528,7 +1448,7 @@ getFILETIMEoffset()
 	t.QuadPart = f.dwHighDateTime;
 	t.QuadPart <<= 32;
 	t.QuadPart |= f.dwLowDateTime;
-	return t;
+	return (t);
 }
 
 int
@@ -1567,6 +1487,6 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 	t.QuadPart = microseconds;
 	tv->tv_sec = t.QuadPart / 1000000;
 	tv->tv_usec = t.QuadPart % 1000000;
-	return 0;
+	return (0);
 }
 #endif
