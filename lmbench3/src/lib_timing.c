@@ -210,6 +210,7 @@ benchmp(support_f initialize,
 	benchmp_sigterm_handler = signal(SIGTERM, benchmp_sigterm);
 	benchmp_sigterm_handler = signal(SIGCHLD, benchmp_sigchld);
 	pids = (pid_t*)malloc(parallel * sizeof(pid_t));
+	if (!pids) return;
 	bzero((void*)pids, parallel * sizeof(pid_t));
 
 	for (i = 0; i < parallel; ++i) {
@@ -324,8 +325,8 @@ benchmp_parent(	int response,
 {
 	int		i,j,k,l;
 	int		bytes_read;
-	result_t*	results;
-	result_t*	merged_results;
+	result_t*	results = NULL;
+	result_t*	merged_results = NULL;
 	unsigned char*	buf;
 	fd_set		fds_read, fds_error;
 	struct timeval	timeout;
@@ -338,15 +339,16 @@ benchmp_parent(	int response,
 	}
 
 	results = (result_t*)malloc(parallel * sizeof_result(repetitions));;
+	merged_results = (result_t*)malloc(sizeof_result(parallel * repetitions));
+	if (!results || !merged_results) return;
 	bzero(results, parallel * sizeof_result(repetitions));
+	bzero(merged_results, sizeof_result(parallel * repetitions));
+	insertinit(merged_results);
+
 	FD_ZERO(&fds_read);
 	FD_ZERO(&fds_error);
 	timeout.tv_sec = 1;
 	timeout.tv_usec = 0;
-
-	merged_results = (result_t*)malloc(sizeof_result(parallel * repetitions));
-	bzero(merged_results, sizeof_result(parallel * repetitions));
-	insertinit(merged_results);
 
 	/* Collect 'ready' signals */
 	for (i = 0; i < parallel * sizeof(char); i += bytes_read) {
@@ -401,7 +403,7 @@ benchmp_parent(	int response,
 		    || FD_ISSET(response, &fds_error)) 
 		{
 #ifdef _DEBUG
-			fprintf(stderr, "benchmp_parent: done, benchmp_child_diied=%d\n", benchmp_sigchld_received);
+			fprintf(stderr, "benchmp_parent: done, benchmp_child_died=%d\n", benchmp_sigchld_received);
 #endif
 			goto error_exit;
 		}
@@ -593,6 +595,7 @@ benchmp_child(support_f initialize,
 	_benchmp_child_state.r_size = sizeof_result(repetitions);
 	_benchmp_child_state.r = (result_t*)malloc(_benchmp_child_state.r_size);
 
+	if (!_benchmp_child_state.r) return;
 	insertinit(_benchmp_child_state.r);
 	set_results(_benchmp_child_state.r);
 
@@ -638,7 +641,7 @@ benchmp_interval(void* _state)
 	settime(result >= 0. ? (uint64)result : 0.);
 
 	/* if the parent died, then give up */
-	if (getppid() == 1) {
+	if (getppid() == 1 && state->cleanup) {
 		(*state->cleanup)(state->cookie);
 		exit(0);
 	}
