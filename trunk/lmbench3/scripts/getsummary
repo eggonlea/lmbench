@@ -378,6 +378,20 @@ foreach $file (@ARGV) {
 			if ($lat_mem_rd_type == 1) {
 				push(@lat_mem, $save);
 			}
+		}
+		if (/^"stride=16/) {
+			$save = -1;
+			while (<FD>) {
+				if (/^\s*$/) {
+					last;
+				}
+				@_ = split;
+				$size = $_[0];
+				$save = $_[1];
+			}
+			if ($size < 8.0) {
+				warn "$file: No 8MB random access memory latency, using $size\n";
+			}
 			if ($lat_mem_rd_type == 2) {
 				warn "$file: lat_mem_rand = $save\n";
 				push(@lat_mem_rand, $save);
