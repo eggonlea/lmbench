@@ -24,6 +24,7 @@
 SHELL=/bin/sh
 
 CC = `../scripts/compiler`
+MAKE = `../scripts/make`
 AR = ar
 ARCREATE = cr
 BASE=/usr/local		# base of installation location
@@ -37,7 +38,7 @@ CONFIG=../bin/$(OS)/`../scripts/config`
 UTILS=../scripts/target ../scripts/os ../scripts/gnu-os ../scripts/compiler \
 	../scripts/info ../scripts/info-template ../scripts/version \
 	../scripts/config ../scripts/config-run ../scripts/results \
-	../scripts/lmbench
+	../scripts/lmbench ../scripts/make
 INSTALL=cp
 RESULTS=Results/$(OS)
 SAMPLES=lmbench/Results/aix/rs6000 lmbench/Results/hpux/snake \
@@ -59,8 +60,8 @@ SRCS =  bench.h bw_file_rd.c bw_mmap_rd.c 				\
 	memsize.c bw_unix.c lat_unix.c lmdd.c loop_o.c timing_o.c	\
 	timing.h stats.h lib_tcp.h lib_udp.h  enough.c lat_select.c	\
 	msleep.c bw_mem.c lat_fifo.c lmhttp.c lat_http.c	\
-	disk.c flushdisk.c lat_unix_connect.c lib_unix.c lib_stats.c \
-	lib_unix.h names.h version.h
+	disk.c flushdisk.c lat_unix_connect.c lat_fcntl.c \
+	lib_unix.c lib_stats.c lib_unix.h names.h version.h
 
 EXES =	$O/bw_file_rd $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp $O/hello	\
 	$O/lat_select $O/lat_pipe $O/lat_rpc $O/lat_syscall $O/lat_tcp	\
@@ -68,7 +69,7 @@ EXES =	$O/bw_file_rd $O/bw_mmap_rd $O/bw_pipe $O/bw_tcp $O/hello	\
 	$O/lat_connect $O/lat_fs $O/lat_sig $O/lat_mem_rd $O/lat_ctx	\
 	$O/memsize $O/lat_unix $O/bw_unix $O/lmdd $O/timing_o $O/enough	\
 	$O/msleep $O/loop_o $O/bw_mem $O/lat_fifo $O/lmhttp $O/lat_http	\
-	$O/disk $O/lat_unix_connect $O/flushdisk
+	$O/lat_fcntl $O/disk $O/lat_unix_connect $O/flushdisk
 
 MAN1 =	lmdd.1 $D/bargraph.1 $D/graph.1 $D/pgraph.1 $D/rccs.1
 
@@ -118,23 +119,23 @@ install-target:
 
 
 # No special handling for all these
-all irix osf1 aix bsdi linux ultrix sunos unknown: $(EXES)
+all irix osf1 bsd bsdi linux ultrix sunos unknown: $(EXES)
 
 # System specific stuff.
 solaris:
 	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
-	$(MAKE) CC="$(CC)" O=$(BINDIR) LDLIBS="-lnsl -lsocket" SYS5=-DSYS5 all
+	$(MAKE) CC="$(CC)" O=$(BINDIR) CF="-DSOLARIS" LDLIBS="-lnsl -lsocket" SYS5=-DSYS5 all
+
+aix:
+	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
+	$(MAKE) CC="$(CC)" CF="-Dvalloc=malloc" O=$(BINDIR) all
 
 hpux:
 	@echo ======================================
 	@echo If you have gcc, try "make -e CC=gcc"
 	@echo ======================================
 	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
-	$(MAKE) CC="$(CC)" O=$(BINDIR) CFLAGS="$(CFLAGS) -Dvalloc=malloc" all
-
-bsd:
-	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
-	$(MAKE) CC="$(CC)" CFLAGS="$(CFLAGS)" O=$(BINDIR) all
+	$(MAKE) CC="$(CC)" CF="-Dvalloc=malloc" O=$(BINDIR) all
 
 Wall:
 	@if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
@@ -174,6 +175,9 @@ $O/lmbench.a: lib_timing.c lib_tcp.c lib_udp.c lib_unix.c lib_stats.c getopt.c b
 	/bin/rm -f $O/lmbench.a
 	$(AR) $(ARCREATE) $O/lmbench.a $(LIBOBJS)
 	-ranlib $O/lmbench.a
+
+$(UTILS) :
+	cd ../scripts; make get
 
 # Do not remove the next line, $(MAKE) depend needs it
 # MAKEDEPEND follows
@@ -236,6 +240,9 @@ $O/lat_unix_connect:  lat_unix_connect.c lib_tcp.c bench.h lib_tcp.h timing.h st
 
 $O/lat_fs:  lat_fs.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/lat_fs lat_fs.c $O/lmbench.a $(LDLIBS)
+
+$O/lat_fcntl:  lat_fcntl.c timing.h stats.h bench.h $O/lmbench.a
+	$(COMPILE) -o $O/lat_fcntl lat_fcntl.c $O/lmbench.a $(LDLIBS)
 
 $O/lat_mem_rd:  lat_mem_rd.c timing.h stats.h bench.h $O/lmbench.a
 	$(COMPILE) -o $O/lat_mem_rd lat_mem_rd.c $O/lmbench.a $(LDLIBS)
