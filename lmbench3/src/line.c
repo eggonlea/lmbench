@@ -101,9 +101,9 @@ main(int ac, char **av)
 		
 		if (i > 2 && times[i] / times[2] > 1.25) {
 			if (verbose) {
-				fprintf(stderr, "cache line size: %d bytes\n", l);
+				printf("cache line size: %d bytes\n", l);
 			} else {
-				fprintf(stderr, "%d\n", l);
+				printf("%d\n", l);
 			}
 			break;
 		}
