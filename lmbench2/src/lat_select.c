@@ -42,5 +42,5 @@ main(int ac, char **av)
 	BENCH(doit(last, &set), 0);
 	sprintf(buf, "Select on %d fd's", fd);
 	micro(buf, get_n());
-	return(0);
+	exit(0);
 }
