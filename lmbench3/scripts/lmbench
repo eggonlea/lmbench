@@ -264,7 +264,7 @@ lat_connect -S localhost
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_TCP = XYES ]; then
 	echo "" 1>&2
-	echo "Socket bandwidth using $i" 1>&2
+	echo "Socket bandwidth using localhost" 1>&2
 	for m in 1 64 128 256 512 1024 1437 10M; do
 		bw_tcp -m $m localhost; 
 	done
