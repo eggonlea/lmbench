@@ -91,7 +91,15 @@ done
 if [ -r /proc/meminfo ]
 then	TMP=`grep 'Mem:' /proc/meminfo | awk '{print $2}'`
 	if [ X$TMP != X ]
-	then	TMP=`echo \(\( $TMP / 1048576 \) \* 7 \) / 10 | bc`
+	then	XTMP=`echo \(\( $TMP / 1048576 \) \* 7 \) / 10 | bc`
+	fi
+	if [ X$XTMP = X ]
+	then	XTMP=`expr $TMP / 1048576`
+		XTMP=`expr $TMP \* 7`
+		XTMP=`expr $TMP / 10`
+	fi
+	if [ X$XTMP != X -a $XTMP -gt 0 ]
+	then	TMP=$XTMP
 	fi
 fi
 if [ X$TMP != X ]
