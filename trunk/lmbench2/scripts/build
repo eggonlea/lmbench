@@ -1,0 +1,49 @@
+#!/bin/sh
+
+CC=`../scripts/compiler`
+OS=`../scripts/os`
+TARGET=`../scripts/target`
+BINDIR="../bin/${OS}"
+CONFIG="../bin/${OS}/`../scripts/config`"
+
+# figure out which make to use
+if [ X$MAKE = X ]
+then    MAKE=make
+        for p in `echo $PATH | sed 's/:/ /g'`
+        do      if [ -x $p/gmake ]
+                then    MAKE=gmake
+                fi
+        done
+fi
+
+# check for HP-UX's ANSI compiler
+if [ X$CC = "Xcc" ]
+then
+	echo "main(int ac, char *av[]) { int i; }" > $$.c
+	${CC} -o $$ $$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -Ae"
+	rm -f $$ $$.c
+fi
+	
+# check for bcopy (optionally set the SYS5 flag)
+echo "#include <string.h>" > $$.c
+echo "main() { char buf1[256]; char buf2[256]; bcopy(buf1, buf2, 256); }" >> $$.c
+${CC} -o $$ $$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -DSYS5"
+rm -f $$ $$.c
+
+# check for valloc
+echo "#include <stdlib.h>" > $$.c
+echo "main() { char* buf = valloc(123); }" >> $$.c
+${CC} -o $$ $$.c 1>/dev/null 2>/dev/null || CFLAGS="${CFLAGS} -Dvalloc=malloc"
+rm -f $$ $$.c
+
+# check for -lnsl -lsocket
+echo "main() { int i; }" >> $$.c
+${CC} -o $$ $$.c -lnsl -lsocket 1>/dev/null 2>/dev/null && LDLIBS="${LDLIBS} -lnsl -lsocket"
+rm -f $$ $$.c
+
+
+# echo Building for $(TARGET)
+if [ ! -d ${BINDIR} ]; then mkdir -p ${BINDIR}; fi
+
+# now go ahead and build everything!
+${MAKE} CC="${CC}" CFLAGS="${CFLAGS}" LDLIBS="${LDLIBS}" O="${BINDIR}" all
