@@ -44,14 +44,14 @@ void	cleanup(void *cookie);
 
 typedef struct _state {
 	double	overhead;
-	int	nbytes;
+	size_t	nbytes;
 	int	need_buf2;
 	int	aligned;
 	TYPE	*buf;
 	TYPE	*buf2;
 	TYPE	*buf2_orig;
 	TYPE	*lastone;
-	int	N;
+	size_t	N;
 } state_t;
 
 void	adjusted_bandwidth(uint64 t, uint64 b, uint64 iter, double ovrhd);
@@ -61,7 +61,7 @@ int main(int ac, char **av)
 	int	parallel = 1;
 	int	warmup = 0;
 	int	repetitions = TRIES;
-	int	nbytes;
+	size_t	nbytes;
 	state_t	state;
 	int	c;
 	char	*usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> what [conflict]\nwhat: rd wr rdwr cp fwr frd fcp bzero bcopy\n<size> must be larger than 512";
@@ -407,7 +407,7 @@ loop_bzero(iter_t iterations, void *cookie)
 	state_t *state = (state_t *) cookie;
 	register TYPE *p = state->buf;
 	register TYPE *dst = state->buf2;
-	register int  N = state->N;
+	register size_t  N = state->N;
 
 	while (iterations-- > 0) {
 		bzero(p, N);
@@ -420,7 +420,7 @@ loop_bcopy(iter_t iterations, void *cookie)
 	state_t *state = (state_t *) cookie;
 	register TYPE *p = state->buf;
 	register TYPE *dst = state->buf2;
-	register int  N = state->N;
+	register size_t  N = state->N;
 
 	while (iterations-- > 0) {
 		bcopy(p,dst,N);

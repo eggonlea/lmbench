@@ -25,7 +25,7 @@ char	*id = "$Id$\n";
 
 
 typedef struct _state {
-	int	size;
+	size_t	size;
 	int	fd;
 	int	random;
 	int	clone;
@@ -134,7 +134,7 @@ void domapping(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	register int fd = state->fd;
-	register int size = state->size;
+	register size_t size = state->size;
 	register int random = state->random;
 	register char	*p, *where, *end;
 	register char	c = size & 0xff;
