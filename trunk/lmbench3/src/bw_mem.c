@@ -50,6 +50,7 @@ typedef struct _state {
 	int	aligned;
 	TYPE	*buf;
 	TYPE	*buf2;
+	TYPE	*buf2_orig;
 	TYPE	*lastone;
 } state_t;
 
@@ -162,7 +163,7 @@ void init_overhead(void *cookie)
 	bzero((void*)state->buf, state->nbytes);
 
 	if (state->need_buf2 == 1) {
-		state->buf2 = (TYPE *)valloc(state->nbytes + 2048);
+		state->buf2_orig = state->buf2 = (TYPE *)valloc(state->nbytes + 2048);
 		if (!state->buf2) {
 			perror("malloc");
 			exit(1);
@@ -191,7 +192,7 @@ void cleanup(void *cookie)
 	state_t *state = (state_t *) cookie;
 	free(state->buf);
 	if (state->need_buf2 == 1) {
-		free(state->buf2);
+		free(state->buf2_orig);
 	}
 }
 
@@ -284,7 +285,7 @@ cp(uint64 iterations, void *cookie)
 	while (iterations-- > 0) {
 	    register TYPE *p = state->buf;
 	    register TYPE *dst = state->buf2;
-	    while (p <= lastone) {
+	    while (dst <= lastone) {
 #define	DOIT(i)	dst[i] = p[i];
 		DOIT(0) DOIT(4) DOIT(8) DOIT(12) DOIT(16) DOIT(20) DOIT(24)
 		DOIT(28) DOIT(32) DOIT(36) DOIT(40) DOIT(44) DOIT(48) DOIT(52)
@@ -392,7 +393,7 @@ fcp(uint64 iterations, void *cookie)
 	while (iterations-- > 0) {
 	    register TYPE *p = state->buf;
 	    register TYPE *dst = state->buf2;
-	    while (p <= lastone) {
+	    while (dst <= lastone) {
 #define	DOIT(i)	dst[i]=p[i];
 		DOIT(0) DOIT(1) DOIT(2) DOIT(3) DOIT(4) DOIT(5) DOIT(6)
 		DOIT(7) DOIT(8) DOIT(9) DOIT(10) DOIT(11) DOIT(12)
