@@ -113,6 +113,8 @@ initialize(void* cookie)
 		perror("create");
 		exit(1);
 	}
+	unlink(state->filename1);
+	unlink(state->filename2);
 	write(state->fd1, buf, sizeof(buf));
 	write(state->fd2, buf, sizeof(buf));
 	lock.l_type = F_WRLCK;
@@ -141,6 +143,7 @@ initialize(void* cookie)
 	default:
 		break;
 	}
+	exit(0);
 }
 
 void
@@ -161,9 +164,6 @@ cleanup(void* cookie)
 
 	close(state->fd1);
 	close(state->fd2);
-
-	unlink(state->filename1);
-	unlink(state->filename2);
 
 	if (state->pid) kill(state->pid, SIGKILL);
 	state->pid = 0;
@@ -205,7 +205,7 @@ main(int ac, char **av)
 
 	benchmp(initialize, benchmark, cleanup, 0, parallel, 
 		warmup, repetitions, &state);
-	micro("Fcntl lock latency", get_n());
+	micro("Fcntl lock latency", 2 * get_n());
 
 	return (0);
 }
