@@ -116,17 +116,19 @@ do_prot(uint64 iterations, void* cookie)
  * Cost of catching the signal less the cost of sending it
  */
 void
-bench_catch(int parallel)
+bench_catch(int parallel, int warmup, int repetitions)
 {
 	uint64 t, send_usecs, send_n;
 
 	/* measure cost of sending signal */
-	benchmp(NULL, do_send, NULL, 0, parallel, NULL);
+	benchmp(NULL, do_send, NULL, 0, parallel, 
+		warmup, repetitions, NULL);
 	send_usecs = gettime();
 	send_n = get_n();
 
 	/* measure cost of sending & catching signal */
-	benchmp(NULL, do_catch, NULL, 0, parallel, NULL);
+	benchmp(NULL, do_catch, NULL, 0, parallel, 
+		warmup, repetitions, NULL);
 
 	/* subtract cost of sending signal */
 	if (gettime() > (send_usecs * get_n()) / send_n) {
@@ -137,7 +139,7 @@ bench_catch(int parallel)
 }
 
 void
-bench_prot(char* fname, int parallel)
+bench_prot(char* fname, int parallel, int warmup, int repetitions)
 {
 	uint64 catch_usecs, catch_n;
 	struct _state state;
@@ -148,11 +150,12 @@ bench_prot(char* fname, int parallel)
 	 * Catch protection faults.
 	 * Assume that they will cost the same as a normal catch.
 	 */
-	bench_catch(parallel);
+	bench_catch(parallel, warmup, repetitions);
 	catch_usecs = gettime();
 	catch_n = get_n();
 
-	benchmp(initialize, do_prot, NULL, 0, parallel, &state);
+	benchmp(initialize, do_prot, NULL, 0, parallel, 
+		warmup, repetitions, &state);
 	if (gettime() > (catch_usecs * get_n()) / catch_n) {
 		settime(gettime() - (catch_usecs * get_n()) / catch_n);
 	} else {
@@ -165,14 +168,22 @@ int
 main(int ac, char **av)
 {
 	int parallel = 1;
+	int warmup = 0;
+	int repetitions = TRIES;
 	int c;
-	char* usage = "[-P <parallelism>] install|catch|prot [file]\n";
+	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] install|catch|prot [file]\n";
 
-	while (( c = getopt(ac, av, "P:")) != EOF) {
+	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -184,16 +195,17 @@ main(int ac, char **av)
 	}
 
 	if (!strcmp("install", av[optind])) {
-		benchmp(NULL, do_install, NULL, 0, parallel, NULL);
+		benchmp(NULL, do_install, NULL, 0, parallel, 
+			warmup, repetitions, NULL);
 		micro("Signal handler installation", get_n());
 	} else if (!strcmp("catch", av[optind])) {
-		bench_catch(parallel);
+		bench_catch(parallel, warmup, repetitions);
 		micro("Signal handler overhead", get_n());
 	} else if (!strcmp("prot", av[optind]) && optind == ac - 2) {
-		bench_prot(av[optind+1], parallel);
+		bench_prot(av[optind+1], parallel, warmup, repetitions);
 		micro("Protection fault", get_n());
 	} else {
-		lmbench_usage(av[optind+1], usage);
+		lmbench_usage(ac, av[optind+1], usage);
 	}
 	return(0);
 }

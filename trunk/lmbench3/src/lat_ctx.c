@@ -1,7 +1,7 @@
 /*
  * lat_ctx.c - context switch timer 
  *
- * usage: lat_ctx [-P parallelism] [-s size] #procs [#procs....]
+ * usage: lat_ctx [-P parallelism] [-W <warmup>] [-N <repetitions>] [-s size] #procs [#procs....]
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -52,12 +52,12 @@ main(int ac, char **av)
 	int	i;
 	int	c;
 	int	parallel = 1;
+	int	warmup = 0;
+	int	repetitions = TRIES;
 	struct _state state;
-	char *usage = "[-P <parallelism>] [-s kbytes] processes [processes ...]\n";
+	char *usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] [-s kbytes] processes [processes ...]\n";
 	double	time;
 
-	if (ac < 2)
-		lmbench_usage(ac, av, usage);
 	/*
 	 * Need 4 byte ints.
 	 */
@@ -72,7 +72,7 @@ main(int ac, char **av)
 	/*
 	 * If they specified a context size, or parallelism level, get them.
 	 */
-	while (( c = getopt(ac, av, "s:P:")) != EOF) {
+	while (( c = getopt(ac, av, "s:P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
@@ -87,6 +87,9 @@ main(int ac, char **av)
 		}
 	}
 
+	if (optind >= ac - 1)
+		lmbench_usage(ac, av, usage);
+
 #if	defined(sgi) && defined(PIN)
 	ncpus = sysmp(MP_NPROCS);
 	sysmp(MP_MUSTRUN, 0);
@@ -95,12 +98,14 @@ main(int ac, char **av)
 	for (i = optind; i < ac; ++i) {
 		state.procs = atoi(av[i]);
 		benchmp(initialize_overhead, benchmark_overhead,
-			cleanup_overhead, 0, parallel, &state);
+			cleanup_overhead, 0, parallel, 
+			warmup, repetitions, &state);
 		if (gettime() == 0) continue;
 		state.overhead = gettime();
 		state.overhead /= get_n();
 
-		benchmp(initialize, benchmark, cleanup, 0, parallel, &state);
+		benchmp(initialize, benchmark, cleanup, 0, parallel, 
+			warmup, repetitions, &state);
 		if (gettime() == 0) continue;
 
 		time = gettime();
@@ -213,10 +218,8 @@ void cleanup(void* cookie)
 			waitpid(pState->pids[i], NULL, 0);
 		}
 	}
-
 	cleanup_overhead(cookie);
-};
-
+}
 
 void
 benchmark(uint64 iterations, void* cookie)

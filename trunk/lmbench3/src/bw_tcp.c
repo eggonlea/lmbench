@@ -3,7 +3,7 @@
  *
  * Three programs in one -
  *	server usage:	bw_tcp -s
- *	client usage:	bw_tcp [-P <parallelism>] hostname [bytes]
+ *	client usage:	bw_tcp [-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] hostname [bytes]
  *	shutdown:	bw_tcp -hostname
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
@@ -32,11 +32,13 @@ void	loop_transfer(uint64 iter, void *cookie);
 
 int main(int ac, char **av)
 {
-	int parallel = 1;
+	int	parallel = 1;
+	int	warmup = 0;
+	int	repetitions = TRIES;
 	int	server = 0;
 	int	shutdown = 0;
 	state_t state;
-	char	*usage = "-s\n OR [-m <message size>] [-P <parallelism>] server [size]\n OR -S serverhost\n";
+	char	*usage = "-s\n OR [-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] server [size]\n OR -S serverhost\n";
 	int	c;
 	uint64	usecs;
 	
@@ -44,7 +46,7 @@ int main(int ac, char **av)
 	state.move = 10*1024*1024;
 
 	/* Rest is client argument processing */
-	while (( c = getopt(ac, av, "sSm:P:")) != EOF) {
+	while (( c = getopt(ac, av, "sSm:P:W:N:")) != EOF) {
 		switch(c) {
 		case 's': /* Server */
 			server = 1;
@@ -58,6 +60,12 @@ int main(int ac, char **av)
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -108,7 +116,7 @@ int main(int ac, char **av)
 	 * Make one run take at least 5 seconds.
 	 * This minimizes the effect of connect & reopening TCP windows.
 	 */
-	benchmp(NULL, loop_transfer, NULL, LONGER, parallel, &state );
+	benchmp(NULL, loop_transfer, NULL, LONGER, parallel, warmup, repetitions, &state );
 
 out:	(void)fprintf(stderr, "Socket bandwidth using %s: ", state.server);
 	mb(state.move * get_n() * parallel);

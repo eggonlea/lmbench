@@ -19,7 +19,7 @@ char	*id = "$Id$\n";
 
 void	client_main(int ac, char **av);
 void	server_main();
-void	benchmark(char *server, char* protocol);
+void	benchmark(uint64 iterations, void* _state);
 char	*client_rpc_xact_1(char *argp, CLIENT *clnt);
 
 void
@@ -48,31 +48,41 @@ char	*proto[] = { "tcp", "udp", 0 };
 typedef struct state_ {
 	int	msize;
 	char	*server;
+	char	*protocol;
+	CLIENT	*cl;
 } state_t;
 
 void
-benchmark(char *server, char* protocol)
+initialize(void* _state)
 {
-	CLIENT *cl;
-	char	buf[256];
 	struct	timeval tv;
+	state_t *state = (state_t*)_state;
 
-	cl = clnt_create(server, XACT_PROG, XACT_VERS, protocol);
-	if (!cl) {
-		clnt_pcreateerror(server);
+	state->cl = clnt_create(state->server, XACT_PROG, XACT_VERS, 
+				state->protocol);
+	if (!state->cl) {
+		clnt_pcreateerror(state->server);
 		exit(1);
 	}
-	if (strcasecmp(protocol, proto[1]) == 0) {
+	if (strcasecmp(state->protocol, proto[1]) == 0) {
 		tv.tv_sec = 0;
 		tv.tv_usec = 2500;
-		if (!clnt_control(cl, CLSET_RETRY_TIMEOUT, (char *)&tv)) {
-			clnt_perror(cl, "setting timeout");
+		if (!clnt_control(state->cl, CLSET_RETRY_TIMEOUT, (char *)&tv)) {
+			clnt_perror(state->cl, "setting timeout");
 			exit(1);
 		}
 	}
-	BENCH(doit(cl, server), MEDIUM);
-	sprintf(buf, "RPC/%s latency using %s", protocol, server);
-	micro(buf, get_n());
+}
+
+void
+benchmark(uint64 iterations, void* _state)
+{
+	state_t* state = (state_t*)_state;
+	char	buf[256];
+
+	while (iterations-- > 0) {
+		doit(state->cl, state->server);
+	}
 }
 
 void
@@ -81,16 +91,19 @@ main(int ac, char **av)
 	int	i;
 	int 	c;
 	int	parallel = 1;
+	int	warmup = 0;
+	int	repetitions = TRIES;
 	int	server = 0;
 	int	shutdown = 0;
-	CLIENT *cl;
 	state_t	state;
+	CLIENT	*cl;
+	char	buf[1024];
 	char	*protocol = NULL;
-	char	*usage = "-s\n OR [-p <tcp|udp>] [-P parallel] serverhost\n OR -S serverhost\n";
+	char	*usage = "-s\n OR [-p <tcp|udp>] [-P parallel] [-W <warmup>] [-N <repetitions>] serverhost\n OR -S serverhost\n";
 
 	state.msize = 1;
 
-	while (( c = getopt(ac, av, "sSm:p:P:")) != EOF) {
+	while (( c = getopt(ac, av, "sSm:p:P:W:N:")) != EOF) {
 		switch(c) {
 		case 's': /* Server */
 			if (fork() == 0) {
@@ -119,6 +132,12 @@ main(int ac, char **av)
 			if (parallel <= 0)
 				lmbench_usage(ac, av, usage);
 			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
+			break;
 		default:
 			lmbench_usage(ac, av, usage);
 			break;
@@ -131,11 +150,20 @@ main(int ac, char **av)
 
 	state.server = av[optind++];
 
-	if (protocol) {
-		benchmark(state.server, protocol);
-	} else {
-		benchmark(state.server, proto[0]);
-		benchmark(state.server, proto[1]);
+	if (protocol == NULL || strcasecmp(protocol, proto[0])) {
+		state.protocol = proto[0];
+		benchmp(initialize, benchmark, NULL, MEDIUM, parallel, 
+			warmup, repetitions, &state);
+		sprintf(buf, "RPC/%s latency using %s", proto[0], server);
+		micro(buf, get_n());
+	}
+
+	if (protocol == NULL || strcasecmp(protocol, proto[1])) {
+		state.protocol = proto[1];
+		benchmp(initialize, benchmark, NULL, MEDIUM, parallel, 
+			warmup, repetitions, &state);
+		sprintf(buf, "RPC/%s latency using %s", proto[1], server);
+		micro(buf, get_n());
 	}
 		
 	exit(0);

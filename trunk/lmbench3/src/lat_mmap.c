@@ -1,7 +1,7 @@
 /*
  * lat_mmap.c - time how fast a mapping can be made and broken down
  *
- * Usage: mmap size file
+ * Usage: mmap [-P <parallelism>] [-W <warmup>] [-N <repetitions>] size file
  *
  * XXX - If an implementation did lazy address space mapping, this test
  * will make that system look very good.  I haven't heard of such a system.
@@ -40,18 +40,26 @@ int main(int ac, char **av)
 {
 	state_t state;
 	int	parallel = 1;
+	int	warmup = 0;
+	int	repetitions = TRIES;
 	char	buf[256];
 	int	c;
-	char	*usage = "[-r] [-P <parallelism>] size file\n";
+	char	*usage = "[-r] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] size file\n";
 	
 
 	state.random = 0;
-	while (( c = getopt(ac, av, "rP:")) != EOF) {
+	while (( c = getopt(ac, av, "rP:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0)
 				lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		case 'r':
 			state.random = 1;
@@ -72,8 +80,8 @@ int main(int ac, char **av)
 	}
 	state.name = av[optind+1];
 
-	benchmp(init, domapping, cleanup,
-		0, parallel, &state);
+	benchmp(init, domapping, cleanup, 0, parallel, 
+		warmup, repetitions, &state);
 	micromb(state.size, get_n());
 	return (0);
 }

@@ -1,7 +1,7 @@
 /*
  * lat_mem_rd.c - measure memory load latency
  *
- * usage: lat_mem_rd size-in-MB stride [stride ...]
+ * usage: lat_mem_rd [-P <parallelism>] [-W <warmup>] [-N <repetitions>] size-in-MB stride [stride ...]
  *
  * Copyright (c) 1994 Larry McVoy.  Distributed under the FSF GPL with
  * additional restriction that results may published only if
@@ -16,7 +16,8 @@ char	*id = "$Id: s.lat_mem_rd.c 1.13 98/06/30 16:13:49-07:00 lm@lm.bitmover.com 
 #define STRIDE  (512/sizeof(char *))
 #define	MEMTRIES	4
 #define	LOWER	512
-void	loads(int len, int range, int stride, int parallel);
+void	loads(int len, int range, int stride, int parallel, 
+	      int warmup, int repetitions);
 int	step(int k);
 
 int
@@ -28,13 +29,21 @@ main(int ac, char **av)
 	int	i;
 	int	c;
 	int	parallel = 1;
-	char   *usage = "[-P <parallelism>] len [stride...]\n";
+	int	warmup = 0;
+	int	repetitions = TRIES;
+	char   *usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] len [stride...]\n";
 
-	while (( c = getopt(ac, av, "P:")) != EOF) {
+	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -50,14 +59,16 @@ main(int ac, char **av)
 	if (optind == ac - 1) {
 		fprintf(stderr, "\"stride=%d\n", STRIDE);
 		for (range = LOWER; range <= len; range = step(range)) {
-			loads(len, range, STRIDE, parallel);
+			loads(len, range, STRIDE, parallel, 
+			      warmup, repetitions);
 		}
 	} else {
 		for (i = optind + 1; i < ac; ++i) {
 			stride = bytes(av[i]);
 			fprintf(stderr, "\"stride=%d\n", stride);
 			for (range = LOWER; range <= len; range = step(range)) {
-				loads(len, range, stride, parallel);
+				loads(len, range, stride, parallel, 
+				      warmup, repetitions);
 			}
 			fprintf(stderr, "\n");
 		}
@@ -140,7 +151,7 @@ void cleanup_loads(void* cookie)
 
 
 void
-loads(int len, int range, int stride, int parallel)
+loads(int len, int range, int stride, int parallel, int warmup, int repetitions)
 {
 	int result;
 	struct _state state;
@@ -152,7 +163,8 @@ loads(int len, int range, int stride, int parallel)
 	/*
 	 * Now walk them and time it.
 	 */
-	benchmp(initialize_loads, benchmark_loads, NULL, 0, parallel, &state);
+	benchmp(initialize_loads, benchmark_loads, NULL, 0, parallel, 
+		warmup, repetitions, &state);
 
 	/* We want to get to nanoseconds / load. */
 	result = (int)(((uint64)1000 * gettime()) / ((uint64)100 * get_n()));

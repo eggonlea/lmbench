@@ -1,7 +1,7 @@
 /*
  * bw_mmap_rd.c - time reading & summing of a file using mmap
  *
- * Usage: bw_mmap_rd [-P <parallelism>] size file
+ * Usage: bw_mmap_rd [-P <parallelism>] [-W <warmup>] [-N <repetitions>] size file
  *
  * Sizes less than 2m are not recommended.  Memory is read by summing it up
  * so the numbers include the cost of the adds.  If you use sizes large
@@ -46,15 +46,23 @@ int main(int ac, char **av)
 	struct	stat sbuf;
 	TYPE	*buf, *lastone;
 	int	parallel = 1;
+	int	warmup = 0;
+	int	repetitions = TRIES;
 	state_t	state;
 	int	c;
-	char	*usage = "[-P <parallelism>] <size> open2close|mmap_only <filename>";
+	char	*usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] <size> open2close|mmap_only <filename>";
 
-	while (( c = getopt(ac, av, "P:")) != EOF) {
+	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -77,10 +85,10 @@ int main(int ac, char **av)
 
 	if (!strcmp("open2close", av[optind+1])) {
 		benchmp(NULL, time_with_open, NULL,
-			0, parallel, &state);
+			0, parallel, warmup, repetitions, &state);
 	} else if (!strcmp("mmap_only", av[optind+1])) {
 		benchmp(init_open, time_no_open, cleanup,
-			0, parallel, &state);
+			0, parallel, warmup, repetitions, &state);
 	} else {
 		lmbench_usage(ac, av, usage);
 	}

@@ -177,17 +177,25 @@ main(int ac, char **av)
 	int	i;
 	int	c;
 	int	parallel = 1;
+	int	warmup = 0;
+	int	repetitions = TRIES;
 	struct _state state;
-	char *usage = "[-P <parallelism>]\n";
+	char *usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
 
 	/*
 	 * If they specified a parallelism level, get it.
 	 */
-	while (( c = getopt(ac, av, "P:")) != EOF) {
+	while (( c = getopt(ac, av, "P:W:N:")) != EOF) {
 		switch(c) {
 		case 'P':
 			parallel = atoi(optarg);
 			if (parallel <= 0) lmbench_usage(ac, av, usage);
+			break;
+		case 'W':
+			warmup = atoi(optarg);
+			break;
+		case 'N':
+			repetitions = atoi(optarg);
 			break;
 		default:
 			lmbench_usage(ac, av, usage);
@@ -195,7 +203,8 @@ main(int ac, char **av)
 		}
 	}
 
-	benchmp(initialize, benchmark, cleanup, 0, parallel, &state);
+	benchmp(initialize, benchmark, cleanup, 0, parallel, 
+		warmup, repetitions, &state);
 	micro("Fcntl lock latency", get_n());
 
 	return (0);
