@@ -43,9 +43,11 @@ int
 int_median(int *values, int size)
 {
 	qsort(values, size, sizeof(int), int_compare);
+
 	if (size % 2) {
 	    return values[size/2];
 	}
+
 	return (values[size/2 - 1] + values[size/2]) / 2;
 }
 
@@ -56,9 +58,11 @@ uint64
 uint64_median(uint64 *values, int size)
 {
 	qsort(values, size, sizeof(uint64), uint64_compare);
+
 	if (size % 2) {
 	    return values[size/2];
 	}
+
 	return (values[size/2 - 1] + values[size/2]) / 2;
 }
 
@@ -69,9 +73,11 @@ double
 double_median(double *values, int size)
 {
 	qsort(values, size, sizeof(double), double_compare);
+
 	if (size % 2) {
 	    return values[size/2];
 	}
+
 	return (values[size/2 - 1] + values[size/2]) / 2.0;
 }
 
@@ -83,8 +89,10 @@ int_mean(int *values, int size)
 {
 	int	i;
 	int	sum = 0;
+
 	for (i = 0; i < size; ++i)
 		sum += values[i];
+
 	return sum / size;
 }
 
@@ -96,8 +104,10 @@ uint64_mean(uint64 *values, int size)
 {
 	int	i;
 	uint64	sum = 0;
+
 	for (i = 0; i < size; ++i)
 		sum += values[i];
+
 	return sum / size;
 }
 
@@ -109,8 +119,10 @@ double_mean(double *values, int size)
 {
 	int	i;
 	double	sum = 0.0;
+
 	for (i = 0; i < size; ++i)
 		sum += values[i];
+
 	return sum / (double)size;
 }
 
@@ -122,8 +134,10 @@ int_min(int *values, int size)
 {
 	int	i;
 	int	min = values[0];
+
 	for (i = 1; i < size; ++i)
 		if (values[i] < min) min = values[i];
+
 	return min;
 }
 
@@ -135,8 +149,10 @@ uint64_min(uint64 *values, int size)
 {
 	int	i;
 	uint64	min = values[0];
+
 	for (i = 1; i < size; ++i)
 		if (values[i] < min) min = values[i];
+
 	return min;
 }
 
@@ -148,8 +164,10 @@ double_min(double *values, int size)
 {
 	int	i;
 	double	min = values[0];
+
 	for (i = 1; i < size; ++i)
 		if (values[i] < min) min = values[i];
+
 	return min;
 }
 
@@ -161,8 +179,10 @@ int_max(int *values, int size)
 {
 	int	i;
 	int	max = values[0];
+
 	for (i = 1; i < size; ++i)
 		if (values[i] > max) max = values[i];
+
 	return max;
 }
 
@@ -174,8 +194,10 @@ uint64_max(uint64 *values, int size)
 {
 	int	i;
 	uint64	max = values[0];
+
 	for (i = 1; i < size; ++i)
 		if (values[i] > max) max = values[i];
+
 	return max;
 }
 
@@ -187,15 +209,20 @@ double_max(double *values, int size)
 {
 	int	i;
 	double	max = values[0];
+
 	for (i = 1; i < size; ++i)
 		if (values[i] > max) max = values[i];
+
 	return max;
 }
 
 /*
- * return the standard error of an array of ints
+ * return the variance of an array of ints
+ *
+ * Reference: "Statistics for Experimenters" by
+ * 	George E.P. Box et. al., page 41
  */
-double	int_stderr(int *values, int size)
+double	int_variance(int *values, int size)
 {
 	int	i;
 	double	sum = 0.0;
@@ -203,15 +230,14 @@ double	int_stderr(int *values, int size)
 
 	for (i = 0; i < size; ++i)
 		sum += (double)((values[i] - mean) * (values[i] - mean));
-	sum /= (double)(size * size);
 
-	return sqrt(sum);
+	return sum / (double)(size - 1);
 }
 
 /*
- * return the standard error of an array of uint64s
+ * return the variance of an array of uint64s
  */
-double	uint64_stderr(uint64 *values, int size)
+double	uint64_variance(uint64 *values, int size)
 {
 	int	i;
 	double	sum = 0.0;
@@ -219,15 +245,13 @@ double	uint64_stderr(uint64 *values, int size)
 
 	for (i = 0; i < size; ++i)
 		sum += (double)((values[i] - mean) * (values[i] - mean));
-	sum /= (double)(size * size);
-
-	return sqrt(sum);
+	return sum / (double)(size - 1);
 }
 
 /*
- * return the standard error of an array of doubles
+ * return the variance of an array of doubles
  */
-double	double_stderr(double *values, int size)
+double	double_variance(double *values, int size)
 {
 	int	i;
 	double	sum = 0.0;
@@ -235,9 +259,168 @@ double	double_stderr(double *values, int size)
 
 	for (i = 0; i < size; ++i)
 		sum += (double)((values[i] - mean) * (values[i] - mean));
-	sum /= (double)(size * size);
 
-	return sqrt(sum);
+	return sum / (double)(size - 1);
+}
+
+/*
+ * return the moment of an array of ints
+ *
+ * Reference: "Statistics for Experimenters" by
+ * 	George E.P. Box et. al., page 41, 90
+ */
+double	int_moment(int moment, int *values, int size)
+{
+	int	i, j;
+	double	sum = 0.0;
+	int	mean = int_mean(values, size);
+
+	for (i = 0; i < size; ++i) {
+		double diff = values[i] - mean;
+		double m = diff;
+		for (j = 1; j < moment; ++j)
+			m *= diff;
+		sum += m;
+	}
+
+	return sum / (double)size;
+}
+
+/*
+ * return the moment of an array of uint64s
+ */
+double	uint64_moment(int moment, uint64 *values, int size)
+{
+	int	i, j;
+	double	sum = 0.0;
+	uint64	mean = uint64_mean(values, size);
+
+	for (i = 0; i < size; ++i) {
+		double diff = values[i] - mean;
+		double m = diff;
+		for (j = 1; j < moment; ++j)
+			m *= diff;
+		sum += m;
+	}
+
+	return sum / (double)size;
+}
+
+/*
+ * return the moment of an array of doubles
+ */
+double	double_moment(int moment, double *values, int size)
+{
+	int	i, j;
+	double	sum = 0.0;
+	double	mean = double_mean(values, size);
+
+	for (i = 0; i < size; ++i) {
+		double diff = values[i] - mean;
+		double m = diff;
+		for (j = 1; j < moment; ++j)
+			m *= diff;
+		sum += m;
+	}
+
+	return sum / (double)size;
+}
+
+/*
+ * return the standard error of an array of ints
+ *
+ * Reference: "Statistics for Experimenters" by
+ * 	George E.P. Box et. al., page 41
+ */
+double	int_stderr(int *values, int size)
+{
+	return sqrt(int_variance(values, size));
+}
+
+/*
+ * return the standard error of an array of uint64s
+ */
+double	uint64_stderr(uint64 *values, int size)
+{
+	return sqrt(uint64_variance(values, size));
+}
+
+/*
+ * return the standard error of an array of doubles
+ */
+double	double_stderr(double *values, int size)
+{
+	return sqrt(double_variance(values, size));
+}
+
+/*
+ * return the skew of an array of ints
+ *
+ */
+double	int_skew(int *values, int size)
+{
+	double	sigma = int_stderr(values, size);
+	double	moment3 = int_moment(3, values, size);
+
+	return moment3 / (sigma * sigma * sigma);
+}
+
+/*
+ * return the skew of an array of uint64s
+ */
+double	uint64_skew(uint64 *values, int size)
+{
+	double	sigma = uint64_stderr(values, size);
+	double	moment3 = uint64_moment(3, values, size);
+
+	return moment3 / (sigma * sigma * sigma);
+}
+
+/*
+ * return the skew of an array of doubles
+ */
+double	double_skew(double *values, int size)
+{
+	double	sigma = double_stderr(values, size);
+	double	moment3 = double_moment(3, values, size);
+
+	return moment3 / (sigma * sigma * sigma);
+}
+
+/*
+ * return the kurtosis of an array of ints
+ *
+ * Reference: "Statistics for Experimenters" by
+ * 	George E.P. Box et. al., page 90;
+ */
+double	int_kurtosis(int *values, int size)
+{
+	double	variance = int_variance(values, size);
+	double	moment4 = int_moment(4, values, size);
+
+	return moment4 / (variance * variance) - 3;
+}
+
+/*
+ * return the kurtosis of an array of uint64s
+ */
+double	uint64_kurtosis(uint64 *values, int size)
+{
+	double	variance = uint64_variance(values, size);
+	double	moment4 = uint64_moment(4, values, size);
+
+	return moment4 / (variance * variance) - 3;
+}
+
+/*
+ * return the kurtosis of an array of doubles
+ */
+double	double_kurtosis(double *values, int size)
+{
+	double	variance = double_variance(values, size);
+	double	moment4 = double_moment(4, values, size);
+
+	return moment4 / (variance * variance) - 3;
 }
 
 /*
