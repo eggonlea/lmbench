@@ -329,6 +329,7 @@ benchmp_parent(	int response,
 	int		bytes_read;
 	result_t*	results = NULL;
 	result_t*	merged_results = NULL;
+	char*		signals = NULL;
 	unsigned char*	buf;
 	fd_set		fds_read, fds_error;
 	struct timeval	timeout;
@@ -340,12 +341,10 @@ benchmp_parent(	int response,
 		goto error_exit;
 	}
 
-	results = (result_t*)malloc(parallel * sizeof_result(repetitions));;
+	results = (result_t*)malloc(sizeof_result(repetitions));
 	merged_results = (result_t*)malloc(sizeof_result(parallel * repetitions));
-	if (!results || !merged_results) return;
-	bzero(results, parallel * sizeof_result(repetitions));
-	bzero(merged_results, sizeof_result(parallel * repetitions));
-	insertinit(merged_results);
+	signals = (char*)malloc(parallel * sizeof(char));
+	if (!results || !merged_results || !signals) return;
 
 	/* Collect 'ready' signals */
 	for (i = 0; i < parallel * sizeof(char); i += bytes_read) {
@@ -371,7 +370,7 @@ benchmp_parent(	int response,
 			continue;
 		}
 
-		bytes_read = read(response, results, parallel * sizeof(char) - i);
+		bytes_read = read(response, signals, parallel * sizeof(char) - i);
 		if (bytes_read < 0) {
 #ifdef _DEBUG
 			fprintf(stderr, "benchmp_parent: ready, bytes_read=%d, %s\n", bytes_read, strerror(errno));
@@ -390,7 +389,7 @@ benchmp_parent(	int response,
 	}
 
 	/* send 'start' signal */
-	write(start_signal, results, parallel * sizeof(char));
+	write(start_signal, signals, parallel * sizeof(char));
 
 	/* Collect 'done' signals */
 	for (i = 0; i < parallel * sizeof(char); i += bytes_read) {
@@ -416,7 +415,7 @@ benchmp_parent(	int response,
 			continue;
 		}
 
-		bytes_read = read(response, results, parallel * sizeof(char) - i);
+		bytes_read = read(response, signals, parallel * sizeof(char) - i);
 		if (bytes_read < 0) {
 #ifdef _DEBUG
 			fprintf(stderr, "benchmp_parent: done, bytes_read=%d, %s\n", bytes_read, strerror(errno));
@@ -426,9 +425,10 @@ benchmp_parent(	int response,
 	}
 
 	/* collect results */
+	insertinit(merged_results);
 	for (i = 0; i < parallel; ++i) {
 		int n = sizeof_result(repetitions);
-		buf = (unsigned char*)results + i * n;
+		buf = (unsigned char*)results;
 
 		FD_ZERO(&fds_read);
 		FD_ZERO(&fds_error);
@@ -465,6 +465,10 @@ benchmp_parent(	int response,
 				goto error_exit;
 			}
 		}
+		for (j = 0; j < results->N; ++j) {
+			insertsort(results->v[j].u, 
+				   results->v[j].n, merged_results);
+		}
 	}
 
 	/* we allow children to die now, without it causing an error */
@@ -474,35 +478,8 @@ benchmp_parent(	int response,
 	write(exit_signal, results, parallel * sizeof(char));
 
 	/* Compute median time; iterations is constant! */
-	for (i = 0; i < parallel; ++i) {
-		result_t* r = (result_t*)((char*)results + i * sizeof_result(repetitions));
-#ifdef _DEBUG
-		set_results(r);
-		fprintf(stderr, "\tresults[%d]: N=%d, gettime()=%lu, get_n()=%lu\n", i, r->N, (unsigned long)gettime(), (unsigned long)get_n());
-		if (r->N < 0 || r->N > repetitions) 
-			fprintf(stderr, "***Bad results!***\n");
-		{
-			for (k = 0; k < r->N; ++k) {
-				fprintf(stderr, "\t\t{%lu, %lu}\n", (unsigned long)r->v[k].u, (unsigned long)r->v[k].n);
-			}
-		}
-#endif //_DEBUG
-		for (j = 0; j < r->N; ++j) {
-			insertsort(r->v[j].u, r->v[j].n, merged_results);
-		}
-	}
 	set_results(merged_results);
 
-#ifdef _DEBUG
-	i = 0;
-	fprintf(stderr, "*** Saving merged_results: N=%d, gettime()=%lu, get_n()=%lu\n", get_results()->N, (unsigned long)gettime(), (unsigned long)get_n());
-	{
-		int k;
-		for (k = 0; k < get_results()->N; ++k) {
-			fprintf(stderr, "\t{%lu, %lu}\n", (unsigned long)get_results()->v[k].u, (unsigned long)get_results()->v[k].n);
-		}
-	}
-#endif
 	goto cleanup_exit;
 error_exit:
 #ifdef _DEBUG
@@ -519,7 +496,8 @@ cleanup_exit:
 	close(result_signal);
 	close(exit_signal);
 
-	free(results);
+	if (results) free(results);
+	if (signals) free(signals);
 }
 
 
