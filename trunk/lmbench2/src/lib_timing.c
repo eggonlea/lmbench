@@ -22,7 +22,7 @@
 
 static struct timeval start_tv, stop_tv;
 FILE		*ftiming;
-uint64		use_result_dummy;	/* !static for optimizers. */
+volatile uint64	use_result_dummy;	/* !static for optimizers. */
 static	uint64	iterations;
 static	void	init_timing(void);
 
