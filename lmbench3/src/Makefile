@@ -151,7 +151,7 @@ bk.ver: ../SCCS/s.ChangeSet
 	-echo `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` > bk.ver
 	touch bk.ver
 
-dist:
+dist: bk.ver
 	@if [ "X`cd ..; bk sfiles -c`" != "X" ]; then \
 		echo "modified files!"; \
 		false; \
@@ -163,10 +163,10 @@ dist:
 	cd ..; \
 		SRCDIR=`pwd`; \
 		DIR=`basename $${SRCDIR}`; \
-		TODAY=`date '+%Y%m%d'`; \
+		VERSION=`cat src/bk.ver| awk '{print $$1;}' | sed -e 's/Version-//g'`; \
 		cd ..; \
-		bk clone $${DIR} /tmp/$${DIR}; \
-		cd /tmp/$${DIR}; \
+		bk clone $${DIR} /tmp/lmbench-$${VERSION}; \
+		cd /tmp/lmbench-$${VERSION}; \
 		bk sfiles | xargs touch; \
 		sleep 5; \
 		bk get -s; \
@@ -177,8 +177,9 @@ dist:
 		cd src; \
 		make bk.ver; \
 		cd /tmp; \
-		tar czf $${SRCDIR}/../$${DIR}-$${TODAY}.tgz $${DIR}; \
-		rm -rf /tmp/$${DIR};
+		tar czf $${SRCDIR}/../$${DIR}-$${VERSION}.tgz 
+			lmbench-$${VERSION}; \
+		rm -rf /tmp/lmbench-$${VERSION};
 
 get $(SRCS):
 	-get -s $(SRCS)
