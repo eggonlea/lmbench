@@ -117,7 +117,7 @@ fi
 TOTAL_MEM=$MB
 MB=`echo \( $MB \* 7 \) / 10 | bc 2>/dev/null`
 if [ X$MB = X ]
-then	MB=`expr $MB \* 7`
+then	MB=`expr $TOTAL_MEM \* 7`
 	MB=`expr $MB / 10`
 fi
 
