@@ -57,7 +57,7 @@ SRCS= ../scripts/allctx ../scripts/allmem ../scripts/bargraph \
 	../scripts/getresults ../scripts/getsummary ../scripts/gifs \
 	../scripts/graph ../scripts/html-list ../scripts/html-man \
 	../scripts/os ../scripts/percent ../scripts/save \
-	../scripts/stats ../scripts/xroff 
+	../scripts/stats ../scripts/xroff ../scripts/statsummary
 
 MISC=	tmp/misc_mhz.bg \
 	tmp/lat_ctx.bg \
@@ -114,6 +114,9 @@ percent: $(SRCS)
 
 stats: $(SRCS)
 	$(SCRIPTS)getsummary $(LIST) | $(SCRIPTS)percent
+
+statsummary: $(SRCS)
+	$(SCRIPTS)statsummary $(LIST)
 
 roff:
 	echo .nf	> summary.roff
@@ -230,7 +233,7 @@ disk: dirs
 		then	for i in `cat tmp/FILES`; \
 			do	$(SCRIPTS)graph $(SIZE) $(GDISK) $$i; \
 				echo .bp; \
-        		done | sed '$$d' | $(PRINT); \
+			done | sed '$$d' | $(PRINT); \
 		else	echo No disk data in $(LIST); \
 		fi; \
 	fi
@@ -242,7 +245,7 @@ mem: dirs
 		for i in `cat tmp/FILES`; \
 		do	$(SCRIPTS)graph $(SIZE) $(GMEM) -nomarks $$i; \
 			echo .bp; \
-        	done | sed '$$d' | $(PRINT); \
+		done | sed '$$d' | $(PRINT); \
 	else	echo No memory latency data in $(LIST); \
 	fi
 
@@ -253,7 +256,7 @@ bwfile: dirs
 		for i in `cat tmp/FILES`; \
 		do	$(SCRIPTS)graph $(SIZE) $(GMEM) -logy $$i; \
 			echo .bp; \
-        	done | sed '$$d' | $(PRINT); \
+		done | sed '$$d' | $(PRINT); \
 	else	echo No file bandwidth data in $(LIST); \
 	fi
 
@@ -266,7 +269,7 @@ bwmem: dirs
 			    -nomarks -nolabels -grapheach $(GMEM) \
 			    -logy %P="'`basename $$i`'" $$i; \
 			echo .bp; \
-        	done | sed '$$d' | $(PRINT); \
+		done | sed '$$d' | $(PRINT); \
 	else	echo No memory bandwidth data in $(LIST); \
 	fi
 
