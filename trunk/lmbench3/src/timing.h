@@ -43,6 +43,7 @@ uint64	usecs_spent(void);
 void	touch(char *buf, int size);
 int*	permutation(int max, int scale);
 int	cp(char* src, char* dst, mode_t mode);
+long	bread(void* src, long count);
 
 #if defined(hpux) || defined(__hpux)
 int	getpagesize();
