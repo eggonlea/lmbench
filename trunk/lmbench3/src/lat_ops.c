@@ -256,11 +256,13 @@ do_double_div(iter_t iterations, void* cookie)
 }
 
 void
-float_initialize(void* cookie)
+float_initialize(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	register int i;
 	float* x = (float*)malloc(pState->M * sizeof(float));;
+
+	if (iterations) return;
 
 	pState->data = (double*)x;
 	for (i = 0; i < pState->M; ++i) {
@@ -269,10 +271,12 @@ float_initialize(void* cookie)
 }
 
 void
-double_initialize(void* cookie)
+double_initialize(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
 	register int i;
+
+	if (iterations) return;
 
 	pState->data = (double*)malloc(pState->M * sizeof(double));
 	for (i = 0; i < pState->M; ++i) {
@@ -281,9 +285,11 @@ double_initialize(void* cookie)
 }
 
 void
-cleanup(void* cookie)
+cleanup(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
+
+	if (iterations) return;
 
 	if (pState->data) 
 		free(pState->data);

@@ -23,9 +23,9 @@ typedef struct _state {
 	char	*buf;
 } state_t;
 
-void	init(void *cookie);
-void	cleanup(void *cookie);
-void	doclient(iter_t iterations, void * cookie);
+void	init(iter_t iterations, void* cookie);
+void	cleanup(iter_t iterations, void* cookie);
+void	doclient(iter_t iterations, void* cookie);
 void	server_main();
 void	doserver(int sock);
 
@@ -89,10 +89,13 @@ main(int ac, char **av)
 	exit(0);
 }
 
-void init(void * cookie)
+void
+init(iter_t iterations, void* cookie)
 {
 	state_t *state = (state_t *) cookie;
 	int	msize  = htonl(state->msize);
+
+	if (iterations) return;
 
 	state->sock = tcp_connect(state->server, TCP_XACT, SOCKOPT_NONE);
 	state->buf = malloc(state->msize);
@@ -100,16 +103,19 @@ void init(void * cookie)
 	write(state->sock, &msize, sizeof(int));
 }
 
-void cleanup(void * cookie)
+void
+cleanup(iter_t iterations, void* cookie)
 {
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	close(state->sock);
 	free(state->buf);
 }
 
 void
-doclient(iter_t iterations, void *cookie)
+doclient(iter_t iterations, void* cookie)
 {
 	state_t *state = (state_t *) cookie;
 	int 	sock   = state->sock;

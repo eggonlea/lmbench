@@ -25,7 +25,7 @@
 #define SAVE(N)		sp##N = p##N;
 
 #define MEM_BENCHMARK_F(N) mem_benchmark_##N,
-bench_f mem_benchmarks[] = {REPEAT_15(MEM_BENCHMARK_F)};
+benchmp_f mem_benchmarks[] = {REPEAT_15(MEM_BENCHMARK_F)};
 
 static int mem_benchmark_rerun = 0;
 
@@ -75,9 +75,12 @@ mem_reset()
 }
 
 void
-mem_cleanup(void* cookie)
+mem_cleanup(iter_t iterations, void* cookie)
 {
 	struct mem_state* state = (struct mem_state*)cookie;
+
+	if (iterations) return;
+
 	if (state->addr) {
 		free(state->addr);
 		state->addr = NULL;
@@ -97,11 +100,13 @@ mem_cleanup(void* cookie)
 }
 
 void
-tlb_cleanup(void* cookie)
+tlb_cleanup(iter_t iterations, void* cookie)
 {
 	size_t i;
 	struct mem_state* state = (struct mem_state*)cookie;
 	char **addr = (char**)state->addr;
+
+	if (iterations) return;
 
 	if (addr) {
 		for (i = 0; i < state->npages; ++i) {
@@ -137,7 +142,7 @@ tlb_cleanup(void* cookie)
  * spaced through the chain.
  */
 void
-mem_initialize(void* cookie)
+mem_initialize(iter_t iterations, void* cookie)
 {
 	int i, j, k, l, np, nw, nwords, nlines, nbytes, npages, nmpages, npointers;
 	unsigned int r;
@@ -146,6 +151,8 @@ mem_initialize(void* cookie)
 	int    *words;
 	struct mem_state* state = (struct mem_state*)cookie;
 	register char *p = 0 /* lint */;
+
+	if (iterations) return;
 
 	state->initialized = 0;
 	mem_reset();
@@ -224,7 +231,7 @@ mem_initialize(void* cookie)
  *
  */
 void
-line_initialize(void* cookie)
+line_initialize(iter_t iterations, void* cookie)
 {
 	int i, j, k, line, nlines, npages;
 	unsigned int r;
@@ -232,6 +239,8 @@ line_initialize(void* cookie)
 	int    *lines;
 	struct mem_state* state = (struct mem_state*)cookie;
 	register char *p = 0 /* lint */;
+
+	if (iterations) return;
 
 	state->initialized = 0;
 
@@ -308,7 +317,7 @@ line_initialize(void* cookie)
  *
  */
 void
-tlb_initialize(void* cookie)
+tlb_initialize(iter_t iterations, void* cookie)
 {
 	int i, j, nwords, nlines, npages, pagesize;
 	unsigned int r;
@@ -317,6 +326,8 @@ tlb_initialize(void* cookie)
 	int    *lines = NULL;
 	struct mem_state* state = (struct mem_state*)cookie;
 	register char *p = 0 /* lint */;
+
+	if (iterations) return;
 
 	state->initialized = 0;
 
@@ -434,7 +445,7 @@ line_find(size_t len, int warmup, int repetitions, struct mem_state* state)
 	state->line = sizeof(char*);
 	for (state->addr = NULL; !state->addr && len; ) {
 		state->len = state->maxlen = len;
-		line_initialize(state);
+		line_initialize(0, state);
 		if (state->addr == NULL) len >>= 1;
 	}
 	if (state->addr == NULL) return -1;
@@ -454,7 +465,7 @@ line_find(size_t len, int warmup, int repetitions, struct mem_state* state)
 		}
 		baseline = t;
 	}
-	mem_cleanup(state);
+	mem_cleanup(0, state);
 	/*
 	fprintf(stderr, "line_find(%d, ...): returning %d\n", len, line);
 	/**/
@@ -540,7 +551,7 @@ par_mem(size_t len, int warmup, int repetitions, struct mem_state* state)
 
 	for (state->addr = NULL; !state->addr && len; ) {
 		state->len = state->maxlen = len;
-		mem_initialize(state);
+		mem_initialize(0, state);
 		if (state->addr == NULL) len >>= 1;
 	}
 	if (state->addr == NULL) return -1.;
@@ -581,7 +592,7 @@ par_mem(size_t len, int warmup, int repetitions, struct mem_state* state)
 			}
 		}
 	}
-	mem_cleanup(state);
+	mem_cleanup(0, state);
 
 	return max_par;
 }

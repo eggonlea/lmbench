@@ -77,11 +77,13 @@ prot() {
 }
 
 void
-initialize(void* cookie)
+initialize(iter_t iterations, void* cookie)
 {
 	struct _state* state = (struct _state*)cookie;
 	int	fd;
 	struct	sigaction sa;
+
+	if (iterations) return;
 
 	fd = open(state->fname, 0);
 	state->where = mmap(0, 4096, PROT_READ, MAP_SHARED, fd, 0);

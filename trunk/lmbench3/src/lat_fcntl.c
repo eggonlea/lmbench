@@ -40,31 +40,31 @@ struct _state {
 	int	fd2;
 };
 
-void initialize(void* cookie);
+void initialize(iter_t iterations, void* cookie);
 void benchmark(iter_t iterations, void* cookie);
-void cleanup(void* cookie);
+void cleanup(iter_t iterations, void* cookie);
 
 void
 procA(struct _state *state)
 {
 	if (waiton(state->fd1) == -1) {
 		perror("lock of fd1 failed\n");
-		cleanup(state);
+		cleanup(0, state);
 		exit(1);
 	}
 	if (release(state->fd2) == -1) {
 		perror("unlock of fd2 failed\n");
-		cleanup(state);
+		cleanup(0, state);
 		exit(1);
 	}
 	if (waiton(state->fd2) == -1) {
 		perror("lock of fd2 failed\n");
-		cleanup(state);
+		cleanup(0, state);
 		exit(1);
 	}
 	if (release(state->fd1) == -1) {
 		perror("unlock of fd1 failed\n");
-		cleanup(state);
+		cleanup(0, state);
 		exit(1);
 	}
 }
@@ -74,31 +74,33 @@ procB(struct _state *state)
 {
 	if (release(state->fd1) == -1) {
 		perror("unlock of fd1 failed\n");
-		cleanup(state);
+		cleanup(0, state);
 		exit(1);
 	}
 	if (waiton(state->fd2) == -1) {
 		perror("lock of fd2 failed\n");
-		cleanup(state);
+		cleanup(0, state);
 		exit(1);
 	}
 	if (release(state->fd2) == -1) {
 		perror("unlock of fd2 failed\n");
-		cleanup(state);
+		cleanup(0, state);
 		exit(1);
 	}
 	if (waiton(state->fd1) == -1) {
 		perror("lock of fd1 failed\n");
-		cleanup(state);
+		cleanup(0, state);
 		exit(1);
 	}
 }
 
 void 
-initialize(void* cookie)
+initialize(iter_t iterations, void* cookie)
 {
 	char	buf[10000];
 	struct _state* state = (struct _state*)cookie;
+
+	if (iterations) return;
 
 	sprintf(state->filename1, "/tmp/lmbench-fcntl%d.1", getpid());
 	sprintf(state->filename2, "/tmp/lmbench-fcntl%d.2", getpid());
@@ -157,10 +159,12 @@ benchmark(iter_t iterations, void* cookie)
 }
 
 void
-cleanup(void* cookie)
+cleanup(iter_t iterations, void* cookie)
 {
 	int i;
 	struct _state* state = (struct _state*)cookie;
+
+	if (iterations) return;
 
 	close(state->fd1);
 	close(state->fd2);

@@ -19,9 +19,9 @@ struct _state {
 	int	msize;
 	char*	buf;
 };
-void	initialize(void* cookie);
+void	initialize(iter_t iterations, void* cookie);
 void	benchmark(iter_t iterations, void* cookie);
-void	cleanup(void* cookie);
+void	cleanup(iter_t iterations, void* cookie);
 
 int
 main(int ac, char **av)
@@ -68,10 +68,12 @@ main(int ac, char **av)
 }
 
 void
-initialize(void* cookie)
+initialize(iter_t iterations, void* cookie)
 {
 	struct _state* pState = (struct _state*)cookie;
 	void	exit();
+
+	if (iterations) return;
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, 0, pState->sv) == -1) {
 		perror("socketpair");
@@ -103,16 +105,18 @@ benchmark(iter_t iterations, void* cookie)
 		if (write(pState->sv[1], pState->buf, pState->msize) != pState->msize
 		    || read(pState->sv[1], pState->buf, pState->msize) != pState->msize) {
 			/* error handling: how do we signal failure? */
-			cleanup(cookie);
+			cleanup(0, cookie);
 			exit(0);
 		}
 	}
 }
 
 void
-cleanup(void* cookie)
+cleanup(iter_t iterations, void* cookie)
 {
 	struct _state* pState = (struct _state*)cookie;
+
+	if (iterations) return;
 
 	if (pState->pid) kill(pState->pid, SIGKILL);
 	wait(0);

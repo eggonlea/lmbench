@@ -15,8 +15,8 @@ char	*id = "$Id$\n";
 #include "bench.h"
 #include <sys/sem.h>
 
-void initialize(void *cookie);
-void cleanup(void *cookie);
+void initialize(iter_t iterations, void *cookie);
+void cleanup(iter_t iterations, void *cookie);
 void doit(iter_t iterations, void *cookie);
 void writer(int sid);
 
@@ -65,10 +65,12 @@ main(int ac, char **av)
 }
 
 void 
-initialize(void *cookie)
+initialize(iter_t iterations, void* cookie)
 {
 	char	c;
 	state_t * state = (state_t *)cookie;
+
+	if (iterations) return;
 
 	state->semid = semget(IPC_PRIVATE, 2, IPC_CREAT | IPC_EXCL | 0600);
 	semctl(state->semid, 0, SETVAL, 0);
@@ -90,9 +92,11 @@ initialize(void *cookie)
 }
 
 void 
-cleanup(void * cookie)
+cleanup(iter_t iterations, void* cookie)
 {
 	state_t * state = (state_t *)cookie;
+
+	if (iterations) return;
 
 	signal(SIGCHLD, SIG_IGN);
 	if (state->pid) {

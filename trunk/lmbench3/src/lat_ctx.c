@@ -29,11 +29,11 @@ int	ncpus;
 void	doit(int **p, int rd, int wr, int process_size);
 int	create_pipes(int **p, int procs);
 int	create_daemons(int **p, pid_t *pids, int procs, int process_size);
-void	initialize_overhead(void* cookie);
-void	cleanup_overhead(void* cookie);
+void	initialize_overhead(iter_t iterations, void* cookie);
+void	cleanup_overhead(iter_t iterations, void* cookie);
 void	benchmark_overhead(iter_t iterations, void* cookie);
-void	initialize(void* cookie);
-void	cleanup(void* cookie);
+void	initialize(iter_t iterations, void* cookie);
+void	cleanup(iter_t iterations, void* cookie);
 void	benchmark(iter_t iterations, void* cookie);
 
 struct _state {
@@ -136,12 +136,14 @@ main(int ac, char **av)
 }
 
 void
-initialize_overhead(void* cookie)
+initialize_overhead(iter_t iterations, void* cookie)
 {
 	int i;
 	int procs;
 	int* p;
 	struct _state* pState = (struct _state*)cookie;
+
+	if (iterations) return;
 
 	pState->pids = NULL;
 	pState->p = (int**)malloc(pState->procs * (sizeof(int*) + 2 * sizeof(int)));
@@ -157,16 +159,18 @@ initialize_overhead(void* cookie)
 
 	procs = create_pipes(pState->p, pState->procs);
 	if (procs < pState->procs) {
-		cleanup_overhead(cookie);
+		cleanup_overhead(0, cookie);
 		exit(1);
 	}
 }
 
 void
-cleanup_overhead(void* cookie)
+cleanup_overhead(iter_t iterations, void* cookie)
 {
 	int i;
 	struct _state* pState = (struct _state*)cookie;
+
+	if (iterations) return;
 
      	for (i = 0; i < pState->procs; ++i) {
 		close(pState->p[i][0]);
@@ -201,12 +205,14 @@ benchmark_overhead(iter_t iterations, void* cookie)
 }
 
 void 
-initialize(void* cookie)
+initialize(iter_t iterations, void* cookie)
 {
 	int procs;
 	struct _state* pState = (struct _state*)cookie;
 
-	initialize_overhead(cookie);
+	if (iterations) return;
+
+	initialize_overhead(iterations, cookie);
 
 	pState->pids = (pid_t*)malloc(pState->procs * sizeof(pid_t));
 	if (pState->pids == NULL)
@@ -215,16 +221,18 @@ initialize(void* cookie)
 	procs = create_daemons(pState->p, pState->pids, 
 			       pState->procs, pState->process_size);
 	if (procs < pState->procs) {
-		cleanup(cookie);
+		cleanup(0, cookie);
 		exit(1);
 	}
 }
 
 void
-cleanup(void* cookie)
+cleanup(iter_t iterations, void* cookie)
 {
 	int i;
 	struct _state* pState = (struct _state*)cookie;
+
+	if (iterations) return;
 
 	/*
 	 * Close the pipes and kill the children.
@@ -238,7 +246,7 @@ cleanup(void* cookie)
 	if (pState->pids)
 		free(pState->pids);
 	pState->pids = NULL;
-	cleanup_overhead(cookie);
+	cleanup_overhead(iterations, cookie);
 }
 
 void

@@ -111,9 +111,9 @@ benchmp_sigalrm(int signo)
 }
 
 void 
-benchmp_child(support_f initialize, 
-	      bench_f benchmark,
-	      support_f cleanup,
+benchmp_child(benchmp_f initialize, 
+	      benchmp_f benchmark,
+	      benchmp_f cleanup,
 	      int childid,
 	      int response, 
 	      int start_signal, 
@@ -142,9 +142,9 @@ int
 sizeof_result(int repetitions);
 
 void 
-benchmp(support_f initialize, 
-	bench_f benchmark,
-	support_f cleanup,
+benchmp(benchmp_f initialize, 
+	benchmp_f benchmark,
+	benchmp_f cleanup,
 	int enough, 
 	int parallel,
 	int warmup,
@@ -505,9 +505,9 @@ typedef enum { warmup, timing_interval, cooldown } benchmp_state;
 
 typedef struct {
 	benchmp_state	state;
-	support_f	initialize;
-	bench_f		benchmark;
-	support_f	cleanup;
+	benchmp_f	initialize;
+	benchmp_f	benchmark;
+	benchmp_f	cleanup;
 	int		childid;
 	int		response;
 	int		start_signal;
@@ -518,7 +518,7 @@ typedef struct {
 	int		parallel;
         int		repetitions;
 	void*		cookie;
-	int		iterations_batch;
+	iter_t		iterations_batch;
 	int		need_warmup;
 	long		i;
 	int		r_size;
@@ -538,7 +538,7 @@ benchmp_child_sigterm(int signo)
 {
 	signal(SIGTERM, SIG_IGN);
 	if (_benchmp_child_state.cleanup)
-		(*_benchmp_child_state.cleanup)(&_benchmp_child_state);
+		(*_benchmp_child_state.cleanup)(0, &_benchmp_child_state);
 	exit(0);
 }
 
@@ -549,9 +549,9 @@ benchmp_getstate()
 }
 
 void 
-benchmp_child(support_f initialize, 
-		bench_f benchmark,
-		support_f cleanup,
+benchmp_child(benchmp_f initialize, 
+		benchmp_f benchmark,
+		benchmp_f cleanup,
 		int childid,
 		int response, 
 		int start_signal, 
@@ -603,7 +603,7 @@ benchmp_child(support_f initialize,
 	signal(SIGCHLD, benchmp_sigchld_handler);
 
 	if (initialize)
-		(*initialize)(cookie);
+		(*initialize)(0, cookie);
 	
 	if (benchmp_sigterm_handler != SIG_DFL) {
 		signal(SIGTERM, benchmp_sigterm_handler);
@@ -616,7 +616,6 @@ benchmp_child(support_f initialize,
 	/* start experiments, collecting results */
 	insertinit(_benchmp_child_state.r);
 
-	start(0);
 	while (1) {
 		(*benchmark)(benchmp_interval(&_benchmp_child_state), cookie);
 	}
@@ -632,14 +631,19 @@ benchmp_interval(void* _state)
 	struct timeval	timeout;
 	benchmp_child_state* state = (benchmp_child_state*)_state;
 
-	result = stop(0,0);
-	save_n(state->iterations);
-	result -= t_overhead() + get_n() * l_overhead();
-	settime(result >= 0. ? (uint64)result : 0.);
+	if (!state->need_warmup) {
+		result = stop(0,0);
+		if (state->cleanup) {
+			(*state->cleanup)(state->iterations, state->cookie);
+		}
+		save_n(state->iterations);
+		result -= t_overhead() + get_n() * l_overhead();
+		settime(result >= 0. ? (uint64)result : 0.);
+	}
 
 	/* if the parent died, then give up */
 	if (getppid() == 1 && state->cleanup) {
-		(*state->cleanup)(state->cookie);
+		(*state->cleanup)(0, state->cookie);
 		exit(0);
 	}
 
@@ -650,11 +654,6 @@ benchmp_interval(void* _state)
 	switch (state->state) {
 	case warmup:
 		iterations = state->iterations_batch;
-		if (state->need_warmup) {
-			state->need_warmup = 0;
-			/* send 'ready' */
-			write(state->response, &c, sizeof(char));
-		}
 		FD_SET(state->start_signal, &fds);
 		select(state->start_signal+1, &fds, NULL,
 		       NULL, &timeout);
@@ -662,6 +661,11 @@ benchmp_interval(void* _state)
 			state->state = timing_interval;
 			read(state->start_signal, &c, sizeof(char));
 			iterations = state->iterations;
+		}
+		if (state->need_warmup) {
+			state->need_warmup = 0;
+			/* send 'ready' */
+			write(state->response, &c, sizeof(char));
 		}
 		break;
 	case timing_interval:
@@ -710,13 +714,16 @@ benchmp_interval(void* _state)
 			read(state->result_signal, (void*)&c, sizeof(char));
 			write(state->response, (void*)get_results(), state->r_size);
 			if (state->cleanup)
-				(*state->cleanup)(state->cookie);
+				(*state->cleanup)(0, state->cookie);
 
 			/* Now wait for signal to exit */
 			read(state->exit_signal, (void*)&c, sizeof(char));
 			exit(0);
 		}
 	};
+	if (state->initialize) {
+		(*state->initialize)(iterations, state->cookie);
+	}
 	start(0);
 	return (iterations);
 }

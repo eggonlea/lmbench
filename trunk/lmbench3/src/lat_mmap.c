@@ -32,11 +32,12 @@ typedef struct _state {
 	char	*name;
 } state_t;
 
-void	init(void *cookie);
-void	cleanup(void *cookie);
+void	init(iter_t iterations, void *cookie);
+void	cleanup(iter_t iterations, void *cookie);
 void	domapping(iter_t iterations, void * cookie);
 
-int main(int ac, char **av)
+int
+main(int ac, char **av)
 {
 	state_t state;
 	int	parallel = 1;
@@ -93,10 +94,13 @@ int main(int ac, char **av)
 	return (0);
 }
 
-void init(void * cookie)
+void
+init(iter_t iterations, void* cookie)
 {
 	state_t *state = (state_t *) cookie;
 	
+	if (iterations) return;
+
 	if (state->clone) {
 		char buf[128];
 		char* s;
@@ -120,9 +124,13 @@ void init(void * cookie)
 	}
 }
 
-void cleanup(void * cookie)
+void
+cleanup(iter_t iterations, void* cookie)
 {
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
+
 	close(state->fd);
 }
 
@@ -130,7 +138,8 @@ void cleanup(void * cookie)
  * This alg due to Linus.  The goal is to have both sparse and full
  * mappings reported.
  */
-void domapping(iter_t iterations, void *cookie)
+void
+domapping(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	register int fd = state->fd;

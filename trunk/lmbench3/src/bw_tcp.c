@@ -29,11 +29,12 @@ void	server_main();
 void	client_main(int parallel, state_t *state);
 void	source(int data);
 
-void	initialize(void* cookie);
+void	initialize(iter_t iterations, void* cookie);
 void	loop_transfer(iter_t iterations, void *cookie);
-void	cleanup(void* cookie);
+void	cleanup(iter_t iterations, void* cookie);
 
-int main(int ac, char **av)
+int
+main(int ac, char **av)
 {
 	int	parallel = 1;
 	int	warmup = LONGER;
@@ -118,11 +119,13 @@ int main(int ac, char **av)
 }
 
 void
-initialize(void *cookie)
+initialize(iter_t iterations, void *cookie)
 {
 	int	c;
 	char	buf[100];
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	state->buf = valloc(state->msize);
 	if (!state->buf) {
@@ -161,22 +164,26 @@ loop_transfer(iter_t iterations, void *cookie)
 }
 
 void
-cleanup(void* cookie)
+cleanup(iter_t iterations, void* cookie)
 {
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	/* close connection */
 	(void)close(state->sock);
 }
 
 
-void child()
+void
+child()
 {
 	wait(0);
 	signal(SIGCHLD, child);
 }
 
-void server_main()
+void
+server_main()
 {
 	int	data, newdata;
 
@@ -210,7 +217,8 @@ void server_main()
  * data in message-size sized packets until
  * the socket goes away.
  */
-void source(int data)
+void
+source(int data)
 {
 	size_t	count, m;
 	unsigned long	nbytes;

@@ -13,8 +13,8 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-void initialize(void *cookie);
-void cleanup(void *cookie);
+void initialize(iter_t iterations, void *cookie);
+void cleanup(iter_t iterations, void *cookie);
 void doit(iter_t iterations, void *cookie);
 void writer(int w, int r);
 
@@ -64,10 +64,12 @@ main(int ac, char **av)
 }
 
 void 
-initialize(void *cookie)
+initialize(iter_t iterations, void* cookie)
 {
 	char	c;
 	state_t * state = (state_t *)cookie;
+
+	if (iterations) return;
 
 	if (pipe(state->p1) == -1) {
 		perror("pipe");
@@ -105,9 +107,11 @@ initialize(void *cookie)
 }
 
 void 
-cleanup(void * cookie)
+cleanup(iter_t iterations, void* cookie)
 {
 	state_t * state = (state_t *)cookie;
+
+	if (iterations) return;
 
 	signal(SIGCHLD, SIG_IGN);
 	if (state->pid) {

@@ -30,12 +30,13 @@ typedef struct _state {
 
 void	server_main();
 void	client_main(int parallel, state_t *state);
-void	init(void *cookie);
-void	cleanup(void *cookie);
+void	init(iter_t iterations, void *cookie);
+void	cleanup(iter_t iterations, void *cookie);
 
 void	loop_transfer(iter_t iterations, void *cookie);
 
-int main(int ac, char **av)
+int
+main(int ac, char **av)
 {
 	int	parallel = 1;
 	int	warmup = 0;
@@ -118,16 +119,20 @@ out:	(void)fprintf(stderr, "socket UDP bandwidth using %s: ", state.server);
 	mb(state.move * get_n() * parallel);
 }
 
-void init(void * cookie)
+void
+init(iter_t iterations, void* cookie)
 {
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	state->sock = udp_connect(state->server, UDP_XACT, SOCKOPT_NONE);
 	state->seq = 0;
 	state->buf = (char*)malloc(state->msize);
 }
 
-void loop_transfer(iter_t iterations, void *cookie)
+void
+loop_transfer(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	char	*server = state->server;
@@ -154,9 +159,11 @@ void loop_transfer(iter_t iterations, void *cookie)
 }
 
 void
-cleanup(void * cookie)
+cleanup(iter_t iterations, void* cookie)
 {
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	close(state->sock);
 	free(state->buf);

@@ -14,9 +14,9 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-void	dram_page_initialize(void* cookie);
+void	dram_page_initialize(iter_t iterations, void* cookie);
 void	benchmark_loads(iter_t iterations, void *cookie);
-double	loads(support_f initialize, int len, int warmup, int repetitions, void* cookie);
+double	loads(benchmp_f initialize, int len, int warmup, int repetitions, void* cookie);
 
 struct dram_page_state
 {
@@ -152,13 +152,15 @@ regroup(int* pages, int groupsize, void* cookie)
  * This is like mem_initialize
  */
 void
-dram_page_initialize(void* cookie)
+dram_page_initialize(iter_t iterations, void* cookie)
 {
 	int i;
 	struct mem_state* state = (struct mem_state*)cookie;
 	struct dram_page_state*	dstate = (struct dram_page_state*)cookie;
 
-	mem_initialize(cookie);
+	if (iterations) return; 
+
+	mem_initialize(iterations, cookie);
 
 	for (i = 0; i < state->npages; i += dstate->group) {
 		int	groupsize = dstate->group;
@@ -172,7 +174,7 @@ dram_page_initialize(void* cookie)
 }
 
 double
-loads(support_f initialize, int len, int warmup, int repetitions, void* cookie)
+loads(benchmp_f initialize, int len, int warmup, int repetitions, void* cookie)
 {
 	double result;
 	int count;

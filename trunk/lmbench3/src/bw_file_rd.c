@@ -52,9 +52,11 @@ void doit(int fd)
 }
 
 void
-initialize(void* cookie)
+initialize(iter_t iterations, void* cookie)
 {
 	state_t	*state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	state->fd = -1;
 	if (state->clone) {
@@ -74,17 +76,21 @@ initialize(void* cookie)
 	}
 }
 
-void init_open(void * cookie)
+void
+init_open(iter_t iterations, void * cookie)
 {
 	state_t	*state = (state_t *) cookie;
 	int	ofd;
 
-	initialize(cookie);
+	if (iterations) return;
+
+	initialize(0, cookie);
 	CHK(ofd = open(state->filename, O_RDONLY));
 	state->fd = ofd;
 }
 
-void time_with_open(iter_t iterations, void * cookie)
+void
+time_with_open(iter_t iterations, void * cookie)
 {
 	state_t	*state = (state_t *) cookie;
 	char	*filename = state->filename;
@@ -97,7 +103,8 @@ void time_with_open(iter_t iterations, void * cookie)
 	}
 }
 
-void time_io_only(iter_t iterations,void * cookie)
+void
+time_io_only(iter_t iterations,void * cookie)
 {
 	state_t *state = (state_t *) cookie;
 	int fd = state->fd;
@@ -108,15 +115,19 @@ void time_io_only(iter_t iterations,void * cookie)
 	}
 }
 
-void cleanup(void * cookie)
+void
+cleanup(iter_t iterations, void * cookie)
 {
 	state_t *state = (state_t *) cookie;
+
+	if (iterations) return;
 
 	if (state->fd >= 0) close(state->fd);
 	if (state->clone) unlink(state->filename);
 }
 
-int main(int ac, char **av)
+int
+main(int ac, char **av)
 {
 	int	fd;
 	state_t state;
