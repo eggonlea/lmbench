@@ -148,7 +148,7 @@ MHZ(5, a>>=a+a;)
 MHZ(6, a^=a<<b;)
 MHZ(7, a^=a+b;)
 MHZ(8, a+=(a+b)&07;)
-MHZ(9, a++;a^=1;a<<=1;)
+MHZ(9, a^=n;b^=a;a|=b;)
 
 typedef void (*loop_f)(int);
 loop_f loops[] = {
