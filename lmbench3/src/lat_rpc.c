@@ -212,26 +212,26 @@ server_main()
 
 	transp = svcudp_create(RPC_ANYSOCK);
 	if (transp == NULL) {
-		fprintf(stderr, "cannot create udp service.");
+		fprintf(stderr, "cannot create udp service.\n");
 		exit(1);
 	}
 	if (!svc_register(transp, XACT_PROG, XACT_VERS, xact_prog_1, IPPROTO_UDP)) {
-		fprintf(stderr, "unable to register (XACT_PROG, XACT_VERS, udp).");
+		fprintf(stderr, "unable to register (XACT_PROG, XACT_VERS, udp).\n");
 		exit(1);
 	}
 
 	transp = svctcp_create(RPC_ANYSOCK, 0, 0);
 	if (transp == NULL) {
-		fprintf(stderr, "cannot create tcp service.");
+		fprintf(stderr, "cannot create tcp service.\n");
 		exit(1);
 	}
 	if (!svc_register(transp, XACT_PROG, XACT_VERS, xact_prog_1, IPPROTO_TCP)) {
-		fprintf(stderr, "unable to register (XACT_PROG, XACT_VERS, tcp).");
+		fprintf(stderr, "unable to register (XACT_PROG, XACT_VERS, tcp).\n");
 		exit(1);
 	}
 
 	svc_run();
-	fprintf(stderr, "svc_run returned");
+	fprintf(stderr, "svc_run returned\n");
 	exit(1);
 	/* NOTREACHED */
 }
@@ -278,7 +278,7 @@ xact_prog_1(rqstp, transp)
 		svcerr_systemerr(transp);
 	}
 	if (!svc_freeargs(transp, (xdrproc_t)xdr_argument, (char*)&argument)) {
-		fprintf(stderr, "unable to free arguments");
+		fprintf(stderr, "unable to free arguments\n");
 		exit(1);
 	}
 	return;
