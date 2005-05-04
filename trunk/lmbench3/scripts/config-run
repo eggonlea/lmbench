@@ -604,7 +604,7 @@ system.
 
 EOF
 	DEFAULTFSDIR=/usr/tmp
-	for t in /usr/tmp /tmp /var/tmp; do
+	for t in /usr/tmp /var/tmp /tmp; do
 		if [ -d $t -a -w $t ]
 		then	DEFAULTFSDIR=$t
 			break
