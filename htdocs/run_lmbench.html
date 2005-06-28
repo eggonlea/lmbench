@@ -1,0 +1,59 @@
+<TITLE>LMbench - Tools for performance analysis -- How do I run LMbench?</TITLE>
+<body bgcolor=white>
+<font face=helvetica>
+
+<img src="/gifs/blueline.jpg">
+<H1>
+LMbench - Tools for performance analysis
+<img src="/gifs/blueline.jpg">
+</H1>
+
+
+<H1><A NAME="S-4">How do I run LMbench?</H1>
+
+You will need<P>
+
+<OL>
+<LI>the benchmark sources, see the section before this.
+
+<LI>a computer with at probably 16MB (or more) memory.  
+
+<LI>disk space for the sources and binaries: about 2MB.
+
+<LI>disk space for working files during the benchmark: about 16MB.
+
+</OL>
+
+Optionally, it would be nice if you had two identical computers connected
+by an idle network.  I will personally pay $5 for results from
+current computer pairs, provide that I don't have
+the results yet and I want them (that pair of 386's are probably not
+interesting any more).  Contact me to claim your reward.<P>
+
+Unpack LMbench to create a tree like so:<P>
+
+<PRE>
+lmbench/
+	Results/
+	doc/
+	scripts/
+	src/
+</PRE>
+
+All the directories intended for human consumption have commented
+Makefiles in them.  It's worthwhile reading them.<P>
+
+Go to the top directory, and type <strong>make results see</strong> and then have
+a <img src="/gifs/coffee.gif"> while it goes to work.  The benchmark
+takes about a half hour (or more on slow machines) to run.
+<p>
+The benchmark binaries will be in <strong>bin/your_os_name</strong>.
+<p>
+The results will be in <strong>Results/your_os_name/your_host_name</strong>.
+<p>
+Go to the <strong>Results</strong> and look at the Makefile for more information.
+<p>
+<A HREF="lmbench.html#TOC"><img src="/gifs/b_arrow.gif"></A>
+<A HREF="get_lmbench.html"><img src="/gifs/back.gif"></A>
+<A HREF="man_lmbench.html"><img src="/gifs/forward.gif"></A>
+

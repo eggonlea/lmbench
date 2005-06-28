@@ -1,0 +1,99 @@
+
+                 L M B E N C H  1 . 1   S U M M A R Y
+                 ------------------------------------
+
+Processor, Processes - times in microseconds - smaller is better
+----------------------------------------------------------------
+Host                 OS  Mhz Null sig  sig  fork exec sh  
+                             call inst hndl Proc Proc Proc
+--------- ------------- ---- ---- ---- ---- ---- ---- ----
+6000-990        AIX 3.x   71  -1   -1   16  1.2K   8K  16K
+powerpc         AIX 4.x  134  -1   -1   12  2.9K   8K  50K
+K210      HP-UX B.10.01  119  10   27   10  3.1K  11K  20K
+R10K      IRIX64 6.2-no  200   4   15    9  1.8K   8K  13K
+P5-133    FreeBSD 2.2-C  132   4   13    6  2.0K  11K  19K
+P6         Linux 1.3.37  200   4    7    3  0.4K   5K  14K
+Alpha      Linux 1.3.57  136   3   22    2  0.7K   1K  11K
+8400          OSF1 V3.2  303   6   25    9  2.0K   6K  16K
+alpha         OSF1 V3.0  147   9   45   11  4.6K  13K  39K
+ultraspar     SunOS 5.5  167   6   59    5  3.7K  20K  37K
+
+Context switching - times in microseconds - smaller is better
+-------------------------------------------------------------
+Host                 OS 2p/0K 2p/16K 2p/64K 8p/16K 8p/64K 16p/16K 16p/64K
+                        ctxsw  ctxsw  ctxsw ctxsw  ctxsw   ctxsw   ctxsw
+--------- ------------- ----- ------ ------ ------ ------ ------- -------
+6000-990        AIX 3.x   13     15     17    32     65      31      68
+powerpc         AIX 4.x   16     78    119    90    311     131     468
+K210      HP-UX B.10.01   17     15     31    42    257      78     290
+R10K      IRIX64 6.2-no   21     24     25    32     48      72     223
+P5-133    FreeBSD 2.2-C   27     31     55    53    256      64     350
+P6         Linux 1.3.37    6     12     32    14    325      50     327
+Alpha      Linux 1.3.57   10     39    137    45    187      47     270
+8400          OSF1 V3.2   14     19     18    28     64      44      92
+alpha         OSF1 V3.0   53     61     96    70    260     112     463
+ultraspar     SunOS 5.5   14     51     30    90    185      96     204
+
+*Local* Communication latencies in microseconds - smaller is better
+-------------------------------------------------------------------
+Host                 OS 2p/0K  Pipe   UDP  RPC/   TCP  RPC/ TCP
+                        ctxsw               UDP         TCP conn
+--------- ------------- ----- ----- ----- ----- ----- ----- ----
+6000-990        AIX 3.x    13    91   254   531   332   649  339
+powerpc         AIX 4.x    16    65   206   536   299   698    0
+K210      HP-UX B.10.01    17    78   152   543   146   606  238
+R10K      IRIX64 6.2-no    21    74   362   829   197   390  951
+P5-133    FreeBSD 2.2-C    27   104   212   375   256   440  418
+P6         Linux 1.3.37     6    26    93   180   216   346  263
+Alpha      Linux 1.3.57    10    32   179   320   390   567    0
+8400          OSF1 V3.2    14    71   259   358   267   371    0
+alpha         OSF1 V3.0    53   179   489   834   485   788    0
+ultraspar     SunOS 5.5    14    62   197   267   162   346  852
+
+File & VM system latencies in microseconds - smaller is better
+--------------------------------------------------------------
+Host                 OS   0K File      10K File      Mmap    Prot    Page       
+                        Create Delete Create Delete  Latency Fault   Fault 
+--------- ------------- ------ ------ ------ ------  ------- -----   ----- 
+6000-990        AIX 3.x   1333   1282   1282   1298       82    -1    5.4K
+powerpc         AIX 4.x   1265   1265   1265   1315       82    -1    5.9K
+K210      HP-UX B.10.01     57      6    246      8       72    -1    0.0K
+R10K      IRIX64 6.2-no    374    389    353    387       55    -1   21.5K
+P5-133    FreeBSD 2.2-C   2857   1123   4000   3225      133    -1    0.0K
+P6         Linux 1.3.37     75      4    213     35       36    -1    0.0K
+Alpha      Linux 1.3.57     79     11    268     24       20    -1    0.0K
+8400          OSF1 V3.2    425    418    990    628      199    -1    0.0K
+alpha         OSF1 V3.0   3846   1234   3846   4347      228    -1   27.3K
+ultraspar     SunOS 5.5   1818    833   2564   1851      212    -1    2.7K
+
+*Local* Communication bandwidths in MB/s - bigger is better
+-----------------------------------------------------------
+Host                OS  Pipe  TCP  File   Mmap  Bcopy  Bcopy  Mem   Mem
+                                  reread reread (libc) (hand) read write
+--------- ------------- ---- ---- ------ ------ ------ ------ ---- -----
+6000-990        AIX 3.x   84   10    187    106    171    242  205   364
+powerpc         AIX 4.x   30   17     40     51     21     21   63    26
+K210      HP-UX B.10.01   93   34     88     52     57     78  117   126
+R10K      IRIX64 6.2-no   85   53     75     92     44     59  101    84
+P5-133    FreeBSD 2.2-C   23   13     30     53     42     39   73    83
+P6         Linux 1.3.37   89   18     40     36     56     42  208    56
+Alpha      Linux 1.3.57   68    8     61     63     40     40   73    71
+8400          OSF1 V3.2   46   11     67     78     80     85  120   123
+alpha         OSF1 V3.0   35    9     40     50     45     46   79    91
+ultraspar     SunOS 5.5   61   51     85    101    167     85  129   152
+
+Memory latencies in nanoseconds - smaller is better
+    (WARNING - may not be correct, check graphs)
+---------------------------------------------------
+Host                 OS   Mhz  L1 $   L2 $    Main mem    Guesses
+--------- -------------   ---  ----   ----    --------    -------
+6000-990        AIX 3.x    70    13     13         141    No L1 cache?
+powerpc         AIX 4.x   133     6    164         394
+K210      HP-UX B.10.01   119     8      8         349    No L1 cache?
+R10K      IRIX64 6.2-no   200     5     55        1115
+P5-133    FreeBSD 2.2-C   132     7     81         182
+P6         Linux 1.3.37   200    10     53         179
+Alpha      Linux 1.3.57   136     3     83         357
+8400          OSF1 V3.2   302     3     42         396
+alpha         OSF1 V3.0   147    12     67         291
+ultraspar     SunOS 5.5   166     6     42         270
