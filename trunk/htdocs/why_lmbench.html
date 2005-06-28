@@ -1,0 +1,100 @@
+<TITLE>LMbench - Tools for performance analysis -- Why do I want yet another benchmark?</TITLE>
+<body bgcolor=white>
+<font face=helvetica>
+
+<img src="/gifs/blueline.jpg">
+<H1>LMbench - Tools for performance analysis</H1>
+<img src="/gifs/blueline.jpg">
+
+
+<H1><A NAME="S-2">Why do I want yet another benchmark?</H1>
+<P>
+Things that other people seem to like about LMbench include the following:<P>
+
+<UL>
+
+<LI>
+<STRONG>
+Portable test of operating system primitives
+</STRONG>
+<DL>
+<DD>The benchmarks are all in C, fairly portable (although they do prefer
+to be compiled with GCC).  This is useful for generating a set of apples
+to apples systems comparisons.
+</DL>
+
+<LI>
+<STRONG>
+Keeping up with the Jones
+</STRONG>
+<DL>
+<DD>LMbench is very useful for motivating action.  When
+confronted with numbers that prove that BloatOS is 4 times slower than
+all of the competition, resources tend to get allocated to fix the
+problems.
+</DL>
+
+<LI>
+<STRONG>
+Database of results
+</STRONG>
+<A HREF="lmbench-summary">
+<img src="/gifs/graph.gif">
+</A>
+<DL>
+<DD>
+The database of results includes runs from most all of the major computer
+workstation manufactors.
+</DL>
+
+<LI>
+<STRONG>
+Memory latency results
+</STRONG>
+<DL>
+<DD>The memory latency test shows the latency of all of the system (data)
+caches, i.e., level 1, 2, and 3, if present, as well as main memory and
+TLB miss latency.  In addition the sizes of the caches can be read off
+of a properly plotted set of results.  The hardware folks like this.
+This benchmark has found bugs in operating system page coloring schemes.
+</DL>
+
+<LI>
+<STRONG>
+Context switching results
+</STRONG>
+<DL>
+<DD>Everybody seems to love context switching numbers.  This particular
+benchmark is quite careful not to just quote the ``in cache'' numbers.
+It varies both the number and size of the procesess and plots the
+results in such a way that it is easy to see when you don't fit in
+the cache.  You can also see the real costs of a cold cache context
+switch.
+</DL>
+
+<LI>
+<STRONG>
+Regression testing
+</STRONG>
+<DL>
+<DD>Sun & SGI have used these benchmarks to find and fix performance 
+problems.
+<DD>Intel used them during P6 development.
+<DD>Linus uses them to do performance tuning of Linux.
+</DL>
+
+<LI>
+<STRONG>
+New benchmarks
+</STRONG>
+<DL>
+<DD>The source is small, readable, and easy to extend.  It is routinely
+massaged into different form to measure something else.  For example,
+the networking metrics include libraries to handle connection
+establishment, server shutdowns, etc.
+</DL>
+</UL>
+<p>
+<A HREF="lmbench.html#TOC"><img src="/gifs/b_arrow.gif"></A>
+<A HREF="whatis_lmbench.html"><img src="/gifs/back.gif"></A>
+<A HREF="get_lmbench.html"><img src="/gifs/forward.gif"></A>
