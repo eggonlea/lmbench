@@ -165,46 +165,18 @@ debug:
 assembler:
 	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" CC="${CC}" OS="${OS}" ../scripts/build asm
 
-bk.ver: ../SCCS/s.ChangeSet
-	rm -f bk.ver
-	-echo `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` > bk.ver
-	touch bk.ver
 
-dist: bk.ver
-	@if [ "X`cd ..; bk sfiles -c`" != "X" ]; then \
-		echo "modified files!"; \
-		false; \
-	 fi
-	@if [ "X`cd ..; bk pending`" != "X" ]; then \
-		echo "pending changes!"; \
-		false; \
-	 fi
-	cd ..; \
-		SRCDIR=`pwd`; \
-		DIR=`basename $${SRCDIR}`; \
-		VERSION=`cat src/bk.ver| awk '{print $$1;}' | sed -e 's/Version-//g'`; \
-		cd ..; \
-		bk clone $${DIR} /tmp/lmbench-$${VERSION}; \
-		cd /tmp/lmbench-$${VERSION}; \
-		bk sfiles | xargs touch; \
-		sleep 5; \
-		bk get -s; \
-		for d in doc results scripts src; do \
-			cd $$d; bk get -s; cd ..; \
-		done; \
-		bk sfiles -U -g | xargs touch; \
-		cd src; \
-		make bk.ver; \
-		cd /tmp; \
-		tar czf $${SRCDIR}/../lmbench-$${VERSION}.tgz \
-			lmbench-$${VERSION}; \
-		rm -rf /tmp/lmbench-$${VERSION};
-
-get $(SRCS):
-	-get -s $(SRCS)
-
-edit get-e:
-	get -e -s $(SRCS)
+dist: 
+	SRCDIR=`pwd`; \
+	ROOT=`cat ../CVS/Root`; \
+	MODULE=`cat ../CVS/Repository`; \
+	VERSION=`awk '/MAJOR/ { major = $$3; } /MINOR/ { minor=$$3;} END { if (minor < 0) printf("%d-alpha%d", major, -minor); else printf("%d.%d", major, minor);}' version.h`; \
+	cd /tmp \
+	&& cvs -d$${ROOT} export -D "`date '+%F %H:%M'`" \
+		 -d $${MODULE}-$${VERSION} $${MODULE} \
+	&& tar czf $${SRCDIR}/../../$${MODULE}-$${VERSION}.tgz \
+		$${MODULE}-$${VERSION} \
+	&& rm -rf $${MODULE}-$${VERSION};
 
 clean:
 	/bin/rm -f ../bin/*/CONFIG ../bin/*/*.[oas]
@@ -228,9 +200,10 @@ testmake: $(SRCS) $(UTILS) # used by scripts/make to test gmake
 	install install-target dist get edit get-e clean clobber \
 	share depend testmake
 
-$O/lmbench : ../scripts/lmbench bk.ver
+$O/lmbench : ../scripts/lmbench version.h
 	rm -f $O/lmbench
-	sed -e "s/<version>/`cat bk.ver`/g" < ../scripts/lmbench > $O/lmbench
+	VERSION=`awk '/MAJOR/ { major = $$3; } /MINOR/ { minor=$$3;} END { if (minor < 0) printf("%d-alpha%d", major, -minor); else printf("%d.%d", major, minor);}' version.h`; \
+	sed -e "s/<version>/$${VERSION}/g" < ../scripts/lmbench > $O/lmbench
 	chmod +x $O/lmbench
 
 $O/lmbench.a: $(LIBOBJS)
