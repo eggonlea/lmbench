@@ -1,23 +1,18 @@
-all: clean
-	for f in ../../lmbench3/doc/*.[1-8]; do \
-		rman -f HTML -S -r "%s.%s.html" $$f | \
-		sed -e 's%</body>%<A href=\"http://sourceforge.net\"> <IMG src=\"http://sourceforge.net/sflogo.php?group_id=14418&amp;type=5\" width=\"210\" height=\"62\" border=\"0\" alt=\"SourceForge.net Logo\" /></A></body>%' > `basename $$f`.html; \
-	done
-	make index.html
+all: index.html
 
-index.html:
+index.html: Makefile
 	echo "<html>" > index.html
 	echo "<head><title>lmbench man pages</title></head>" >> index.html
 	echo "<body>" >> index.html
 	echo "<h1>lmbench man pages</h1>" >> index.html
 	for s in 1 3 8; do \
-		echo "<h2>Section $${s}</h2>" >> index.html; \
-		echo "<ul>" >> index.html; \
-		for f in *.$${s}.html; do \
-			echo "<li> <a href=\"$$f\">"`basename $$f .$${s}.html`"</a>" >> index.html; \
+		echo "<h2>Section $${s}</h2>" ;\
+		echo "<ul>" ;\
+		for f in `find ../../lmbench3/src ../../lmbench3/doc -name "*.$${s}"`; do \
+			echo "<li> <a href=\"/cgi-bin/man?`basename $$f`\">"`basename $$f .$${s}`"</a>" ;\
 		done; \
-		echo "</ul>" >> index.html; \
-	done
+		echo "</ul>" ;\
+	done >> index.html
 	echo "<hr>" >> index.html
 	echo "<table width=100%>" >> index.html
 	echo "<tr>" >> index.html
