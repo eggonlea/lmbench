@@ -9,7 +9,7 @@ index.html: Makefile
 		echo "<h2>Section $${s}</h2>" ;\
 		echo "<ul>" ;\
 		for f in `find ../../lmbench3/src ../../lmbench3/doc -name "*.$${s}"`; do \
-			echo "<li> <a href=\"/cgi-bin/man?$${s}+`basename $$f .$${s}`\">"`basename $$f .$${s}`"</a>" ;\
+			echo "<li> <a href=\"/cgi-bin/man?section=$${s}&topic=`basename $$f .$${s}`\">"`basename $$f .$${s}`"</a>" ;\
 		done; \
 		echo "</ul>" ;\
 	done >> index.html
