@@ -185,7 +185,7 @@ sub printform {
 Please fill out the following fields and select <strong>Submit</strong>
 to view a manpage.
 </p>
-<form method="$FormMethod" action="$CgiBin/man.cgi">
+<form method="$FormMethod" action="$CgiBin/man">
 <table border=0>
 <tr>
 <td align=right>Section:</td>
@@ -260,7 +260,7 @@ sub doit {
     #----------------------------------
     if ($DoCgiurl) {
 	push(@ARGV, "-cgiurl",
-		    join('', $CgiBin, '/man.cgi?',
+		    join('', $CgiBin, '/man?',
 			     'section=${section}${subsection}',
 			     $ArgSep,
 			     'topic=${title}'));
