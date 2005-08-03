@@ -124,7 +124,7 @@ $ArgSep		= '&';
 ##  know about
 
 @ManPath	= qw(
-    /groups/l/lm/lmbench/man
+    /home/groups/l/lm/lmbench/man
     /usr/share/man
 );
 
