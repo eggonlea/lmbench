@@ -559,7 +559,7 @@ sub pic
 			s/^"?%P\s+//;
 			chop;
 			$Ptitle = $_;
-			warn "Pt: $Ptitle\n";
+			#VERBOSE warn "Pt: $Ptitle\n";
 			next;
 		}
 		if (/^"/) {		# Data set title

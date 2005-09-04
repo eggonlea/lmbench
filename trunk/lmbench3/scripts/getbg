@@ -717,11 +717,11 @@ sub bg
 			$fill = "";
 		}
 		if ($units eq "usecs") {
-			if (!defined $value || $value <= 0) {
+			if (!defined $value) { #REVIEW removed ... || $value <= 0 ...
 				warn
 				"$ARGV[$i] $graph $info[$#info]: value is 0\n";
-				$persec = 0;
-				$value = 0;
+				$persec = 0.0;  #REVIEW was integer 0
+				$value = 0.0;  #REVIEW was integer 0
 			} else {
 				$persec = 1000000 / $value;
 			}

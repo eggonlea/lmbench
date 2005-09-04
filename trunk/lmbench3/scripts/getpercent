@@ -20,73 +20,73 @@ foreach $file (@ARGV) {
 		chop;
 		next if m|scripts/lmbench: /dev/tty|;
 		if (/^\[lmbench/) {
-			split;
+			@_ = split;
 			push(@uname, "@_");
 		}
 		if (/Mhz/) {
-			split;
+			@_ = split;
 			push(@misc_mhz, $_[0]);
 		}
 		if (/^Null syscall:/) {
-			split;
+			@_ = split;
 			push(@lat_nullsys, $_[2]);
 		}
 		if (/^Pipe latency:/) {
-			split;
+			@_ = split;
 			push(@lat_pipe, $_[2]);
 		}
 		if (/UDP latency using localhost:/) {
-			split;
+			@_ = split;
 			push(@lat_udp_local, $_[4]);
 		}
 		if (/TCP latency using localhost/) {
-			split;
+			@_ = split;
 			push(@lat_tcp_local, $_[4]);
 		}
 		if (/RPC.udp latency using localhost/) {
-			split;
+			@_ = split;
 			push(@lat_rpc_udp_local, $_[4]);
 		}
 		if (/RPC.tcp latency using localhost/) {
-			split;
+			@_ = split;
 			push(@lat_rpc_tcp_local, $_[4]);
 		}
 		if (/^Process fork.exit/) {
-			split;
+			@_ = split;
 			push(@lat_nullproc, $_[2]);
 		}
 		if (/^Process fork.execve:/) {
-			split;
+			@_ = split;
 			push(@lat_simpleproc, $_[2]);
 		}
 		if (/^Process fork..bin.sh/) {
-			split;
+			@_ = split;
 			push(@lat_shproc, $_[3]);
 		}
 		if (/size=0 ovr=/) {
 			while (<FD>) {
 				next unless /^2/;
-				split;
+				@_ = split;
 				push(@lat_ctx, $_[1]);
 			    	last;
 			}
 			while (<FD>) {
 				next unless /^8/;
-				split;
+				@_ = split;
 				push(@lat_ctx8, $_[1]);
 			    	last;
 			}
 		}
 		if (/^Pipe bandwidth/) {
-			split;
+			@_ = split;
 			push(@bw_pipe, $_[2]);
 		}
 		if (/^Socket bandwidth using localhost/) {
-			split;
+			@_ = split;
 			push(@bw_tcp_local, $_[4]);
 		}
 		if (/^File .* write bandwidth/) {
-			split;
+			@_ = split;
 			$bw = sprintf("%.2f", $_[4] / 1024.);
 			push(@bw_file, $bw);
 		}
@@ -122,13 +122,13 @@ foreach $file (@ARGV) {
 			$save = -1;
 			while (<FD>) {
 				if (/^0.00098\s/) {
-					split;
+					@_ = split;
 					push(@lat_l1, $_[1]);
 				} elsif (/^0.12500\s/) {
-					split;
+					@_ = split;
 					push(@lat_l2, $_[1]);
 				} elsif (/^[45678].00000\s/) {
-					split;
+					@_ = split;
 					$size = $_[0];
 					$save = $_[1];
 					last if /^8.00000\s/;
@@ -142,10 +142,10 @@ foreach $file (@ARGV) {
 			push(@lat_mem, $save);
 		}
 		if (/^"stride=8192/) {	# XXX assumes <= 8K pagesize
-			$tbl = -1;
+			$tlb = -1;  #REVIEW was ... tbl = ...
 			while (<FD>) {
 				if (/^[45678].00000\s/) {
-					split;
+					@_ = split;
 					$tlb = $_[1];
 					$size = $_[0];
 					last if /^8.00000\s/;
@@ -167,7 +167,7 @@ foreach $file (@ARGV) {
 		'bw_mem_wr', 'lat_l1', 'lat_l2', 'lat_mem', 'lat_tlb',
 	) {
 		eval "if (\$#$array != $n) {
-			warn \"No data for $array in $file\n\";
+			#VERBOSE warn \"No data for $array in $file\n\";
 			push(\@$array, -1);
 		    }";
 	}

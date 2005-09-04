@@ -41,7 +41,7 @@ foreach $file (@ARGV) {
 			}
 			print OUT "$_\n";
 			while (<FD>) {
-				last if /^Null/ || /^Pipe/ || /^Memor/;
+				last if /^Null/ || /^Pipe/ || /^Memor/ || /^tlb:/;
 				next if /\$Id/;
 				next if m|scripts/lmbench: /dev/tty|;
 				s/ ovr/\toverhead/;

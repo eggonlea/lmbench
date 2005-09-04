@@ -184,12 +184,12 @@ paper:
 
 # XXX - this has to be made incremental, doing everything over from
 # scratch makes you want a Ghz machine.
-html:
+html: dirs
 	-make clean
 	#$(SCRIPTS)bghtml $(BG)
 	$(SCRIPTS)html-list $(LIST)
-	$(MK) LIST="$(LIST)" summary > HTML/summary
-	#make LIST="$(LIST)" percent > HTML/percent
+	$(MK) LIST="$(LIST)" summary > HTML/summary.out 2> HTML/summary.errs
+	#make LIST="$(LIST)" percent > HTML/percent.out 2> HTML/percent.errs
 	$(MK) LIST="$(LIST)" SIZE=  PRINT="$(PS)" \
 	    GMEM="$(GMEM) -cut -gthk1" GCTX="$(GCTX) -cut -gthk1" print
 	$(MK) LIST="$(LIST)" SIZE= NOOP=-noop PRINT="$(PS)" \
@@ -205,6 +205,15 @@ html:
 	gs -sOutputFile=HTML/bwmem-unscaled%02d.$(IMAGE) -sDEVICE=$(IMAGE) -q -dNOPAUSE PS/PS.8 < /dev/null
 	$(SCRIPTS)/gifs
 	rm HTML/*.pbm HTML/___tmp*
+
+htmltest: dirs
+	-make clean
+	#$(SCRIPTS)bghtml $(BG)
+	$(SCRIPTS)html-list $(LIST)
+	$(MK) LIST="$(LIST)" summary > HTML/summary.out 2> HTML/summary.errs
+	#make LIST="$(LIST)" percent > HTML/percent.out 2> HTML/percent.errs
+	$(MK) LIST="$(LIST)" SIZE=  PRINT="$(PS)" \
+	    GMEM="$(GMEM) -cut -gthk1" GCTX="$(GCTX) -cut -gthk1" print
 
 bghtml:
 	$(SCRIPTS)bghtml $(BG)
@@ -314,6 +323,9 @@ get:	# nothing to do
 clean:
 	/bin/rm -f PS/* GIF/* HTML/* tmp/* summary.roff
 	-bk clean
+
+distclean:
+	/bin/rm -fr PS  GIF   HTML   tmp   summary.roff
 
 dirs:
 	@if [ ! -d tmp ]; then mkdir tmp; fi

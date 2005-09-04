@@ -34,6 +34,7 @@ foreach $file (@ARGV) {
 			while (<FD>) {
 				next if /\$Id/;
 				next if /^\[/;
+				last if /^Random load latency/;
 			    	print OUT;
 			}
 			close(OUT);
