@@ -120,7 +120,7 @@ install-target:
 
 
 # No special handling for all these
-all: $(EXES) bk.ver
+all: $(EXES) $O/lmbench
 
 Wall:
 	@env OS="${OS}" CC="${CC}" CFLAGS="-Wall -ansi" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
@@ -128,45 +128,19 @@ Wall:
 debug:
 	@env OS="${OS}" CC="${CC}" CFLAGS="-g -O -D_DEBUG" MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" ../scripts/build all
 
-bk.ver: ../SCCS/s.ChangeSet
-	-echo  `bk prs -hr+ -d'$$if(:SYMBOL:){:SYMBOL: }:UTC:' ../ChangeSet;` > bk.ver
-	touch bk.ver
-
-dist: bk.ver
-	@if [ "X`cd ..; bk sfiles -c`" != "X" ]; then \
-		echo "modified files!"; \
-		false; \
-	 fi
-	@if [ "X`cd ..; bk pending`" != "X" ]; then \
-		echo "pending changes!"; \
-		false; \
-	 fi
-	cd ..; \
-		SRCDIR=`pwd`; \
-		DIR=`basename $${SRCDIR}`; \
-		VERSION=`cat src/bk.ver| awk '{print $$1;}' | sed -e 's/Version-//g'`; \
-		cd ..; \
-		bk clone $${DIR} /tmp/lmbench-$${VERSION}; \
-		cd /tmp/lmbench-$${VERSION}; \
-		bk sfiles | xargs touch; \
-		sleep 5; \
-		bk get -s; \
-		for d in doc results scripts src; do \
-			cd $$d; bk get -s; cd ..; \
-		done; \
-		bk sfiles -U -g | xargs touch; \
-		cd src; \
-		make bk.ver; \
-		cd /tmp; \
-		tar czf $${SRCDIR}/../lmbench-$${VERSION}.tgz \
-			lmbench-$${VERSION}; \
-		rm -rf /tmp/lmbench-$${VERSION};
-
-get $(SRCS):
-	get -s $(SRCS)
-
-edit get-e:
-	get -e -s $(SRCS)
+dist: 
+	SRCDIR=`pwd`; \
+	ROOT=`cat ../CVS/Root`; \
+	MODULE=`cat ../CVS/Repository`; \
+	VERSION=`../scripts/version`; \
+	cd /tmp \
+	&& cvs -d$${ROOT} export -Dtomorrow \
+		 -d $${MODULE}-$${VERSION} $${MODULE} \
+	&& chmod +x $${MODULE}-$${VERSION}/scripts/[a-z]* \
+	&& mv $${MODULE}-$${VERSION} lmbench-$${VERSION} \
+	&& tar czf $${SRCDIR}/../../lmbench-$${VERSION}.tgz \
+		lmbench-$${VERSION} \
+	&& rm -rf lmbench-$${VERSION};
 
 clean:
 	/bin/rm -f ../bin/*/CONFIG.* ../bin/*/*.[oa]
@@ -184,6 +158,12 @@ depend: ../scripts/depend
 
 $(UTILS):
 	@cd ../scripts; make get
+
+$O/lmbench : ../scripts/lmbench version.h
+	rm -f $O/lmbench
+	VERSION=`../scripts/version`; \
+	sed -e "s/<version>/$${VERSION}/g" < ../scripts/lmbench > $O/lmbench
+	chmod +x $O/lmbench
 
 $O/lmbench.a: $(LIBOBJS)
 	/bin/rm -f $O/lmbench.a
