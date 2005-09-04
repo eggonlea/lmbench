@@ -175,9 +175,10 @@ dist:
 	&& cvs -d$${ROOT} export -Dtomorrow \
 		 -d $${MODULE}-$${VERSION} $${MODULE} \
 	&& chmod +x $${MODULE}-$${VERSION}/scripts/[a-z]* \
-	&& tar czf $${SRCDIR}/../../$${MODULE}-$${VERSION}.tgz \
-		$${MODULE}-$${VERSION} \
-	&& rm -rf $${MODULE}-$${VERSION};
+	&& mv $${MODULE}-$${VERSION} lmbench-$${VERSION} \
+	&& tar czf $${SRCDIR}/../../lmbench-$${VERSION}.tgz \
+		lmbench-$${VERSION} \
+	&& rm -rf lmbench-$${VERSION};
 
 clean:
 	/bin/rm -f ../bin/*/CONFIG ../bin/*/*.[oas]
