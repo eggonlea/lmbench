@@ -26,7 +26,8 @@ rerun:
 	cd src && $(MAKE) rerun
 
 see:
-	cd results && $(MAKE) summary percent 2>/dev/null | more
+	cd results && $(MAKE) summary >summary.out 2>summary.errs 
+	cd results && $(MAKE) percent >percent.out 2>percent.errs 
 
 doc.lpr:
 	cd doc && $(MAKE) PS && lpr *.PS

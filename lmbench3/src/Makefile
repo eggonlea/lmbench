@@ -170,10 +170,11 @@ dist:
 	SRCDIR=`pwd`; \
 	ROOT=`cat ../CVS/Root`; \
 	MODULE=`cat ../CVS/Repository`; \
-	VERSION=`awk '/MAJOR/ { major = $$3; } /MINOR/ { minor=$$3;} END { if (minor < 0) printf("%d-alpha%d", major, -minor); else printf("%d.%d", major, minor);}' version.h`; \
+	VERSION=`../scripts/version`; \
 	cd /tmp \
-	&& cvs -d$${ROOT} export -D "`date '+%F %H:%M'`" \
+	&& cvs -d$${ROOT} export -Dtomorrow \
 		 -d $${MODULE}-$${VERSION} $${MODULE} \
+	&& chmod +x $${MODULE}-$${VERSION}/scripts/[a-z]* \
 	&& tar czf $${SRCDIR}/../../$${MODULE}-$${VERSION}.tgz \
 		$${MODULE}-$${VERSION} \
 	&& rm -rf $${MODULE}-$${VERSION};
@@ -181,11 +182,9 @@ dist:
 clean:
 	/bin/rm -f ../bin/*/CONFIG ../bin/*/*.[oas]
 	/bin/rm -f *.[oas]
-	-bk clean
 
 clobber:
 	/bin/rm -rf ../bin* SHAR
-	-bk clean
 
 shar:
 	cd ../.. && shar lmbench/Results/Makefile $(SAMPLES) lmbench/scripts/* lmbench/src/Makefile lmbench/src/*.[ch] > lmbench/SHAR
@@ -202,7 +201,7 @@ testmake: $(SRCS) $(UTILS) # used by scripts/make to test gmake
 
 $O/lmbench : ../scripts/lmbench version.h
 	rm -f $O/lmbench
-	VERSION=`awk '/MAJOR/ { major = $$3; } /MINOR/ { minor=$$3;} END { if (minor < 0) printf("%d-alpha%d", major, -minor); else printf("%d.%d", major, minor);}' version.h`; \
+	VERSION=`../scripts/version`; \
 	sed -e "s/<version>/$${VERSION}/g" < ../scripts/lmbench > $O/lmbench
 	chmod +x $O/lmbench
 

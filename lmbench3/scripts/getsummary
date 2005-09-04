@@ -941,7 +941,7 @@ sub resultsq
 	for ($i = $low; $i <= $high; $i++) {
 		foreach $p (@pars) {
 			$val = eval '$' . $p . '[' . $i . ']';
-			if ($val > 0) {
+			if ($val) {  #REVIEW was ($val > 0)
 				return (1);
 			}
 		}
