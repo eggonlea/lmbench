@@ -45,15 +45,25 @@ For example, the inner loop which measures parallelism 2 would look
 something like:
 .sp
 .ft CB
+for (i = 0; i < N; ++i) {
 	p0 = (char **)*p0;
 	p1 = (char **)*p1;
+}
 .ft
 .sp
 in a 
 .I for 
-loop (the over head of the 
+loop (the overhead of the 
 .I for 
 loop is not significant; the loop is an unrolled loop 100 loads long).  
+In this case, if the hardware can process two LOAD operations in parallel,
+then the overall latency of the loop should be equivalent to that of a
+single pointer chain, so the measured parallelism would be roughly two.
+If, however, the hardware can only process a single LOAD operation at
+once, or if there is (significant) resource contention between the two
+LOAD operations, then the loop will be much slower than a loop with a
+single pointer chain, so the measured parallelism will be less than
+two, and probably no smaller than one.
 .SH OUTPUT
 Output format is intended as input to \fBxgraph\fP or some similar program
 (we use a perl script that produces pic input).
