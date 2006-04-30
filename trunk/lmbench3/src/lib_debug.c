@@ -48,7 +48,7 @@ print_results(int details)
 	}
 	fprintf(stderr, "}\n");
 	if (details) {
-		fprintf(stderr, "\t/* {", results->N);
+		fprintf(stderr, "\t/* %d {", results->N);
 		for (i = 0; i < results->N; ++i) {
 			fprintf(stderr, 
 				"%llu/%llu", results->v[i].u, results->v[i].n);
@@ -70,7 +70,7 @@ bw_quartile(uint64 bytes)
 {
 	double	b = (double)bytes;
 
-	fprintf(stderr, "%d\t%e\t%e\t%e\t%e\t%e\n", get_n(), 
+	fprintf(stderr, "%d\t%e\t%e\t%e\t%e\t%e\n", (int)get_n(), 
 		(double)bytes / (1000000. * percent_point(0.00)),
 		(double)bytes / (1000000. * percent_point(0.25)),
 		(double)bytes / (1000000. * percent_point(0.50)),
