@@ -43,7 +43,6 @@ zone(char *disk, int oflag, int bsize)
 	char	*buf;
 	int	usecs;
 	int	error;
-	int	n;
 	int	fd;
 	uint64	off;
 	int	stride;
@@ -94,10 +93,10 @@ zone(char *disk, int oflag, int bsize)
 	 * This first I/O outside the loop is to catch read/write permissions.
 	 */
 
-#define	IO(a,b,c)	(oflag == 0 ? (n = read(a,b,c)) : (n = write(a,b,c)))
+#define	IO(a,b,c)	(oflag == 0 ? read(a,b,c) : write(a,b,c))
 
-	error = IO(fd, buf, 512);
-	if (error == -1) {
+	
+	if (IO(fd, buf, 512) != 512) {
 		perror(disk);
 		exit(1);
 	}
