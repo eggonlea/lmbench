@@ -423,9 +423,9 @@ print_data(double mhz, result_t* data)
 	names[7] = name_8();
 	names[8] = name_9();
 
-	printf("/* \"%s\", \"%s\", \"%s\", %d, %.0f, %d, %f, %f */\n", 
+	printf("/* \"%s\", \"%s\", \"%s\", %d, %.0f, %d, %f, %lu */\n", 
 	       CPU_name, uname, email, speed, 
-	       mhz, get_enough(0), l_overhead(), t_overhead());
+	       mhz, get_enough(0), l_overhead(), (unsigned long)t_overhead());
 	printf("result_t* data[] = { \n");
 	for (i = 0; i < NTESTS; ++i) {
 	    printf("\t/* %s */ { %d, {", names[i], data[i].N);
