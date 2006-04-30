@@ -49,9 +49,9 @@ udp_server(u_long prog, int rdwr)
  * Unadvertise the socket
  */
 void
-udp_done(int prog)
+udp_done(u_long prog)
 {
-	(void)pmap_unset((u_long)prog, (u_long)1);
+	(void)pmap_unset(prog, (u_long)1);
 }
 
 /*
