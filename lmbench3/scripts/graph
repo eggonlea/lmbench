@@ -135,7 +135,7 @@ sub init
 			@_ = split;
 			$_ = "$_[1] $_[1]";
 		} elsif (/^%hist\s/) {
-			split;
+			@_ = split;
 			shift(@_);
 			($hist_bsize, $hist_low, $hist_high) = @_;
 			next;

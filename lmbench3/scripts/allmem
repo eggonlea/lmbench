@@ -15,7 +15,7 @@ foreach $file (@ARGV) {
 	while (<FD>) {
 		chop;
 		if (/^\[lmbench/) {
-			split;
+			@_ = split;
 			if ($_[3] eq "SunOS") {
 				$_[3] .= "-$_[5]";
 			}

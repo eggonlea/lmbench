@@ -10,7 +10,7 @@ $min = 1.7E+308;
 $max = 2.2E-308;
 while (<>) {
 	next if /^[%#]/;
-	split;
+	@_ = split;
 	if ($_[0] > 1000000) {
 		#warn "$file: ignoring $_";
 		next;
