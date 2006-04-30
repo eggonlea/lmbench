@@ -52,7 +52,7 @@ void tlb_cleanup(iter_t iterations, void* cookie);
 REPEAT_15(MEM_BENCHMARK_DECL)
 extern benchmp_f mem_benchmarks[];
 
-size_t	line_find(size_t l, int warmup, int repetitions, struct mem_state* state);
+ssize_t	line_find(size_t l, int warmup, int repetitions, struct mem_state* state);
 double	line_test(size_t l, int warmup, int repetitions, struct mem_state* state);
 double	par_mem(size_t l, int warmup, int repetitions, struct mem_state* state);
 
