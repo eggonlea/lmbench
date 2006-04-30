@@ -31,21 +31,17 @@ main(int ac, char **av)
 	int	c;
 	int	warmup = 0;
 	int	repetitions = TRIES;
-	int	print_cost = 0;
 	size_t	len;
 	size_t	maxlen = 64 * 1024 * 1024;
 	double	par;
 	struct mem_state state;
-	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
+	char   *usage = "[-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 
 	state.line = getpagesize() / 16;
 	state.pagesize = getpagesize();
 
-	while (( c = getopt(ac, av, "cL:M:W:N:")) != EOF) {
+	while (( c = getopt(ac, av, "L:M:W:N:")) != EOF) {
 		switch(c) {
-		case 'c':
-			print_cost = 1;
-			break;
 		case 'L':
 			state.line = atoi(optarg);
 			if (state.line < sizeof(char*))
