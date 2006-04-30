@@ -146,7 +146,6 @@ initialize(iter_t iterations, void* cookie)
 		for ( ;; ) {
 			procB(state);
 		}
-		exit(0);
 	default:
 		break;
 	}
