@@ -9,10 +9,10 @@ char	*id = "$Id$\n";
 
 struct _state {
 	char	*tmpdir;
-	int	max;
-	int	n;
+	long	max;
+	long	n;
 	char**	names;
-	int	ndirs;
+	long	ndirs;
 	char**	dirs;
 	size_t	size;
 };
@@ -196,7 +196,7 @@ setup_names(iter_t iterations, void* cookie)
 	doff = 0;
 	setup_names_recurse(&foff, &doff, depth, state);
 	if (foff != iterations || doff != state->ndirs - 1) {
-		fprintf(stderr, "setup_names: ERROR: foff=%lu, iterations=%lu, doff=%lu, ndirs=%lu, depth=%d\n", (unsigned long)foff, (unsigned long)iterations, (unsigned long)doff, (unsigned long)state->ndirs, depth);
+		fprintf(stderr, "setup_names: ERROR: foff=%lu, iterations=%lu, doff=%lu, ndirs=%lu, depth=%ld\n", (unsigned long)foff, (unsigned long)iterations, (unsigned long)doff, (unsigned long)state->ndirs, depth);
 	}
 }
 
