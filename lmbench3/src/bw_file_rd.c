@@ -41,7 +41,7 @@ void doit(int fd)
 
 	size = count;
 	chunk = xfersize;
-	while (size >= 0) {
+	while (size > 0) {
 		if (size < chunk) chunk = size;
 		if (read(fd, buf, MIN(size, chunk)) <= 0) {
 			break;
