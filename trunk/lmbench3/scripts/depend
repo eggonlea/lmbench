@@ -15,8 +15,8 @@ while(<M>) {
 close(M);
 open(G, "gcc -MM *.c | grep -v mhz.c | grep -v lat_ctx.c|");
 while (<G>) {
-	chop;
-	split(/:/);
+	@_ = chop;
+	@_ = split(/:/);
 	$_[0] =~ s/\.o\s*$//;
 	push(@Makefile, "\$O/$_[0]: $_[1] \$O/lmbench.a\n");
 	push(@Makefile, "\t\$(COMPILE) -o \$O/$_[0] $_[0].c \$O/lmbench.a \$(LDLIBS)\n\n");

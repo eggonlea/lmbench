@@ -18,7 +18,7 @@ while (<>) {
 
 	if (/^\.TH\s/) {
 		# .TH BW_MEM_CP 8 "$Date$" "(c)1994 Larry McVoy" "LMBENCH"
-		split;
+		@_ = split;
 		print "<TITLE>$_[1]($_[2]) - LMBENCH man page</TITLE>\n";
 		print "<H2>$_[1]($_[2]) - LMBENCH man page</H2><HR>\n";
 		next;
@@ -207,7 +207,7 @@ sub fontfont {
 	if (/^\.BI\s/) {
 		s/.BI\s+//;
 		chop;
-		split;
+		@_ = split;
 		print "<STRONG>$_[0]</STRONG><EM>$_[1]</EM>\n";
 		return 1;
 	}
@@ -215,7 +215,7 @@ sub fontfont {
 	if (/^\.IB\s/) {
 		s/.IB\s+//;
 		chop;
-		split;
+		@_ = split;
 		print "<EM>$_[0]</EM><STRONG>$_[1]</STRONG>\n";
 		return 1;
 	}
@@ -223,7 +223,7 @@ sub fontfont {
 	if (/^\.IR\s/) {
 		s/.IR\s+//;
 		chop;
-		split;
+		@_ = split;
 		print "<EM>$_[0]</EM>$_[1]\n";
 		return 1;
 	}
@@ -231,7 +231,7 @@ sub fontfont {
 	if (/^\.BR\s/) {
 		s/.BR\s+//;
 		chop;
-		split;
+		@_ = split;
 		print "<STRONG>$_[0]</STRONG>$_[1]\n";
 		return 1;
 	}
