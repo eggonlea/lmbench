@@ -100,10 +100,10 @@ timeit(char *where, size_t size)
 		if (range < size && size < range + incr) {
 			incr = size - range;
 		}
-		fprintf(stderr, "%dMB OK\r", range/(1024*1024));
+		fprintf(stderr, "%dMB OK\r", (int)(range/(1024*1024)));
 	}
 	fprintf(stderr, "\n");
-	printf("%d\n", (size>>20));
+	printf("%d\n", (int)(size>>20));
 }
 
 static void
@@ -151,7 +151,7 @@ test_malloc(size_t size)
 }
 
 void
-gotalarm()
+gotalarm(int s)
 {
 	alarm_triggered = 1;
 }
