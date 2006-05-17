@@ -128,7 +128,7 @@ tlb_cleanup(iter_t iterations, void* cookie)
 void
 base_initialize(iter_t iterations, void* cookie)
 {
-	int	nwords, nlines, nbytes, npages, nmpages;
+	size_t	nwords, nlines, nbytes, npages, nmpages;
 	size_t *pages;
 	size_t *lines;
 	size_t *words;
@@ -418,7 +418,7 @@ line_initialize(iter_t iterations, void* cookie)
 void
 tlb_initialize(iter_t iterations, void* cookie)
 {
-	int i, j, nlines, npages, pagesize;
+	int i, j, nwords, nlines, npages, pagesize;
 	unsigned int r;
 	char **pages = NULL;
 	char **addr = NULL;
@@ -431,6 +431,7 @@ tlb_initialize(iter_t iterations, void* cookie)
 	state->initialized = 0;
 
 	pagesize = state->pagesize;
+	nwords   = 0;
 	nlines   = pagesize / sizeof(char*);
 	npages   = state->len / pagesize;
 
@@ -525,7 +526,7 @@ words_initialize(size_t max, int scale)
 }
 
 
-ssize_t
+size_t
 line_find(size_t len, int warmup, int repetitions, struct mem_state* state)
 {
 	size_t 	i, j, big_jump, line;
@@ -536,7 +537,7 @@ line_find(size_t len, int warmup, int repetitions, struct mem_state* state)
 	line = 0;
 
 	/*
-	fprintf(stderr, "line_find(%d, ...): entering\n", len);
+	fprintf(stderr, "line_find(%lu, ...): entering\n", (unsigned long)len);
 	/**/
 
 	state->width = 1;
@@ -565,7 +566,7 @@ line_find(size_t len, int warmup, int repetitions, struct mem_state* state)
 	}
 	mem_cleanup(0, state);
 	/*
-	fprintf(stderr, "line_find(%d, ...): returning %d\n", len, line);
+	fprintf(stderr, "line_find(%lu, ...): returning %lu\n", (unsigned long)len, (unsigned long)line);
 	/**/
 	return line;
 }
@@ -640,7 +641,7 @@ line_test(size_t line, int warmup, int repetitions, struct mem_state* state)
 double
 par_mem(size_t len, int warmup, int repetitions, struct mem_state* state)
 {
-	int	i, j, k, __n;
+	int	i, j, k, n, __n;
 	double	baseline, max_par, par;
 
 	state->width = 1;
@@ -655,6 +656,7 @@ par_mem(size_t len, int warmup, int repetitions, struct mem_state* state)
 	if (state->addr == NULL) return -1.;
 
 	for (i = 0; i < MAX_MEM_PARALLELISM; ++i) {
+		n = len / state->line;
 		for (j = 0; j <= i; j++) {
 			size_t nlines = len / state->line;
 			size_t lines_per_chunk = nlines / (i + 1);

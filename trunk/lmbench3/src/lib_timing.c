@@ -169,6 +169,7 @@ benchmp(benchmp_f initialize,
 	int		start_signal[2];
 	int		result_signal[2];
 	int		exit_signal[2];
+	int		need_warmup;
 	fd_set		fds;
 	struct timeval	timeout;
 
@@ -598,7 +599,9 @@ benchmp_child(benchmp_f initialize,
 	double		result = 0.;
 	double		usecs;
 	long		i = 0;
+	int		need_warmup;
 	fd_set		fds;
+	struct timeval	timeout;
 
 	_benchmp_child_state.state = warmup;
 	_benchmp_child_state.initialize = initialize;
@@ -623,6 +626,10 @@ benchmp_child(benchmp_f initialize,
 	if (!_benchmp_child_state.r) return;
 	insertinit(_benchmp_child_state.r);
 	set_results(_benchmp_child_state.r);
+
+	need_warmup = 1;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 0;
 
 	if (benchmp_sigchld_handler != SIG_DFL) {
 		signal(SIGCHLD, benchmp_sigchld_handler);
@@ -1191,6 +1198,8 @@ bytes(char *s)
 		n *= 1024;
 	if ((last(s) == 'm') || (last(s) == 'M'))
 		n *= (1024 * 1024);
+	if ((last(s) == 'g') || (last(s) == 'G'))
+		n *= (1024 * 1024 * 1024);
 	return (n);
 }
 
@@ -1614,14 +1623,14 @@ bread(void* buf, long nbytes)
 }
 
 void
-touch(char *buf, int nbytes)
+touch(char *buf, size_t nbytes)
 {
-	static	psize;
+	static size_t	psize;
 
 	if (!psize) {
 		psize = getpagesize();
 	}
-	while (nbytes > 0) {
+	while (nbytes >= psize) {
 		*buf = 1;
 		buf += psize;
 		nbytes -= psize;
@@ -1629,26 +1638,27 @@ touch(char *buf, int nbytes)
 }
 
 size_t*
-permutation(int max, int scale)
+permutation(size_t max, size_t scale)
 {
-	size_t	i, v;
+	size_t	i, v, o;
 	static size_t r = 0;
 	size_t*	result = (size_t*)malloc(max * sizeof(size_t));
 
 	if (result == NULL) return NULL;
 
 	for (i = 0; i < max; ++i) {
-		result[i] = i * (size_t)scale;
+		result[i] = i * scale;
 	}
 
 	if (r == 0)
 		r = (getpid()<<6) ^ getppid() ^ rand() ^ (rand()<<10);
 
 	/* randomize the sequence */
-	for (i = max - 1; i > 0; --i) {
+	for (i = 0; i < max; ++i) {
 		r = (r << 1) ^ rand();
-		v = result[r % (i + 1)];
-		result[r % (i + 1)] = result[i];
+		o = r % max;
+		v = result[o];
+		result[o] = result[i];
 		result[i] = v;
 	}
 
@@ -1685,7 +1695,6 @@ cp(char* src, char* dst, mode_t mode)
 	fsync(dfd);
 	close(sfd);
 	close(dfd);
-	return 0;
 }
 
 #if defined(hpux) || defined(__hpux)
