@@ -40,8 +40,8 @@ void	tvsub(struct timeval *tdiff, struct timeval *t1, struct timeval *t0);
 void	use_int(int result);
 void	use_pointer(void *result);
 uint64	usecs_spent(void);
-void	touch(char *buf, int size);
-size_t*	permutation(int max, int scale);
+void	touch(char *buf, size_t size);
+size_t*	permutation(size_t max, size_t scale);
 int	cp(char* src, char* dst, mode_t mode);
 long	bread(void* src, long count);
 
