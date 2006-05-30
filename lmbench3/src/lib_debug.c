@@ -70,7 +70,8 @@ bw_quartile(uint64 bytes)
 {
 	double	b = (double)bytes;
 
-	fprintf(stderr, "%d\t%e\t%e\t%e\t%e\t%e\n", (int)get_n(), 
+	fprintf(stderr, "%lu\t%e\t%e\t%e\t%e\t%e\n", 
+		(unsigned long)get_n(), 
 		(double)bytes / (1000000. * percent_point(0.00)),
 		(double)bytes / (1000000. * percent_point(0.25)),
 		(double)bytes / (1000000. * percent_point(0.50)),
@@ -86,7 +87,8 @@ bw_quartile(uint64 bytes)
 void
 nano_quartile(uint64 n)
 {
-	fprintf(stderr, "%d\t%e\t%e\t%e\t%e\t%e\n", get_n(), 
+	fprintf(stderr, "%lu\t%e\t%e\t%e\t%e\t%e\n", 
+		(unsigned long)get_n(), 
 		percent_point(0.00) * 1000. / (double)n,
 		percent_point(0.25) * 1000. / (double)n,
 		percent_point(0.50) * 1000. / (double)n,
