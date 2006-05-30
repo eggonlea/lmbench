@@ -90,8 +90,7 @@ main(int ac, char **av)
 	int	i, j, n, start, level, prev, min;
 	int	warmup = 0;
 	int	repetitions = TRIES;
-	int	print_cost = 0;
-	size_t	line = 0;
+	ssize_t	line = 0;
 	size_t	maxlen = 32 * 1024 * 1024;
 	int	*levels;
 	double	par, maxpar;
@@ -99,11 +98,8 @@ main(int ac, char **av)
 	struct cache_results* r;
 	struct mem_state state;
 
-	while (( c = getopt(ac, av, "cL:M:W:N:")) != EOF) {
+	while (( c = getopt(ac, av, "L:M:W:N:")) != EOF) {
 		switch(c) {
-		case 'c':
-			print_cost = 1;
-			break;
 		case 'L':
 			line = atoi(optarg);
 			if (line < sizeof(char*))
@@ -196,8 +192,9 @@ main(int ac, char **av)
 				 repetitions, &state);
 
 		fprintf(stderr, 
-		    "L%d cache: %d bytes %.2f nanoseconds %d linesize %.2f parallelism\n",
-		    i+1, r[levels[i]].len, r[min].latency, line, maxpar);
+		    "L%d cache: %lu bytes %.2f nanoseconds %ld linesize %.2f parallelism\n",
+		    (int)(i+1), (unsigned long)r[levels[i]].len, 
+		    r[min].latency, (long)line, maxpar);
 	}
 
 	/* Compute memory parallelism for main memory */
@@ -723,23 +720,23 @@ check_memory(size_t size, struct mem_state* state)
 			}
 			if (j == first_page) {
 				fprintf(stderr, 
-					"check_memory: bad memory reference for size %d\n", 
-					size);
+					"check_memory: bad memory reference for size %lu\n", 
+					(unsigned long)size);
 			}
 		}
 		first_page = j % npages;
 		p = (char**)*p;
-		if (word_count & 0x1) q == (char**)*q;
+		if (word_count & 0x1) q = (char**)*q;
 		if (*p == *q) {
-			fprintf(stderr, "check_memory: unwanted memory cycle! page=%d\n", j);
+			fprintf(stderr, "check_memory: unwanted memory cycle! page=%lu\n", (unsigned long)j);
 			return;
 		}
 	}
 	if (word_count != nwords) {
-		fprintf(stderr, "check_memory: wrong word count, expected %d, got %d\n", nwords, word_count);
+		fprintf(stderr, "check_memory: wrong word count, expected %lu, got %lu\n", (unsigned long)nwords, (unsigned long)word_count);
 	}
 	/*
-	fprintf(stderr, "check_memory(%d, ...): exiting\n", size);
+	fprintf(stderr, "check_memory(%lu, ...): exiting\n", (unsigned long)size);
 	/**/
 }
 
