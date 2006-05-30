@@ -28,7 +28,6 @@ int
 main(int ac, char **av)
 {
 	int	i, j, l;
-	int	verbose = 0;
 	int	maxlen = 64 * 1024 * 1024;
 	int	warmup = 0;
 	int	repetitions = TRIES;
@@ -42,11 +41,8 @@ main(int ac, char **av)
 	state.mstate.pagesize = getpagesize();
 	state.group = 16;
 
-	while (( c = getopt(ac, av, "avL:T:M:W:N:")) != EOF) {
+	while (( c = getopt(ac, av, "aL:T:M:W:N:")) != EOF) {
 		switch(c) {
-		case 'v':
-			verbose = 1;
-			break;
 		case 'L':
 			state.mstate.line = bytes(optarg);
 			break;
