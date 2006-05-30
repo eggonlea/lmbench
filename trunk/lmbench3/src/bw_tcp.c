@@ -19,7 +19,7 @@ char	*id = "$Id$\n";
 typedef struct _state {
 	int	sock;
 	uint64	move;
-	int	msize;
+	size_t	msize;
 	char	*server;
 	int	fd;
 	char	*buf;
@@ -139,7 +139,7 @@ initialize(iter_t iterations, void *cookie)
 		perror("socket connection");
 		exit(1);
 	}
-	sprintf(buf, "%lu", state->msize);
+	sprintf(buf, "%lu", (unsigned long)state->msize);
 	if (write(state->sock, buf, strlen(buf) + 1) != strlen(buf) + 1) {
 		perror("control write");
 		exit(1);
