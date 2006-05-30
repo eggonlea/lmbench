@@ -110,7 +110,8 @@ reader(iter_t iterations, void* cookie)
 void
 writer(int controlfd, int writefd, char* buf, void* cookie)
 {
-	size_t	todo, n, done;
+	size_t	todo, done;
+	ssize_t	n;
 	struct _state* state = (struct _state*)cookie;
 
 	for ( ;; ) {
