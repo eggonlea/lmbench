@@ -306,7 +306,7 @@ collect_data(size_t start, size_t line, size_t maxlen,
 	p[0].latency = measure(p[0].len, repetitions, &p[0].variation, &state);
 	search(0, samples - 1, repetitions, &state, p);
 
-	/**/
+	/*
 	fprintf(stderr, "%10.10s %8.8s %8.8s %8.8s %8.8s %5.5s\n", 
 		"mem size", "latency", "variation", "ratio", "slope", "line");
 	for (idx = 0; idx < samples; ++idx) {
@@ -383,7 +383,7 @@ collect_sample(int repetitions, struct mem_state* state,
 	}
 	p->latency = baseline;
 
-	/**/
+	/*
 	fprintf(stderr, "collect_sample: len=%lu, latency=%G\n", 
 		(unsigned long)p->len, p->latency);
 	/**/
@@ -460,7 +460,7 @@ measure(size_t size, int repetitions,
 				p + pages[npages - 1] + state->lines[nlines] + state->words[j];
 		}
 	}
-	/**/
+	/*
 	fprintf(stderr, "%.6f %.2f\n", size / (1000. * 1000.), median);
 	/**/
 
