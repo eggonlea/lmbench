@@ -164,8 +164,9 @@ sched_ncpus()
 #elif defined(_SC_NPROCESSORS_ONLN)
 	/* AIX, Solaris, and Linux interface */
 	return sysconf(_SC_NPROCESSORS_ONLN);
-#endif
+#else
 	return 1;
+#endif
 }
 
 /*

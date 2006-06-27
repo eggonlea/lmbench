@@ -150,9 +150,9 @@ void
 do_int64_bitwise(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register int64 r = (int64)pState->N | (int64)pState->N<<32;
-	register int64 s = (int64)iterations | (int64)iterations<<32;
-	register int64 i = (int64)iterations<<34 - 1;
+	register int64 r = (int64)pState->N | ((int64)pState->N << 32);
+	register int64 s = (int64)iterations | ((int64)iterations << 32);
+	register int64 i = ((int64)iterations << 34) - 1;
 
 	while (iterations-- > 0) {
 		HUNDRED(r ^= i; s ^= r; r |= s;)
@@ -215,8 +215,8 @@ void
 do_int64_mod(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
-	register int64 r = iterations + (int64)iterations<<32;
-	register int64 s = (int64)pState->N + (int64)pState->N<<56;
+	register int64 r = iterations + ((int64)iterations << 32);
+	register int64 s = (int64)pState->N + ((int64)pState->N << 56);
 
 	while (iterations-- > 0) {
 		HUNDRED(r %= s; r |= s;);
@@ -365,8 +365,7 @@ do_double_bogomflops(iter_t iterations, void* cookie)
 int
 main(int ac, char **av)
 {
-	int	__n = 1;
-	int	c, i, j;
+	int	c;
 	int	warmup = 0;
 	int	parallel = 1;
 	int	repetitions = TRIES;

@@ -74,7 +74,8 @@ int
 tcp_accept(int sock, int rdwr)
 {
 	struct	sockaddr_in s;
-	int	newsock, namelen;
+	int	newsock;
+	socklen_t	namelen;
 
 	namelen = sizeof(s);
 	bzero((void*)&s, namelen);
@@ -226,7 +227,7 @@ sock_optimize(int sock, int flags)
 int
 sockport(int s)
 {
-	int	namelen;
+	socklen_t	namelen;
 	struct sockaddr_in sin;
 
 	namelen = sizeof(sin);

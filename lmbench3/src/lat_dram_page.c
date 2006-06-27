@@ -27,7 +27,6 @@ struct dram_page_state
 int
 main(int ac, char **av)
 {
-	int	i, j, l;
 	int	maxlen = 64 * 1024 * 1024;
 	int	warmup = 0;
 	int	repetitions = TRIES;

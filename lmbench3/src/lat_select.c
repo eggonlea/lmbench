@@ -177,9 +177,8 @@ doit(iter_t iterations, void * cookie)
 void
 initialize(iter_t iterations, void *cookie)
 {
-	char	c;
 	state_t * state = (state_t *)cookie;
-	int	n, last = 0 /* lint */;
+	int	n;
 	int	N = state->num, fid, fd;
 
 	if (iterations) return;

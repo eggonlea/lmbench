@@ -164,7 +164,6 @@ benchmark(iter_t iterations, void* cookie)
 void
 cleanup(iter_t iterations, void* cookie)
 {
-	int i;
 	struct _state* state = (struct _state*)cookie;
 
 	if (iterations) return;
@@ -184,7 +183,6 @@ cleanup(iter_t iterations, void* cookie)
 int
 main(int ac, char **av)
 {
-	int	i;
 	int	c;
 	int	parallel = 1;
 	int	warmup = 0;

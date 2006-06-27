@@ -14,15 +14,10 @@
 #include	"bench.h"
 #include	"flushdisk.c"
 
-#ifndef sgi
-#define	NO_LSEEK64
-#define	off64_t	long long
-#endif
 #define	SEEKPOINTS	2000
 #define	ZONEPOINTS	150
 
 uint64	disksize(char *);
-int	seekto(int, uint64);
 int	zone(char *disk, int oflag, int bsize);
 int	seek(char *disk, int oflag);
 
@@ -42,7 +37,6 @@ zone(char *disk, int oflag, int bsize)
 {
 	char	*buf;
 	int	usecs;
-	int	error;
 	int	fd;
 	uint64	off;
 	int	stride;
@@ -108,18 +102,18 @@ zone(char *disk, int oflag, int bsize)
 		off += 1024;
 		start(0);
 		if (IO(fd, buf, bsize) != bsize) {
-			exit(0);
+			break;
 		}
 		usecs = stop(0, 0);
 		off += bsize;
 		fprintf(stderr, "%.01f %.2f\n",
 		    off/1000000.0, (double)bsize/usecs);
 		off += stride;
-		if (seekto(fd, off)) {
-			exit(0);
+		if (seekto(fd, off, SEEK_SET) != off) {
+			break;
 		}
 	}
-	exit(0);
+	return (0);
 }
 
 /*
@@ -175,12 +169,12 @@ seek(char *disk, int oflag)
 
 	end = size;
 	begin = 0;
-	seekto(fd, begin);
+	seekto(fd, begin, SEEK_SET);
 	IO(fd, buf, IOSIZE);
 	while (end >= begin + stride*2) {
 		end -= stride;
 		start(0);
-		seekto(fd, end);
+		seekto(fd, end, SEEK_SET);
 		IO(fd, buf, IOSIZE);
 		usecs = stop(0, 0);
 		if (usecs > TOOSMALL && usecs < TOOBIG) {
@@ -191,7 +185,7 @@ seek(char *disk, int oflag)
 
 		begin += stride;
 		start(0);
-		seekto(fd, begin);
+		seekto(fd, begin, SEEK_SET);
 		IO(fd, buf, IOSIZE);
 		usecs = stop(0, 0);
 		if (usecs > TOOSMALL && usecs < TOOBIG) {
@@ -238,7 +232,7 @@ disksize(char *disk)
 	 */
 	for ( ;; ) {
 		off += FORWARD;
-		if (seekto(fd, off)) {
+		if (seekto(fd, off, SEEK_SET) != off) {
 			debug((stdout, "seekto(%dM) failed\n", (int)(off>>20)));
 			off -= FORWARD;
 			break;
@@ -252,7 +246,7 @@ disksize(char *disk)
 
 	for ( ;; ) {
 		off += FORWARD1;
-		if (seekto(fd, off)) {
+		if (seekto(fd, off, SEEK_SET) != off) {
 			debug((stdout, "seekto(%dM) failed\n", (int)(off>>20)));
 			off -= FORWARD1;
 			break;
@@ -266,7 +260,7 @@ disksize(char *disk)
 
 	for ( ;; ) {
 		off += FORWARD2;
-		if (seekto(fd, off)) {
+		if (seekto(fd, off, SEEK_SET) != off) {
 			debug((stdout, "seekto(%dM) failed\n", (int)(off>>20)));
 			off -= FORWARD2;
 			break;
@@ -282,28 +276,3 @@ disksize(char *disk)
 	return (off);
 }
 
-#define	BIGSEEK	(1<<30)
-
-int
-seekto(int fd, uint64 off)
-{
-#ifdef	__linux__
-	extern	loff_t llseek(int, loff_t, int);
-
-	if (llseek(fd, (loff_t)off, SEEK_SET) == (loff_t)-1) {
-		return(-1);
-	}
-	return (0);
-#else
-	uint64	here = 0;
-
-	lseek(fd, 0, 0);
-	while ((uint64)(off - here) > (uint64)BIGSEEK) {
-		if (lseek(fd, BIGSEEK, SEEK_CUR) == -1) break;
-		here += BIGSEEK;
-	}
-	assert((uint64)(off - here) <= (uint64)BIGSEEK);
-	if (lseek(fd, (int)(off - here), SEEK_CUR) == -1) return (-1);
-	return (0);
-#endif
-}

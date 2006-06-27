@@ -51,7 +51,6 @@ do_catch(iter_t iterations, void* cookie)
 {
 	int	me = getpid();
 	struct	sigaction sa, old;
-	double	u;
 
 	sa.sa_handler = handler;
 	sigemptyset(&sa.sa_mask);	
@@ -121,7 +120,7 @@ do_prot(iter_t iterations, void* cookie)
 void
 bench_catch(int parallel, int warmup, int repetitions)
 {
-	uint64 t, send_usecs, send_n;
+	uint64 send_usecs, send_n;
 
 	/* measure cost of sending signal */
 	benchmp(NULL, do_send, NULL, 0, parallel, 

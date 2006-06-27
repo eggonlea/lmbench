@@ -44,9 +44,7 @@ void cleanup(iter_t iterations, void *cookie);
 int
 main(int ac, char **av)
 {
-	int	fd;
 	struct	stat sbuf;
-	void	*buf;
 	int	parallel = 1;
 	int	warmup = 0;
 	int	repetitions = TRIES;

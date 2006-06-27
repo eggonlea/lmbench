@@ -41,8 +41,6 @@ main(int ac, char **av)
 	int	parallel = 1;
 	int	warmup = 0;
 	int	repetitions = TRIES;
-	int	server = 0;
-	int	shutdown = 0;
 	int	msize = 4;
  	char	buf[256];
 	char	*usage = "-s\n OR [-S] [-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] server\n NOTE: message size must be >= 4\n";
@@ -133,9 +131,7 @@ doit(iter_t iterations, void *cookie)
 {
 	state_t *state = (state_t *) cookie;
 	int seq = state->seq;
-	int net = htonl(seq);
 	int sock = state->sock;
-	int ret;
 
 	alarm(15);
 	while (iterations-- > 0) {
@@ -174,7 +170,8 @@ void
 server_main()
 {
 	char	*buf = (char*)valloc(MAX_MSIZE);
-	int     sock, sent, namelen, seq = 0;
+	int     sock, sent, seq = 0;
+	socklen_t	namelen;
 	struct sockaddr_in it;
 
 	GO_AWAY;

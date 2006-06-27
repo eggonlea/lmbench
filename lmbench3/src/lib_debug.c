@@ -68,8 +68,6 @@ print_results(int details)
 void
 bw_quartile(uint64 bytes)
 {
-	double	b = (double)bytes;
-
 	fprintf(stderr, "%lu\t%e\t%e\t%e\t%e\t%e\n", 
 		(unsigned long)get_n(), 
 		(double)bytes / (1000000. * percent_point(0.00)),
@@ -109,8 +107,10 @@ print_mem(char* addr, size_t size, size_t line)
 	base = (uint64)addr;
 	for (p = addr; *(char**)p != addr; p = *(char**)p) {
 		off = (uint64)p - base;
-		fprintf(stderr, "\t%lu\t%lu\t%lu\n", off / pagesize, 
-			(off % pagesize) / line, (off % line) / sizeof(char*));
+		fprintf(stderr, "\t%lu\t%lu\t%lu\n", 
+			(unsigned long)(off / pagesize), 
+			(unsigned long)((off % pagesize) / line),
+			(unsigned long)((off % line) / sizeof(char*)));
 	}
 }
 

@@ -29,7 +29,6 @@ main(int ac, char **av)
 	int parallel = 1;
 	int warmup = 0;
 	int repetitions = TRIES;
-	char buf[1024];
 	state_t state;
 	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>] cmdline...\n";
 

@@ -43,7 +43,6 @@ main(int ac, char **av)
 	int	parallel = 1;
 	int	warmup = 0;
 	int	repetitions = TRIES;
-	char	buf[256];
 	int	c;
 	char	*usage = "[-r] [-C] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] size file\n";
 	
@@ -118,7 +117,7 @@ init(iter_t iterations, void* cookie)
 	}
 	CHK(state->fd = open(state->name, O_RDWR));
 	if (state->clone) unlink(state->name);
-	if (lseek(state->fd, 0, SEEK_END) < state->size) {
+	if (seekto(state->fd, 0, SEEK_END) < state->size) {
 		fprintf(stderr, "Input file too small\n");
 		exit(1);
 	}

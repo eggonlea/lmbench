@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ "X$MAKE" != "X" ] && echo "$MAKE" | grep -q '`'
+if [ "X$MAKE" != "X" ] && echo "$MAKE" | grep '`' > /dev/null
 then
     MAKE=
 fi
