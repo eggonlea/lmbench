@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ "X$CC" != "X" ] && echo "$CC" | grep -q '`'
+if [ "X$CC" != "X" ] && echo "$CC" | grep '`' > /dev/null
 then
     CC=
 fi

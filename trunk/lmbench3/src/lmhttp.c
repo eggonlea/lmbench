@@ -369,9 +369,9 @@ static	int nbytes;		/* bytes buffered */
 void
 logit(int sock, char *name, int size)
 {
-	struct	sockaddr_in sin;
-	int	len = sizeof(sin);
-	char	buf[1024 + 16];		/* maxpathlen + others */
+	char			buf[1024 + 16];	/* maxpathlen + others */
+	struct	sockaddr_in 	sin;
+	socklen_t		len = sizeof(sin);
 
 	if (getpeername(sock, (struct sockaddr*)&sin, &len) == -1) {
 		perror("getpeername");

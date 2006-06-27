@@ -94,9 +94,7 @@ main(int ac, char **av)
 void
 initialize(iter_t iterations, void* cookie)
 {
-	int 		i, npages, pagesize;
-	int		*p;
-	unsigned int	r;
+	int 		pagesize;
 	struct stat 	sbuf;
 	state_t 	*state = (state_t *) cookie;
 
@@ -182,7 +180,6 @@ benchmark(iter_t iterations, void* cookie)
 void
 benchmark_mmap(iter_t iterations, void* cookie)
 {
-	int	i;
 	int	sum = 0;
 	state_t *state = (state_t *) cookie;
 

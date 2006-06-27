@@ -160,17 +160,12 @@ benchmp(benchmp_f initialize,
 	void* cookie)
 {
 	iter_t		iterations = 1;
-	double		result = 0.;
-	double		usecs;
-	long		i, j;
-	pid_t		pid;
+	long		i;
 	pid_t		*pids = NULL;
 	int		response[2];
 	int		start_signal[2];
 	int		result_signal[2];
 	int		exit_signal[2];
-	fd_set		fds;
-	struct timeval	timeout;
 
 #ifdef _DEBUG
 	fprintf(stderr, "benchmp(%p, %p, %p, %d, %d, %d, %d, %p): entering\n", initialize, benchmark, cleanup, enough, parallel, warmup, repetitions, cookie);
@@ -336,7 +331,7 @@ benchmp_parent(	int response,
 		int enough
 		)
 {
-	int		i,j,k,l;
+	int		i, j;
 	int		bytes_read;
 	result_t*	results = NULL;
 	result_t*	merged_results = NULL;
@@ -595,10 +590,6 @@ benchmp_child(benchmp_f initialize,
 		)
 {
 	iter_t		iterations_batch = (parallel > 1) ? get_n() : 1;
-	double		result = 0.;
-	double		usecs;
-	long		i = 0;
-	fd_set		fds;
 
 	_benchmp_child_state.state = warmup;
 	_benchmp_child_state.initialize = initialize;
@@ -661,7 +652,10 @@ benchmp_interval(void* _state)
 
 	iterations = (state->state == timing_interval ? state->iterations : state->iterations_batch);
 
-	if (!state->need_warmup) {
+	if (state->need_warmup) {
+		/* remove spurious compilation warning */
+		result = state->enough;
+	} else {
 		result = stop(0,0);
 		if (state->cleanup) {
 			if (benchmp_sigchld_handler == SIG_DFL)
@@ -721,7 +715,7 @@ benchmp_interval(void* _state)
 			} else {
 				iterations <<= 3;
 				if (iterations > 1<<27
-				    || result < 0. && iterations > 1<<20) {
+				    || (result < 0. && iterations > 1<<20)) {
 					state->state = cooldown;
 				}
 			}
@@ -1187,12 +1181,15 @@ bytes(char *s)
 	if (sscanf(s, "%llu", &n) < 1)
 		return (0);
 
-	if ((last(s) == 'k') || (last(s) == 'K'))
-		n *= 1024;
-	if ((last(s) == 'm') || (last(s) == 'M'))
-		n *= (1024 * 1024);
-	if ((last(s) == 'g') || (last(s) == 'G'))
-		n *= (1024 * 1024 * 1024);
+	switch (last(s)) {
+	    case 'k':	n <<= 10;		break;
+	    case 'K':	n *= 1000;		break;
+	    case 'm':	n <<= 20;		break;
+	    case 'M':	n *= 1000000;		break;
+	    case 'g':	n <<= 30;		break;
+	    case 'G':	n *= 1000000000L;	break;
+	}
+
 	return (n);
 }
 
@@ -1213,8 +1210,6 @@ sizeof_result(int repetitions)
 void
 insertinit(result_t *r)
 {
-	int	i;
-
 	r->N = 0;
 }
 
@@ -1689,6 +1684,50 @@ cp(char* src, char* dst, mode_t mode)
 	close(sfd);
 	close(dfd);
 	return 0;
+}
+
+#define	BIGSEEK	(1<<30)
+
+off64_t
+seekto(int fd, off64_t off, int whence)
+{
+#ifdef HAVE_lseek64
+	return lseek64(fd, off, whence);
+#else
+	int64	here = 0;
+	int	delta = (off >= 0 ? BIGSEEK : -BIGSEEK);
+	int	v;
+
+	/* For large files, the return value will be wrong */
+
+	switch (whence) {
+	case SEEK_SET:
+		lseek(fd, 0, 0);
+		break;
+	case SEEK_END:
+		if (lseek(fd, 0, SEEK_END) == -1) return ((off64_t)-1);
+		break;
+	case SEEK_CUR:
+		if (off == 0)
+			return lseek(fd, 0, SEEK_CUR);
+	default:
+		break;
+	}
+	/* fprintf(stderr, "seekto(%d, %lld, %d): did initial seek\n", fd, off, whence); */
+	
+	while ((off - here < delta && delta < 0)
+	       || (0 < delta && delta < off - here))
+	{
+		/* fprintf(stderr, "about to lseek(%d, %d, %d)\n", fd, delta, whence); */
+		if (lseek(fd, delta, SEEK_CUR) == -1 && errno) 
+			return ((off64_t)-1);
+		here += delta;
+	}
+	v = lseek(fd, (int)(off - here), SEEK_CUR);
+	/* fprintf(stderr, "lseek(%d, %d, %d) returned %d\n", fd, (int)(off - here), SEEK_CUR, v); */
+	if (v != -1 && whence == SEEK_SET) return (off);
+	return ((off64_t)v);
+#endif
 }
 
 #if defined(hpux) || defined(__hpux)

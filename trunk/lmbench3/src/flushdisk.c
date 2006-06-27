@@ -37,6 +37,6 @@ main(int ac, char **av)
 		close(fd);
 	}
 #endif
-	exit(0);
+	return(0);
 }
 #endif

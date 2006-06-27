@@ -31,12 +31,12 @@ void compute_times(int pages, int warmup, int repetitions,
 int
 main(int ac, char **av)
 {
-	int	i, l, len, tlb, maxpages;
+	int	tlb, maxpages;
 	int	c;
 	int	print_cost = 0;
 	int	warmup = 0;
 	int	repetitions = TRIES;
-	double	tlb_time, cache_time, diff;
+	double	tlb_time, cache_time;
 	struct mem_state state;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 

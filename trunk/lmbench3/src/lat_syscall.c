@@ -19,9 +19,6 @@ struct _state {
 void
 do_getppid(iter_t iterations, void *cookie)
 {
-	struct _state *pState = (struct _state*)cookie;
-	char	c;
-
 	while (iterations-- > 0) {
 		getppid();
 	}

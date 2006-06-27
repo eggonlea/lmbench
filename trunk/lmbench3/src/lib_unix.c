@@ -56,7 +56,8 @@ int
 unix_accept(int sock)
 {
 	struct	sockaddr_un s;
-	int	newsock, namelen;
+	int	newsock;
+	socklen_t	namelen;
 
 	namelen = sizeof(s);
 	bzero((void*)&s, namelen);

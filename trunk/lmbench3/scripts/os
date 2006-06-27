@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ "X$OS" != "X" ] && echo "$OS" | grep -q '`'
+if [ "X$OS" != "X" ] && echo "$OS" | grep '`' > /dev/null
 then
     OS=
 fi

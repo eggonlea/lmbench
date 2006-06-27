@@ -24,7 +24,7 @@ char	*id = "$Id$\n";
 int
 main(int ac, char **av)
 {
-	int	i, j, l;
+	int	l;
 	int	verbose = 0;
 	int	warmup = 0;
 	int	repetitions = TRIES;

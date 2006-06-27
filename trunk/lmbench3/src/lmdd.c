@@ -61,14 +61,6 @@ void		flush(void);
 #define	VALLOC	malloc
 #endif
 
-#ifdef	__sgi
-#	define	LSEEK(a,b,c)	(uint64)lseek64(a, (off64_t)b, c)
-#	define	ATOL(s)		atoll(s)
-#else
-#	define	LSEEK(a,b,c)	(uint64)lseek(a, b, c)
-#	define	ATOL(s)		atol(s)
-#endif
-
 
 int     awrite, poff, out, Print, Fsync, Sync, Flush, Bsize, ru;
 uint64	Start, End, Rand, int_count;
@@ -327,10 +319,10 @@ main(int ac, char **av)
 		off = skip;
 		off *= Bsize;
 		if (in >= 0) {
-			LSEEK(in, off, 0);
+			seekto(in, off, 0);
 		}
 		if (out >= 0) {
-			LSEEK(out, off, 0);
+			seekto(out, off, 0);
 		}
 		if (poff) {
 			fprintf(stderr, "%s ", p64sz(off));
@@ -367,10 +359,10 @@ main(int ac, char **av)
 				}
 			}
 			if (in >= 0) {
-				LSEEK(in, off, 0);
+				seekto(in, off, 0);
 			}
 			if (out >= 0) {
-				LSEEK(out, off, 0);
+				seekto(out, off, 0);
 			}
 		}
 		/*
@@ -391,10 +383,10 @@ main(int ac, char **av)
 				norepeats = 0;
 			}
 			if (in >= 0) {
-				LSEEK(in, off, 0);
+				seekto(in, off, 0);
 			}
 			if (out >= 0) {
-				LSEEK(out, off, 0);
+				seekto(out, off, 0);
 			}
 		}
 		if (poff) {
@@ -424,7 +416,7 @@ main(int ac, char **av)
 					fprintf(stderr,
 					  "READ: %.02f milliseconds offset %s\n",
 						((float)mics) / 1000,
-						p64sz(LSEEK(in, 0, SEEK_CUR)));
+						p64sz(seekto(in, 0, SEEK_CUR)));
 				}
 				/*
 				 * Put this read time in the histogram.
@@ -541,7 +533,7 @@ main(int ac, char **av)
 					fprintf(stderr,
 					  "WRITE: %.02f milliseconds offset %s\n",
 						((float)mics) / 1000,
-						p64sz(LSEEK(out, 0, SEEK_CUR)));
+						p64sz(seekto(out, 0, SEEK_CUR)));
 				}
 				/*
 				 * Put this write time in the histogram.
@@ -737,22 +729,10 @@ getarg(char *s, int ac, char **av)
 
 	for (i = 1; i < ac; ++i) {
 		if (!strncmp(av[i], s, len)) {
-			register uint64 bs = ATOL(&av[i][len]);
+			register uint64 bs = bytes(&av[i][len]);
 
-			switch (av[i][strlen(av[i]) - 1]) {
-			    case 'K': bs *= 1000; break;
-			    case 'k': bs <<= 10; break;
-			    case 'M': bs *= 1000000; break;
-			    case 'm': bs <<= 20; break;
-			    case 'G': bs *= 1000000000L; break;
-			    case 'g': bs <<= 30; break;
-			}
-
-			if (!strncmp(av[i], "label", 5)) {
-				return (uint64)(long)(&av[i][len]); /* HACK */
-			}
-			if (!strncmp(av[i], "bs=", 3)) {
-				return (uint64)(bs);
+			if (!strncmp(av[i], "label=", 6)) {
+				return (uint64)(&av[i][len]); /* HACK */
 			}
 			return (bs);
 		}

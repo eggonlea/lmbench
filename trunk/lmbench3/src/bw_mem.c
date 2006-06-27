@@ -143,7 +143,6 @@ main(int ac, char **av)
 void
 init_overhead(iter_t iterations, void *cookie)
 {
-	state_t *state = (state_t *) cookie;
 }
 
 void
@@ -415,7 +414,6 @@ loop_bzero(iter_t iterations, void *cookie)
 {	
 	state_t *state = (state_t *) cookie;
 	register TYPE *p = state->buf;
-	register TYPE *dst = state->buf2;
 	register size_t  N = state->N;
 
 	while (iterations-- > 0) {

@@ -116,12 +116,12 @@ main(int ac, char **av)
 		fprintf(stderr, "%.6f ", state.msize / (1000. * 1000.));
 		mb(state.move * get_n() * parallel);
 	}
+	return(0);
 }
 
 void
 initialize(iter_t iterations, void *cookie)
 {
-	int	c;
 	char	buf[100];
 	state_t *state = (state_t *) cookie;
 
@@ -212,7 +212,7 @@ server_main()
 void
 source(int data)
 {
-	size_t	count, m;
+	size_t	m;
 	unsigned long	nbytes;
 	char	*buf, scratch[100];
 

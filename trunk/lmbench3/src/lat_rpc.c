@@ -81,7 +81,6 @@ void
 benchmark(iter_t iterations, void* _state)
 {
 	state_t* state = (state_t*)_state;
-	char	buf[256];
 
 	while (iterations-- > 0) {
 		doit(state->cl, state->server);
@@ -91,13 +90,10 @@ benchmark(iter_t iterations, void* _state)
 int
 main(int ac, char **av)
 {
-	int	i;
 	int 	c;
 	int	parallel = 1;
 	int	warmup = 0;
 	int	repetitions = TRIES;
-	int	server = 0;
-	int	shutdown = 0;
 	state_t	state;
 	CLIENT	*cl;
 	char	buf[1024];

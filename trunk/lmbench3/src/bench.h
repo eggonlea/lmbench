@@ -12,6 +12,7 @@ typedef unsigned char bool_t;
 #include	<assert.h>
 #include        <ctype.h>
 #include        <stdio.h>
+#include	<math.h>
 #ifndef WIN32
 #include        <unistd.h>
 #endif
@@ -37,11 +38,27 @@ typedef unsigned char bool_t;
 #define PORTMAP
 #include	<rpc/rpc.h>
 #endif
+#ifdef HAVE_pmap_clnt_h
+#include	<rpc/pmap_clnt.h>
+#endif
 #include	<rpc/types.h>
+#ifdef HAVE_pmap_clnt_h
+#include	<rpc/pmap_clnt.h>
+#endif
 
 #include 	<stdarg.h>
 #ifndef HAVE_uint
 typedef unsigned int uint;
+#endif
+
+#ifndef S_IREAD
+#define S_IREAD S_IRUSR
+#endif
+#ifndef S_IWRITE
+#define S_IWRITE S_IWUSR
+#endif
+#ifndef S_IEXEC
+#define S_IEXEC S_IXUSR
 #endif
 
 #ifndef HAVE_uint64
@@ -59,6 +76,14 @@ typedef int64_t int64;
 typedef long long int64;
 #endif /* HAVE_int64_t */
 #endif /* HAVE_int64 */
+
+#ifndef HAVE_socklen_t
+typedef int socklen_t;
+#endif
+
+#ifndef HAVE_off64_t
+typedef int64 off64_t;
+#endif
 
 #define NO_PORTMAPPER
 
@@ -259,6 +284,8 @@ extern	int	opterr;
 extern	int	optopt;
 extern	char	*optarg;
 int	getopt(int ac, char **av, char *opts);
+void	lmbench_usage(int argc, char *argv[], char* usage);
+off64_t	seekto(int fd, off64_t off, int whence);
 
 typedef u_long iter_t;
 typedef void (*benchmp_f)(iter_t iterations, void* cookie);

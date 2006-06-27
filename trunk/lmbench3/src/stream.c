@@ -48,7 +48,6 @@ void sum(iter_t iterations, void* cookie);
 int
 main(int ac, char **av)
 {
-	int	i, j, l;
 	int	version = 1;
 	int	parallel = 1;
 	int	warmup = 0;

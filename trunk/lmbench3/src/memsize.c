@@ -30,7 +30,6 @@ int
 main(int ac, char **av)
 {
 	char	*where;
-	char	*tmp;
 	size_t	size = 0;
 	size_t	max = 0;
 	size_t	delta;
@@ -64,12 +63,10 @@ void
 timeit(char *where, size_t size)
 {
 	int	sum = 0;
-	char	*end = where + size;
 	size_t	n;
 	size_t	s;
 	size_t	range;
 	size_t	incr = 1024 * 1024;
-	ssize_t	stride;
 	size_t	pagesize = getpagesize();
 
 	if (size < 1024*1024 - 16*1024) {

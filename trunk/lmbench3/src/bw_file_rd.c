@@ -36,7 +36,6 @@ typedef struct _state {
 
 void doit(int fd)
 {
-	int	sum = 0;
 	size_t	size, chunk;
 
 	size = count;
@@ -97,7 +96,7 @@ time_with_open(iter_t iterations, void * cookie)
 	int	fd;
 
 	while (iterations-- > 0) {
-		fd= open(filename, O_RDONLY);
+		fd = open(filename, O_RDONLY);
 		doit(fd);
 		close(fd);
 	}
@@ -110,7 +109,7 @@ time_io_only(iter_t iterations,void * cookie)
 	int fd = state->fd;
 
 	while (iterations-- > 0) {
-		lseek(fd, 0, 0);
+		lseek(fd, 0, SEEK_SET);
 		doit(fd);
 	}
 }

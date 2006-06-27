@@ -244,8 +244,6 @@ collect_data(size_t start, size_t line, size_t maxlen,
 	int	idx;
 	size_t	len = start;
 	size_t	incr = start / 4;
-	double	latency;
-	double	variation;
 	struct mem_state state;
 	struct cache_results* p;
 
@@ -559,14 +557,14 @@ fixup_chunk(size_t i, size_t chunk, size_t npages, size_t* pages,
 	    int repetitions, struct mem_state* state)
 {
 	int	swapped = 0;
-	size_t	j, k, l, m;
+	size_t	j, k;
 	size_t	page, substitute, original;
 	size_t	ntotalpages, nsparepages;
 	size_t	subset_len;
 	size_t	*pageset;
 	size_t	*saved_pages;
 	static size_t	available_index = 0;
-	double	t, tt, low, var, new_baseline;
+	double	t, var, new_baseline;
 	double	latencies[20];
 
 	ntotalpages = (state->maxlen + getpagesize() - 1)/ getpagesize();

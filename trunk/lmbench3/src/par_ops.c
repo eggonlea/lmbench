@@ -34,9 +34,8 @@ double
 max_parallelism(benchmp_f* benchmarks, 
 		int warmup, int repetitions, void* cookie)
 {
-	int		i, j, k;
+	int		i;
 	double		baseline, max_load_parallelism, load_parallelism;
-	result_t	*results, *r_save;
 
 	max_load_parallelism = 1.;
 
@@ -153,7 +152,7 @@ PARALLEL_BENCHMARKS(integer_bit)
 #define BODY(N)		a##N += b##N; b##N -= a##N;
 #define DECLARE(N)	register int a##N, b##N;
 #define INIT(N)		a##N = state->int_data[N] + 57; \
-			a##N = state->int_data[N] + 31;
+			b##N = state->int_data[N] + 31;
 #define PREAMBLE(N)
 #define SAVE(N)		use_int(a##N + b##N);
 PARALLEL_BENCHMARKS(integer_add)

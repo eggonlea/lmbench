@@ -17,8 +17,8 @@ main(ac, av)
 {
 	char	buf[512];
 	int	disk;
-	off_t	size;
-	off_t	begin, end;
+	off64_t	size;
+	off64_t	begin, end;
 	int	usecs;
 
 	if (ac != 3) {
@@ -27,15 +27,7 @@ main(ac, av)
 	if ((disk = open(av[1], 0)) == -1) {
 		exit(1);
 	}
-	size = atol(av[2]);
-	switch (av[2][strlen(av[2])-1]) {
-	    case 'k':	size <<= 10;		break;
-	    case 'K':	size *= 1000;		break;
-	    case 'm':	size <<= 20;		break;
-	    case 'M':	size *= 1000000;	break;
-	    case 'g':	size <<= 30;		break;
-	    case 'G':	size *= 1000000000L;	break;
-	}
+	size = bytes(av[2]);
 
 	/*
 	 * We flip back and forth, in strides of 1MB.
@@ -44,19 +36,19 @@ main(ac, av)
 	 */
 	end = size;
 	begin = 0;
-	lseek(disk, begin, 0);
+	seekto(disk, begin, SEEK_SET);
 	read(disk, buf, sizeof(buf));
 	while (end > begin) {
 		end -= STRIDE;
 		start();
-		lseek(disk, end, 0);
+		seekto(disk, end, SEEK_SET);
 		read(disk, buf, sizeof(buf));
 		usecs = stop();
 		printf("%.04f %.04f\n", (end - begin) / 1000000., usecs/1000.);
 
 		begin += STRIDE;
 		start();
-		lseek(disk, begin, 0);
+		seekto(disk, begin, SEEK_SET);
 		read(disk, buf, sizeof(buf));
 		usecs = stop();
 		printf("%.04f %.04f\n", (end - begin) / 1000000., usecs/1000.);

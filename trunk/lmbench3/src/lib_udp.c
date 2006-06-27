@@ -64,7 +64,9 @@ udp_connect(char *host, u_long prog, int rdwr)
 	struct hostent *h;
 	struct sockaddr_in sin;
 	int	sock;
+#ifndef	NO_PORTMAPPER
 	u_short	port;
+#endif
 
 	if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
 		perror("socket");

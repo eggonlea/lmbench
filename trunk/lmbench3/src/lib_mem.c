@@ -280,8 +280,7 @@ thrash_initialize(iter_t iterations, void* cookie)
 void
 mem_initialize(iter_t iterations, void* cookie)
 {
-	int i, j, k, l, np, nw, nwords, nlines, nbytes, npages, npointers;
-	unsigned int r;
+	int i, j, k, l, nw, nwords, nlines, npages, npointers;
 	size_t    *pages;
 	size_t    *lines;
 	size_t    *words;
@@ -310,6 +309,7 @@ mem_initialize(iter_t iterations, void* cookie)
 
 	/* setup the run through the pages */
 	l = 0;
+	j = nlines - 1;
 	for (i = 0; i < npages; ++i) {
 		for (j = 0; j < nlines - 1 && l < npointers - 1; ++j, ++l) {
 			for (k = 0; k < state->line; k += sizeof(char*)) {
@@ -352,8 +352,7 @@ mem_initialize(iter_t iterations, void* cookie)
 void
 line_initialize(iter_t iterations, void* cookie)
 {
-	int i, j, k, line, nlines, npages;
-	unsigned int r;
+	int i, j, nlines, npages;
 	size_t    *pages;
 	size_t    *lines;
 	struct mem_state* state = (struct mem_state*)cookie;
@@ -418,7 +417,7 @@ line_initialize(iter_t iterations, void* cookie)
 void
 tlb_initialize(iter_t iterations, void* cookie)
 {
-	int i, j, nlines, npages, pagesize;
+	int i, nlines, npages, pagesize;
 	unsigned int r;
 	char **pages = NULL;
 	char **addr = NULL;
@@ -528,9 +527,9 @@ words_initialize(size_t max, int scale)
 ssize_t
 line_find(size_t len, int warmup, int repetitions, struct mem_state* state)
 {
-	size_t 	i, j, big_jump, line;
+	size_t 	i, big_jump, line;
 	size_t	maxline = getpagesize() / 16;
-	double	baseline, t;
+	double	baseline = 0.0, t;
 
 	big_jump = 0;
 	line = 0;
@@ -551,7 +550,7 @@ line_find(size_t len, int warmup, int repetitions, struct mem_state* state)
 	for (i = sizeof(char*); i <= maxline; i<<=1) {
 		t = line_test(i, warmup, repetitions, state);
 
-		if (t == 0.) break;
+		if (t == 0.0) break;
 
 		if (i > sizeof(char*)) {
 			if (t > 1.3 * baseline) {
@@ -579,7 +578,6 @@ line_test(size_t line, int warmup, int repetitions, struct mem_state* state)
 	double	t;
 	char*	p = state->base;
 	char*	first = p + state->pages[0] + state->lines[0];
-	char*	last = p + state->pages[npages-1] + state->lines[nlines-1];
 	result_t *r, *r_save;
 
 
@@ -640,7 +638,7 @@ line_test(size_t line, int warmup, int repetitions, struct mem_state* state)
 double
 par_mem(size_t len, int warmup, int repetitions, struct mem_state* state)
 {
-	int	i, j, k;
+	int	i, j;
 	iter_t	__n = 1;
 	double	baseline, max_par, par;
 
@@ -659,7 +657,6 @@ par_mem(size_t len, int warmup, int repetitions, struct mem_state* state)
 			size_t nlines = len / state->line;
 			size_t lines_per_chunk = nlines / (i + 1);
 			size_t lines_per_page = state->pagesize / state->line;
-			size_t words_per_chunk = state->nwords / (i + 1);
 			size_t line = j * lines_per_chunk;
 			size_t word = (j * state->nwords) / (i + 1);
 
