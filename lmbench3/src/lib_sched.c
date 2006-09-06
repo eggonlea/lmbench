@@ -86,8 +86,8 @@ handle_scheduler(int childno, int benchproc, int nbenchprocs)
 		cpu = reverse_bits(childno * (nbenchprocs + 1) + benchproc);
 	} else if (strncasecmp(sched, "CUSTOM ", strlen("CUSTOM ")) == 0) {
 		cpu = custom(sched + strlen("CUSTOM"), childno);
-	} else if (strncasecmp(sched, "CUSTOM_UNIQUE ", strlen("CUSTOM_UNIQUE ")) == 0) {
-		cpu = custom(sched + strlen("CUSTOM_UNIQUE"), 
+	} else if (strncasecmp(sched, "CUSTOM_SPREAD ", strlen("CUSTOM_SPREAD ")) == 0) {
+		cpu = custom(sched + strlen("CUSTOM_SPREAD"), 
 			     childno * (nbenchprocs + 1) + benchproc);
 	} else {
 		/* default action: do nothing */
