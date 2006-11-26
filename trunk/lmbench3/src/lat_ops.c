@@ -96,13 +96,20 @@ void
 do_integer_add(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
+	register int i;
 	register int a = pState->N + 57;
-	register int b = pState->N + 31;
 
 	while (iterations-- > 0) {
-		HUNDRED(a += b; b -= a;)
+		for (i = 1; i < 1001; ++i) {
+#ifndef __GNUC__
+			/* required because of an HP ANSI/C compiler bug */
+			HUNDRED(a=(a+i)^a;)
+#else
+			TEN(a=a+a+i;)
+#endif
+		}
 	}
-	use_int(a+b);
+	use_int(a);
 }
 
 void
@@ -165,6 +172,7 @@ void
 do_int64_add(iter_t iterations, void* cookie)
 {
 	struct _state *pState = (struct _state*)cookie;
+	register int64 i;
 	register int64 a = (int64)pState->N + 37420;
 	register int64 b = (int64)pState->N + 21698324;
 
@@ -172,7 +180,14 @@ do_int64_add(iter_t iterations, void* cookie)
 	b += (int64)(0xFFFE + pState->N)<<29;
 
 	while (iterations-- > 0) {
-		HUNDRED(a += b; b -= a;)
+		for (i = 1; i < 1001; ++i) {
+#ifndef __GNUC__
+			/* required because of an HP ANSI/C compiler bug */
+			HUNDRED(a=(a+i)^a;)
+#else
+			TEN(a=a+a+i;)
+#endif
+		}
 	}
 	use_int((int)a+(int)b);
 }
@@ -400,12 +415,17 @@ main(int ac, char **av)
 	benchmp(NULL, do_integer_bitwise, NULL, 
 		0, 1, warmup, repetitions, &state);
 	nano("integer bit", get_n() * 100 * 3);
+	iop_time = gettime();
+	iop_N = get_n() * 100 * 3;
 	
 	benchmp(NULL, do_integer_add, NULL, 
 		0, 1, warmup, repetitions, &state);
-	nano("integer add", get_n() * 100 * 2);
-	iop_time = gettime();
-	iop_N = get_n() * 100 * 2;
+#ifndef __GNUC__
+	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
+	nano("integer add", get_n() * 100000);
+#else
+	nano("integer add", get_n() * 10000 * 2);
+#endif
 	
 	benchmp(NULL, do_integer_mul, NULL, 
 		0, 1, warmup, repetitions, &state);
@@ -429,7 +449,12 @@ main(int ac, char **av)
 
 	benchmp(NULL, do_int64_add, NULL, 
 		0, 1, warmup, repetitions, &state);
-	nano("int64 add", get_n() * 100 * 2);
+#ifndef __GNUC__
+	settime(gettime() - (get_n() * 100000 * iop_time) / iop_N);
+	nano("uint64 add", get_n() * 100000);
+#else
+	nano("uint64 add", get_n() * 10000 * 2);
+#endif
 	
 	benchmp(NULL, do_int64_mul, NULL, 
 		0, 1, warmup, repetitions, &state);
