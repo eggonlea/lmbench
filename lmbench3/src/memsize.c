@@ -49,8 +49,10 @@ main(int ac, char **av)
 	/* delta = size / (2 * 1024 * 1024) */
 	for (delta = (size >> 21); delta > 0; delta >>= 1) {
 		uint64 sz = (uint64)size + (uint64)delta * 1024 * 1024;
+		size_t check = sz;
 		if (max < sz) continue;
-		if (test_malloc(sz)) size = sz;
+		if (check < sz || !test_malloc(sz)) break;
+		size = sz;
 	}
 	if (where = malloc(size)) {
 		timeit(where, size);
@@ -64,10 +66,11 @@ timeit(char *where, size_t size)
 {
 	int	sum = 0;
 	size_t	n;
-	size_t	s;
+	size_t	s_prev;
 	size_t	range;
 	size_t	incr = 1024 * 1024;
 	size_t	pagesize = getpagesize();
+	unsigned long long	s;
 
 	if (size < 1024*1024 - 16*1024) {
 		fprintf(stderr, "Bad size\n");
@@ -91,8 +94,8 @@ timeit(char *where, size_t size)
 			size = range - incr;
 			break;
 		}
-		for (s = 8 * 1024 * 1024; s <= range; s *= 2)
-			;
+		for (s = 8 * 1024 * 1024; s <= range; s_prev = s, s *= 2)
+			if (s < s_prev) break;
 		incr = s / 8;
 		if (range < size && size < range + incr) {
 			incr = size - range;
