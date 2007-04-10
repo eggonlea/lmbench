@@ -166,6 +166,14 @@ assembler:
 	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" CC="${CC}" OS="${OS}" ../scripts/build asm
 
 
+tag:
+	ROOT=`cat ../CVS/Root`; \
+	MODULE=`cat ../CVS/Repository`; \
+	VERSION=`../scripts/version`; \
+	TAG=`echo lmbench_$${VERSION} | sed -e 's/-/_/g' -e 's/\\./_/g'`; \
+	cd .. \
+	&& cvs -d$${ROOT} tag -c "$${TAG}"
+
 dist: 
 	SRCDIR=`pwd`; \
 	ROOT=`cat ../CVS/Root`; \
