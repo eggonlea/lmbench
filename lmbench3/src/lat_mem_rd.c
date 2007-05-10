@@ -31,7 +31,7 @@ main(int ac, char **av)
 	int	c;
 	int	parallel = 1;
 	int	warmup = 0;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
         size_t	len;
 	size_t	range;
 	size_t	stride;

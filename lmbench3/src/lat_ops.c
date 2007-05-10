@@ -383,7 +383,7 @@ main(int ac, char **av)
 	int	c;
 	int	warmup = 0;
 	int	parallel = 1;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
 	uint64	iop_time;
 	uint64	iop_N;
 	struct _state state;

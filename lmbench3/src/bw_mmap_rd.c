@@ -47,7 +47,7 @@ main(int ac, char **av)
 	struct	stat sbuf;
 	int	parallel = 1;
 	int	warmup = 0;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
 	size_t	nbytes;
 	state_t	state;
 	int	c;

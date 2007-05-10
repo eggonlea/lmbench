@@ -34,7 +34,7 @@ main(int ac, char **av)
 	state_t state;
 	int parallel = 1;
 	int warmup = 0;
-	int repetitions = TRIES;
+	int repetitions = -1;
 	int c;
 	char* usage = "[-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
 

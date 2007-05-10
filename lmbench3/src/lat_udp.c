@@ -40,7 +40,7 @@ main(int ac, char **av)
 	int	c;
 	int	parallel = 1;
 	int	warmup = 0;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
 	int	msize = 4;
  	char	buf[256];
 	char	*usage = "-s\n OR [-S] [-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] server\n NOTE: message size must be >= 4\n";

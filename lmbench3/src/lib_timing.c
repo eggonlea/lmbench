@@ -175,6 +175,9 @@ benchmp(benchmp_f initialize,
 	fprintf(stderr, "\tenough=%d\n", enough);
 #endif
 
+	if (repetitions < 0)
+		repetitions = (1 < parallel || 1000000 <= enough ? 1 : TRIES);
+
 	/* initialize results */
 	settime(0);
 	save_n(1);
