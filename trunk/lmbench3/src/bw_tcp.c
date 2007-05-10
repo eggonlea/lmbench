@@ -38,7 +38,7 @@ main(int ac, char **av)
 {
 	int	parallel = 1;
 	int	warmup = LONGER;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
 	int	shutdown = 0;
 	state_t state;
 	char	*usage = "-s\n OR [-m <message size>] [-M <bytes to move>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] server\n OR -S serverhost\n";

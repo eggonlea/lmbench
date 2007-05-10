@@ -391,7 +391,7 @@ main(int ac, char **av)
 {
 	int	c;
 	int	warmup = 0;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
 	double	par;
 	struct _state	state;
 	char   *usage = "[-W <warmup>] [-N <repetitions>]\n";

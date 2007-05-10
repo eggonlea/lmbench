@@ -137,7 +137,7 @@ main(int ac, char *av[])
 	struct _state state;
 	int parallel = 1;
 	int warmup = 0;
-	int repetitions = TRIES;
+	int repetitions = -1;
 	int c;
 	char* usage = "[-m <message size>] [-M <total bytes>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";
 

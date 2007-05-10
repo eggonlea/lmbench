@@ -89,7 +89,7 @@ main(int ac, char **av)
 	int	c;
 	int	i, j, n, start, level, prev, min;
 	int	warmup = 0;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
 	ssize_t	line = 0;
 	size_t	maxlen = 32 * 1024 * 1024;
 	int	*levels;

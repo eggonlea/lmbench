@@ -51,7 +51,7 @@ main(int ac, char **av)
 	int	version = 1;
 	int	parallel = 1;
 	int	warmup = 0;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
 	int	c;
 	uint64	datasize;
 	struct _state state;

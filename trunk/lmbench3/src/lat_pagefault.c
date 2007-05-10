@@ -36,7 +36,7 @@ main(int ac, char **av)
 {
 	int parallel = 1;
 	int warmup = 0;
-	int repetitions = TRIES;
+	int repetitions = -1;
 	int c;
 	double t_mmap;
 	double t_combined;

@@ -35,7 +35,7 @@ int
 main(int ac, char **av)
 {
 	state_t state;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
 	int 	c;
 	char	buf[256];
 	char	*usage = "-s\n OR [-S] [-N <repetitions>] server\n";

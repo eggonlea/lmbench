@@ -33,7 +33,7 @@ int main(int ac, char **av)
 {
 	int parallel = 1;
 	int warmup = 0;
-	int repetitions = TRIES;
+	int repetitions = -1;
 	char	*usage = "-s\n OR [-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n OR -S\n";
 	int	c;
 

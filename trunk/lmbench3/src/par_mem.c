@@ -30,7 +30,7 @@ main(int ac, char **av)
 	int	i;
 	int	c;
 	int	warmup = 0;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
 	size_t	maxlen = 64 * 1024 * 1024;
 	double	par;
 	struct mem_state state;

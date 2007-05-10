@@ -35,7 +35,7 @@ main(int ac, char **av)
 	state_t state;
 	int	parallel = 1;
 	int	warmup = 0;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
 	int 	c;
 	char	buf[256];
 	char	*usage = "-s\n OR [-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>] server\n OR -S server\n";

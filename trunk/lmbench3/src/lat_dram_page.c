@@ -29,7 +29,7 @@ main(int ac, char **av)
 {
 	int	maxlen = 64 * 1024 * 1024;
 	int	warmup = 0;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
 	int	c;
 	struct dram_page_state state;
 	double	dram_hit, dram_miss;

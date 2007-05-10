@@ -40,7 +40,7 @@ main(int ac, char **av)
 {
 	int	parallel = 1;
 	int	warmup = 0;
-	int	repetitions = TRIES;
+	int	repetitions = -1;
 	int	server = 0;
 	state_t state;
 	char	*usage = "-s\n OR [-m <message size>] [-W <warmup>] [-N <repetitions>] server [size]\n OR -S serverhost\n";

@@ -28,7 +28,7 @@ main(int ac, char **av)
 {
 	int parallel = 1;
 	int warmup = 0;
-	int repetitions = TRIES;
+	int repetitions = -1;
 	struct _state state;
 	int c;
 	char* usage = "[-m <message size>] [-P <parallelism>] [-W <warmup>] [-N <repetitions>]\n";

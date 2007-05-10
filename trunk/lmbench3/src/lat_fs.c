@@ -32,7 +32,7 @@ main(int ac, char **av)
 	int i;
 	int parallel = 1;
 	int warmup = 0;
-	int repetitions = TRIES;
+	int repetitions = -1;
 	static	int	sizes[] = { 0, 1024, 4096, 10*1024 };
 	struct _state state;
 	int c;
