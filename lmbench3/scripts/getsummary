@@ -77,23 +77,23 @@ foreach $file (@ARGV) {
 			@_ = split;
 			push(@integer_mod, $_[2]);
 		}
-		if (/^uint64 bit:/) {
+		if (/^int64 bit:/) {
 			@_ = split;
 			push(@int64_bit, $_[2]);
 		}
-		if (/^uint64 add:/) {
+		if (/^int64 add:/) {
 			@_ = split;
 			push(@int64_add, $_[2]);
 		}
-		if (/^uint64 mul:/) {
+		if (/^int64 mul:/) {
 			@_ = split;
 			push(@int64_mul, $_[2]);
 		}
-		if (/^uint64 div:/) {
+		if (/^int64 div:/) {
 			@_ = split;
 			push(@int64_div, $_[2]);
 		}
-		if (/^uint64 mod:/) {
+		if (/^int64 mod:/) {
 			@_ = split;
 			push(@int64_mod, $_[2]);
 		}
@@ -393,7 +393,7 @@ foreach $file (@ARGV) {
 				warn "$file: No 8MB random access memory latency, using $size\n";
 			}
 			if ($lat_mem_rd_type == 2) {
-				warn "$file: lat_mem_rand = $save\n";
+				#warn "$file: lat_mem_rand = $save\n";
 				push(@lat_mem_rand, $save);
 			}
 		}
@@ -575,13 +575,16 @@ EOF
 					'integer_mod' )) <= 0) { 
 			next; 
 		}
+		if ($load[$i] > 1) {
+			next;
+		}
 		printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
 		printf "%6.6s %6.6s %6.6s %6.6s %6.6s\n",
 			&scale_num($integer_bit[$i], 6, $load[$i]),
 			&scale_num($integer_add[$i], 6, $load[$i]),
 			&scale_num($integer_mul[$i], 6, $load[$i]),
 			&scale_num($integer_div[$i], 6, $load[$i]),
-			&scale_num($integer_mod[$i], 6, $load[$i]);
+			&scale_num($integer_mod[$i], 6,	$load[$i]);
 	}
 }
 
@@ -609,6 +612,9 @@ EOF
 					'int64_mul', 'int64_div',
 					'int64_mod' )) <= 0) { 
 			next; 
+		}
+		if ($load[$i] > 1) {
+			next;
 		}
         	printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
 		printf " %5.5s %6.6s %6.6s %6.6s %6.6s\n",
@@ -644,6 +650,9 @@ EOF
 					'float_bogomflops' )) <= 0) { 
 			next; 
 		}
+		if ($load[$i] > 1) {
+			next;
+		}
 	        printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
 		printf "%6.6s %6.6s %6.6s %6.6s\n",
 			&scale_num($float_add[$i], 6, $load[$i]),
@@ -676,6 +685,9 @@ EOF
 					'double_div', 
 					'double_bogomflops' )) <= 0) { 
 			next; 
+		}
+		if ($load[$i] > 1) {
+			next;
 		}
 	        printf "%-9.9s %13.13s ", $host[$i], &getos($uname[$i]);
 		printf "%6.6s %6.6s %6.6s %6.6s\n",
@@ -918,11 +930,11 @@ EOF
 			    "-", "-", "-",
 			    "Bad mhz?";
 		} else {
-			printf " %6.6s %6.6s %6.6s %11.11s",
+			printf " %6.6s %6.6s %11.11s %11.11s",
 		            &num($lat_l1[$i], 6),
 		            &num($lat_l2[$i], 6),
-		            &num($lat_mem[$i], 6),
-		            &num($lat_mem_rand[$i], 6);
+		            &num($lat_mem[$i], 8),
+		            &num($lat_mem_rand[$i], 8);
 			print $msg if ($msg =~ /L/);
 		}
 		print "\n";
