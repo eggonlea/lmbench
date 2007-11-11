@@ -161,9 +161,9 @@ step(size_t k)
 	} else {
 		size_t s;
 
-		for (s = 32 * 1024; s <= k; s *= 2)
+		for (s = 4 * 1024; s <= k; s *= 2)
 			;
-		k += s / 16;
+		k += s / 4;
 	}
 	return (k);
 }

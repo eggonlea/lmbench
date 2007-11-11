@@ -105,6 +105,10 @@ main(int ac, char **av)
 
 	i = 0;
 	buf = valloc(XFERSIZE);
+	if (!buf) {
+		perror("valloc");
+		exit(1);
+	}
 	bzero(buf, XFERSIZE);
 	while (fgets(file, sizeof(file), stdin)) {
 		chop(file);

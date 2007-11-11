@@ -121,6 +121,10 @@ init(iter_t iterations, void* cookie)
 	state->sock = udp_connect(state->server, UDP_XACT, SOCKOPT_NONE);
 	state->seq = 0;
 	state->buf = (char*)malloc(state->msize);
+	if (!state->buf) {
+		perror("malloc");
+		exit(1);
+	}
 	
 	signal(SIGALRM, timeout);
 	alarm(15);
@@ -173,6 +177,11 @@ server_main()
 	int     sock, sent, seq = 0;
 	socklen_t	namelen;
 	struct sockaddr_in it;
+
+	if (!buf) {
+		perror("malloc");
+		exit(4);
+	}
 
 	GO_AWAY;
 

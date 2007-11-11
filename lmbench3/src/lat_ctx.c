@@ -137,13 +137,17 @@ initialize_overhead(iter_t iterations, void* cookie)
 
 	pState->pids = NULL;
 	pState->p = (int**)malloc(pState->procs * (sizeof(int*) + 2 * sizeof(int)));
+	pState->data = (pState->process_size > 0) ? malloc(pState->process_size) : NULL;
+	if (!pState->p || (pState->process_size > 0 && !pState->data)) {
+		perror("malloc");
+		exit(1);
+	}
 	p = (int*)&pState->p[pState->procs];
 	for (i = 0; i < pState->procs; ++i) {
 		pState->p[i] = p;
 		p += 2;
 	}
 
-	pState->data = (pState->process_size > 0) ? malloc(pState->process_size) : NULL;
 	if (pState->data)
 		bzero(pState->data, pState->process_size);
 
@@ -272,14 +276,19 @@ doit(int rd, int wr, int process_size)
 
 	if (process_size) {
 		data = malloc(process_size);
-		if (data) bzero(data, process_size);
+		if (!data) {
+			perror("malloc");
+			exit(3);
+		}
+		bzero(data, process_size);
 	}
 	for ( ;; ) {
 		if (read(rd, &msg, sizeof(msg)) != sizeof(msg)) {
 			/* perror("read/write on pipe"); */
 			break;
 		}
-		bread(data, process_size);
+		if (process_size)
+			bread(data, process_size);
 		if (write(wr, &msg, sizeof(msg)) != sizeof(msg)) {
 			/* perror("read/write on pipe"); */
 			break;

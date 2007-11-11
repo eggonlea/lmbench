@@ -99,6 +99,10 @@ init(iter_t iterations, void* cookie)
 
 	state->sock = tcp_connect(state->server, TCP_XACT, SOCKOPT_NONE);
 	state->buf = malloc(state->msize);
+	if (!state->buf) {
+		perror("malloc");
+		exit(1);
+	}
 
 	write(state->sock, &msize, sizeof(int));
 }
@@ -160,6 +164,10 @@ doserver(int sock)
 		int	msize = ntohl(n);
 		char*   buf = (char*)malloc(msize);
 
+		if (!buf) {
+			perror("malloc");
+			exit(4);
+		}
 		for (n = 0; read(sock, buf, msize) > 0; n++) {
 			write(sock, buf, msize);
 		}

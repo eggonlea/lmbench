@@ -12,16 +12,7 @@ char	*id = "$Id$\n";
 
 #include "bench.h"
 
-struct _state {
-	int	N;
-	int	M;
-	int	K;
-	int*	int_data;
-	double*	double_data;
-};
-
 void	initialize(iter_t iterations, void* cookie);
-void	cleanup(iter_t iterations, void* cookie);
 
 #define	FIVE(m)		m m m m m
 #define	TEN(m)		FIVE(m) FIVE(m)
@@ -29,6 +20,14 @@ void	cleanup(iter_t iterations, void* cookie);
 #define	HUNDRED(m)	FIFTY(m) FIFTY(m)
 
 #define MAX_LOAD_PARALLELISM 16
+
+struct _state {
+	int	N;
+	int	M;
+	int	K;
+	int	int_data[MAX_LOAD_PARALLELISM];
+	double	double_data[MAX_LOAD_PARALLELISM];
+};
 
 double
 max_parallelism(benchmp_f* benchmarks, 
@@ -40,7 +39,7 @@ max_parallelism(benchmp_f* benchmarks,
 	max_load_parallelism = 1.;
 
 	for (i = 0; i < MAX_LOAD_PARALLELISM; ++i) {
-		benchmp(initialize, benchmarks[i], cleanup, 
+		benchmp(initialize, benchmarks[i], NULL,
 			0, 1, warmup, repetitions, cookie);
 		save_minimum();
 
@@ -365,33 +364,18 @@ initialize(iter_t iterations, void* cookie)
 
 	if (iterations) return;
 
-	state->int_data = (int*)malloc(MAX_LOAD_PARALLELISM * sizeof(int));
-	state->double_data = (double*)malloc(MAX_LOAD_PARALLELISM * sizeof(double));
-
 	for (i = 0; i < MAX_LOAD_PARALLELISM; ++i) {
 		state->int_data[i] = i+1;
 		state->double_data[i] = 1.;
 	}
 }
 
-void
-cleanup(iter_t iterations, void* cookie)
-{
-	struct _state *state = (struct _state*)cookie;
-
-	if (iterations) return;
-
-	free(state->int_data);
-	free(state->double_data);
-}
-
-
 int
 main(int ac, char **av)
 {
 	int	c;
 	int	warmup = 0;
-	int	repetitions = -1;
+	int	repetitions = (1000000 <= get_enough(0) ? 1 : TRIES);
 	double	par;
 	struct _state	state;
 	char   *usage = "[-W <warmup>] [-N <repetitions>]\n";

@@ -53,6 +53,10 @@ main(int ac, char **av)
 		lmbench_usage(ac, av, usage);
 	}
 	state.argv = (char**)malloc((ac - optind + 1) * sizeof(char*));
+	if (!state.argv) {
+		perror("malloc");
+		exit(1);
+	}
 	state.pid = 0;
 	for (i = 0; i < ac - optind; ++i) {
 		state.argv[i] = av[optind + i];

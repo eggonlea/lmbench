@@ -89,7 +89,7 @@ main(int ac, char **av)
 	int	c;
 	int	i, j, n, start, level, prev, min;
 	int	warmup = 0;
-	int	repetitions = -1;
+	int	repetitions = (1000000 <= get_enough(0) ? 1 : TRIES);
 	ssize_t	line = 0;
 	size_t	maxlen = 32 * 1024 * 1024;
 	int	*levels;
@@ -137,6 +137,10 @@ main(int ac, char **av)
 	n = collect_data((size_t)512, line, maxlen, repetitions, &r);
 	r[n-1].line = line;
 	levels = (int*)malloc(n * sizeof(int));
+	if (!levels) {
+		perror("malloc");
+		exit(1);
+	}
 	bzero(levels, n * sizeof(int));
 
 	for (start = 0, prev = 0, level = 0; 
@@ -262,7 +266,10 @@ collect_data(size_t start, size_t line, size_t maxlen,
 	}
 	*pdata = (struct cache_results*)
 		malloc(samples * sizeof(struct cache_results));
-
+	if (!*pdata) {
+		perror("malloc");
+		exit(2);
+	}
 	p = *pdata;
 
 	/* initialize the data */
@@ -330,7 +337,7 @@ search(int left, int right, int repetitions,
 {
 	int	middle = left + (right - left) / 2;
 
-	/**/
+	/*
 	fprintf(stderr, 
 		"search(%d, %d, ...): [%lu/%G, %lu, %lu/%G] entering\n",
 		left, right, 
@@ -408,6 +415,10 @@ measure(size_t size, int repetitions,
 
 	r_save = get_results();
 	r = (result_t*)malloc(sizeof_result(repetitions));
+	if (!r) {
+		perror("malloc");
+		exit(3);
+	}
 	insertinit(r);
 
 	/* 
@@ -573,6 +584,10 @@ fixup_chunk(size_t i, size_t chunk, size_t npages, size_t* pages,
 	new_baseline = *baseline;
 
 	saved_pages = (size_t*)malloc(sizeof(size_t) * ntotalpages);
+	if (!saved_pages) {
+		perror("malloc");
+		exit(4);
+	}
 	bcopy(pages, saved_pages, sizeof(int) * ntotalpages);
 
 	/* move everything to the end of the page list */

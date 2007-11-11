@@ -148,6 +148,10 @@ seek(char *disk, int oflag)
 #endif
 	size = disksize(disk);
 	buf = valloc(IOSIZE);
+	if (!buf) {
+		perror("valloc");
+		exit(1);
+	}
 	bzero(buf, IOSIZE);
 
 	/*

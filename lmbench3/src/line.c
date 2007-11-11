@@ -27,7 +27,7 @@ main(int ac, char **av)
 	int	l;
 	int	verbose = 0;
 	int	warmup = 0;
-	int	repetitions = -1;
+	int	repetitions = (1000000 <= get_enough(0) ? 1 : TRIES);
 	int	c;
 	size_t	maxlen = 64 * 1024 * 1024;
 	struct mem_state state;

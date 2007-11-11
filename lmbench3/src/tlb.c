@@ -35,7 +35,7 @@ main(int ac, char **av)
 	int	c;
 	int	print_cost = 0;
 	int	warmup = 0;
-	int	repetitions = -1;
+	int	repetitions = (1000000 <= get_enough(0) ? 1 : TRIES);
 	double	tlb_time, cache_time;
 	struct mem_state state;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
