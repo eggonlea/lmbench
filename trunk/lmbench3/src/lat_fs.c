@@ -172,11 +172,15 @@ setup_names(iter_t iterations, void* cookie)
 	}
 
 	state->names = (char**)malloc(iterations * sizeof(char*));
+	state->dirs = (char**)malloc(state->ndirs * sizeof(char*));
+	if (iterations && !state->names || state->ndirs && !state->dirs) {
+		perror("malloc");
+		exit(1);
+	}
 	for (i = 0; i < iterations; ++i) {
 		state->names[i] = NULL;
 	}
 
-	state->dirs = (char**)malloc(state->ndirs * sizeof(char*));
 	for (i = 0; i < state->ndirs; ++i) {
 		state->dirs[i] = NULL;
 	}

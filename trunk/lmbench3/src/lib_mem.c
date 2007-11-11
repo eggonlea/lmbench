@@ -151,6 +151,10 @@ base_initialize(iter_t iterations, void* cookie)
 	lines = NULL;
 	pages = permutation(nmpages, state->pagesize);
 	p = state->addr = (char*)malloc(state->maxlen + 2 * state->pagesize);
+	if (!p) {
+		perror("base_initialize: malloc");
+		exit(1);
+	}
 
 	state->nwords = nwords;
 	state->nlines = nlines;
@@ -231,6 +235,10 @@ thrash_initialize(iter_t iterations, void* cookie)
 	if (state->len % state->pagesize) {
 		state->nwords = state->len / state->line;
 		state->words = words_initialize(state->nwords, state->line);
+		if (!state->words) {
+			perror("thrash_initialize: malloc");
+			exit(1);
+		}
 		for (i = 0; i < state->nwords - 1; ++i) {
 			*(char **)&addr[state->words[i]] = (char*)&addr[state->words[i+1]];
 		}
@@ -239,7 +247,10 @@ thrash_initialize(iter_t iterations, void* cookie)
 	} else {
 		state->nwords = state->pagesize / state->line;
 		state->words = words_initialize(state->nwords, state->line);
-
+		if (!state->words) {
+			perror("thrash_initialize: malloc");
+			exit(2);
+		}
 		for (i = 0; i < state->npages - 1; ++i) {
 			cpage = state->pages[i];
 			npage = state->pages[i + 1];
@@ -304,7 +315,8 @@ mem_initialize(iter_t iterations, void* cookie)
 
 	if (state->addr == NULL \
 	    || pages == NULL || lines == NULL || words == NULL) {
-		return;
+		perror("mem_initialize: malloc");
+		exit(1);
 	}
 
 	/* setup the run through the pages */
@@ -438,6 +450,10 @@ tlb_initialize(iter_t iterations, void* cookie)
 	lines = words_initialize(nlines, sizeof(char*));
 	pages = (char**)malloc(npages * sizeof(char**));
 	addr = (char**)malloc(npages * sizeof(char**));
+	if (!lines || !pages || !addr) {
+		perror("tlb_initialize: malloc");
+		exit(1);
+	}
 
 	state->nwords = 1;
 	state->nlines = nlines;
@@ -456,11 +472,17 @@ tlb_initialize(iter_t iterations, void* cookie)
 	/* first, layout the sequence of page accesses */
 	for (i = 0; i < npages; ++i) {
 		p = addr[i] = (char*)valloc(pagesize);
-		if (p == NULL) return;
+		if (!p) {
+			perror("tlb_initialize: valloc");
+			exit(4);
+		}
 		if ((unsigned long)p % pagesize) {
 			free(p);
 			p = addr[i] = (char*)valloc(2 * pagesize);
-			if (p == NULL) return;
+			if (!p) {
+				perror("tlb_initialize: valloc");
+				exit(5);
+			}
 			p += pagesize - (unsigned long)p % pagesize;
 		}
 		pages[i] = (char*)p;
@@ -533,6 +555,8 @@ line_find(size_t len, int warmup, int repetitions, struct mem_state* state)
 
 	big_jump = 0;
 	line = 0;
+	if (repetitions < 0)
+		repetitions = TRIES;
 
 	/*
 	fprintf(stderr, "line_find(%lu, ...): entering\n", (unsigned long)len);
@@ -580,6 +604,8 @@ line_test(size_t line, int warmup, int repetitions, struct mem_state* state)
 	char*	first = p + state->pages[0] + state->lines[0];
 	result_t *r, *r_save;
 
+	if (repetitions < 0)
+		repetitions = TRIES;
 
 	/* only visit a subset of the lines in each page */
 	if (nlines < state->nlines) {
@@ -594,6 +620,10 @@ line_test(size_t line, int warmup, int repetitions, struct mem_state* state)
 
 	r_save = get_results();
 	r = (result_t*)malloc(sizeof_result(repetitions));
+	if (!r) {
+		perror("line_test: malloc");
+		exit(1);
+	}
 	insertinit(r);
 	p = first;
 	for (i = 0; i < repetitions; ++i) {
@@ -644,6 +674,8 @@ par_mem(size_t len, int warmup, int repetitions, struct mem_state* state)
 
 	state->width = 1;
 	max_par = 1.;
+	if (repetitions < 0)
+		repetitions = TRIES;
 
 	for (state->addr = NULL; !state->addr && len; ) {
 		state->len = state->maxlen = len;
@@ -684,6 +716,8 @@ par_mem(size_t len, int warmup, int repetitions, struct mem_state* state)
 			if (par > max_par) {
 				max_par = par;
 			}
+			if (4.0 * max_par < i)
+				break;
 		}
 	}
 	mem_cleanup(0, state);

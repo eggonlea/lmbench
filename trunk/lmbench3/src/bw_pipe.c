@@ -27,7 +27,6 @@ struct _state {
 	size_t	bytes;	/* bytes to read/write in one iteration */
 	char	*buf;	/* buffer memory space */
 	int	readfd;
-	int	initerr;
 };
 
 void
@@ -38,11 +37,9 @@ initialize(iter_t iterations, void *cookie)
 
 	if (iterations) return;
 
-	state->initerr = 0;
 	if (pipe(pipes) == -1) {
 		perror("pipe");
-		state->initerr = 1;
-		return;
+		exit(1);
 	}
 	handle_scheduler(benchmp_childid(), 0, 1);
 	switch (state->pid = fork()) {
@@ -52,8 +49,7 @@ initialize(iter_t iterations, void *cookie)
 		state->buf = valloc(state->xfer);
 		if (state->buf == NULL) {
 			perror("child: no memory");
-			state->initerr = 4;
-			return;
+			exit(2);
 		}
 		touch(state->buf, state->xfer);
 		writer(pipes[1], state->buf, state->xfer);
@@ -62,8 +58,7 @@ initialize(iter_t iterations, void *cookie)
 	    
 	    case -1:
 		perror("fork");
-		state->initerr = 3;
-		return;
+		exit(3);
 		/*NOTREACHED*/
 
 	    default:
@@ -74,8 +69,7 @@ initialize(iter_t iterations, void *cookie)
 	state->buf = valloc(state->xfer + getpagesize());
 	if (state->buf == NULL) {
 		perror("parent: no memory");
-		state->initerr = 4;
-		return;
+		exit(4);
 	}
 	touch(state->buf, state->xfer + getpagesize());
 	state->buf += 128; /* destroy page alignment */

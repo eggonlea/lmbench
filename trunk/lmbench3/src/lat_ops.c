@@ -49,6 +49,10 @@ float_initialize(iter_t iterations, void* cookie)
 
 	x = (float*)malloc(pState->M * sizeof(float));
 	pState->data = (double*)x;
+	if (!pState->data) {
+		perror("malloc");
+		exit(1);
+	}
 	for (i = 0; i < pState->M; ++i) {
 		x[i] = 3.14159265;
 	}
@@ -63,6 +67,10 @@ double_initialize(iter_t iterations, void* cookie)
 	if (iterations) return;
 
 	pState->data = (double*)malloc(pState->M * sizeof(double));
+	if (!pState->data) {
+		perror("malloc");
+		exit(1);
+	}
 	for (i = 0; i < pState->M; ++i) {
 		pState->data[i] = 3.14159265;
 	}

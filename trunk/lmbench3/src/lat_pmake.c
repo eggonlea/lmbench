@@ -87,6 +87,10 @@ setup(iter_t iterations, void* cookie)
 	if (iterations) return;
 
 	state->x = (long*)malloc(sizeof(long*));
+	if (!state->x) {
+		perror("malloc");
+		exit(1);
+	}
 	*(long**)state->x = state->x;
 	state->p = (long**)state->x;
 
@@ -101,6 +105,10 @@ bench(register iter_t iterations, void *cookie)
 	state_t *state = (state_t *) cookie;
 	
 	state->pids = (pid_t*)malloc(state->jobs * sizeof(pid_t));
+	if (!state->pids) {
+		perror("malloc");
+		exit(2);
+	}
 
 	/* 
 	 * This design has one buglet --- we cannot detect if the 

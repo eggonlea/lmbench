@@ -107,6 +107,10 @@ init(iter_t iterations, void* cookie)
 		/* copy original file into a process-specific one */
 		sprintf(buf, "%d", (int)getpid());
 		s = (char*)malloc(strlen(state->name) + strlen(buf) + 1);
+		if (!s) {
+			perror("malloc");
+			exit(1);
+		}
 		sprintf(s, "%s%d", state->name, (int)getpid());
 		if (cp(state->name, s, S_IREAD|S_IWRITE) < 0) {
 			perror("Could not copy file");
