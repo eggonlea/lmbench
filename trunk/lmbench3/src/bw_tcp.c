@@ -237,6 +237,10 @@ source(int data)
 	}
 
 	buf = valloc(m);
+	if (!buf) {
+		perror("valloc");
+		exit(1);
+	}
 	bzero(buf, m);
 
 	/*
