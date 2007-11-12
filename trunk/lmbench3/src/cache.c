@@ -25,7 +25,7 @@ struct cache_results {
 	double	slope;
 };
 
-int	find_cache(int start, int n, struct cache_results* p);
+int	find_cache(int start, int n, double prev_lat, struct cache_results* p);
 int	collect_data(size_t start, size_t line, size_t maxlen, 
 		     int repetitions, struct cache_results** pdata);
 void	search(int left, int right, int repetitions, 
@@ -93,7 +93,7 @@ main(int ac, char **av)
 	ssize_t	line = 0;
 	size_t	maxlen = 32 * 1024 * 1024;
 	int	*levels;
-	double	par, maxpar;
+	double	par, maxpar, prev_lat;
 	char   *usage = "[-c] [-L <line size>] [-M len[K|M]] [-W <warmup>] [-N <repetitions>]\n";
 	struct cache_results* r;
 	struct mem_state state;
@@ -143,8 +143,8 @@ main(int ac, char **av)
 	}
 	bzero(levels, n * sizeof(int));
 
-	for (start = 0, prev = 0, level = 0; 
-	     (i = find_cache(start, n, r)) >= 0; 
+	for (start = 0, prev = 0, level = 0, prev_lat = -1.0; 
+	     (i = find_cache(start, n, prev_lat, r)) >= 0; 
 	     ++level, start = i + 1, prev = i) 
 	{
 		/* 
@@ -165,6 +165,7 @@ main(int ac, char **av)
 		}
 
 		levels[level] = i;
+		prev_lat = (r[start].latency > 0.0 ? r[start].latency : r[start - 1].latency);
 	}
 
 	for (i = 0; i < level; ++i) {
@@ -217,7 +218,7 @@ main(int ac, char **av)
 }
 
 int
-find_cache(int start, int n, struct cache_results* p)
+find_cache(int start, int n, double prev_lat, struct cache_results* p)
 {
 	int	i, j, prev;
 	double	max = -1.;
@@ -227,13 +228,14 @@ find_cache(int start, int n, struct cache_results* p)
 	}
 
 	for (i = start, j = -1; i < n; ++i) {
-		if (p[i].latency < 0.) continue;
-		if (p[prev].ratio <= p[i].ratio && p[i].ratio > max) {
-			j = i;
+		if (p[i].latency < 0.)
+			continue;
+		if (max < p[i].ratio)
 			max = p[i].ratio;
-		} else if (p[i].ratio < max && THRESHOLD < max) {
+		if (THRESHOLD < p[i].ratio)
+			j = i;
+		if (THRESHOLD < max && p[j].len * 2 <= p[i].len)
 			return j;
-		}
 		prev = i;
 	}
 	return -1;
