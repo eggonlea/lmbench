@@ -88,8 +88,7 @@ timeit(char *where, size_t size)
 		set_alarm(timeout);
 		touchRange(where + range - incr, incr, pagesize);
 		clear_alarm();
-		if (0 < sum && sum + 10000 < timeout)
-			timeout = sum + 10000;
+		timeout += sum;
 		set_alarm(timeout);
 		start(0);
 		touchRange(where, range, pagesize);
