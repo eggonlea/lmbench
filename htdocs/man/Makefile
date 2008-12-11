@@ -1,6 +1,12 @@
 all: index.html
 
 index.html: Makefile
+	for s in 1 3 8; do \
+		for f in `find ../../lmbench3/src ../../lmbench3/doc -name "*.$${s}"`; do \
+			echo $$f; \
+			rman -f html -r "/man/%s.%s.html" $$f > `basename $$f .$${s}`.$${s}.html; \
+		done; \
+	done
 	echo "<html>" > index.html
 	echo "<head><title>lmbench man pages</title></head>" >> index.html
 	echo "<body>" >> index.html
@@ -9,7 +15,7 @@ index.html: Makefile
 		echo "<h2>Section $${s}</h2>" ;\
 		echo "<ul>" ;\
 		for f in `find ../../lmbench3/src ../../lmbench3/doc -name "*.$${s}"`; do \
-			echo "<li> <a href=\"/cgi-bin/man?section=$${s}&keyword=`basename $$f .$${s}`\">"`basename $$f .$${s}`"</a>" ;\
+			echo "<li> <a href=\"`basename $$f .$${s}`.$${s}.html\">"`basename $$f .$${s}`"</a>" ;\
 		done; \
 		echo "</ul>" ;\
 	done >> index.html
@@ -25,4 +31,4 @@ index.html: Makefile
 	echo "</html>" >> index.html
 
 clean:
-	rm -f *~ *.[1-8].html index.html
+	rm -f *~ *.[0-8].html index.html
