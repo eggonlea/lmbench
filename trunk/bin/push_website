@@ -1,0 +1,15 @@
+#!/bin/sh
+
+DIR=/tmp/lmbench_website
+rm -rf ${DIR}
+for d in htdocs lmbench3
+do
+    svn export https://lmbench.svn.sourceforge.net/svnroot/lmbench/trunk/$d ${DIR}/$d
+done
+(
+    cd ${DIR}
+    (cd htdocs/man; make)
+    rsync -av --delete htdocs/ staelin,lmbench@web.sourceforge.net:htdocs/
+)
+rm -rf ${DIR}
+
