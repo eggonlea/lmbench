@@ -140,33 +140,49 @@ date >> ${OUTPUT}
 echo Latency measurements >> ${OUTPUT}
 msleep 250
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_SYSCALL = XYES ]; then
+	echo \[`date`] 1>&2
 	lat_syscall -P $SYNC_MAX null
+	echo \[`date`] 1>&2
 	lat_syscall -P $SYNC_MAX read
+	echo \[`date`] 1>&2
 	lat_syscall -P $SYNC_MAX write
+	echo \[`date`] 1>&2
 	lat_syscall -P $SYNC_MAX stat $STAT
+	echo \[`date`] 1>&2
 	lat_syscall -P $SYNC_MAX fstat $STAT
+	echo \[`date`] 1>&2
 	lat_syscall -P $SYNC_MAX open $STAT
 fi
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_SELECT = XYES ]; then
 	for i in 10 100 250 500
-	do	lat_select -n $i -P $SYNC_MAX file
+	do
+	    echo \[`date`] 1>&2
+	    lat_select -n $i -P $SYNC_MAX file
 	done
 	for i in 10 100 250 500
-	do	lat_select -n $i -P $SYNC_MAX tcp
+	do	
+	    echo \[`date`] 1>&2
+	    lat_select -n $i -P $SYNC_MAX tcp
 	done
 fi
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_SIG = XYES ]; then
+	echo \[`date`] 1>&2
 	lat_sig -P $SYNC_MAX install
+	echo \[`date`] 1>&2
 	lat_sig -P $SYNC_MAX catch
+	echo \[`date`] 1>&2
 	lat_sig -P $SYNC_MAX prot lat_sig
 fi
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_PIPE = XYES ]; then
+	echo \[`date`] 1>&2
 	lat_pipe -P $SYNC_MAX 
 fi
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_UNIX = XYES ]; then
+	echo \[`date`] 1>&2
 	lat_unix -P $SYNC_MAX
 fi
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_PROC = XYES ]; then
+	echo \[`date`] 1>&2
 	cp hello /tmp/hello
 	for i in fork exec shell
 	do	lat_proc -P $SYNC_MAX $i
@@ -174,7 +190,9 @@ if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_PROC = XYES ]; then
 	rm -f /tmp/hello 
 fi
 if [ X$BENCHMARK_HARDWARE = XYES -o X$BENCHMARK_OPS = XYES ]; then
+	echo \[`date`] 1>&2
 	lat_ops 
+	echo \[`date`] 1>&2
 	par_ops 
 fi
 
@@ -186,9 +204,11 @@ if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_FILE = XYES ]; then
 	i=0
 	while [ $i -lt $SYNC_MAX ]; do
 		if [ $i -eq $sample ]; then 
+			echo \[`date`] 1>&2
 			lmdd label="File $FILE write bandwidth: " \
 				of=$FILE move=${MB}m fsync=1 print=3 &
 		else
+			echo \[`date`] 1>&2
 			lmdd label="File $FILE write bandwidth: " \
 				of=$FILE.$i move=${MB}m fsync=1 print=3 \
 				>/dev/null 2>&1 &
@@ -200,9 +220,11 @@ if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_FILE = XYES ]; then
 fi
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_PAGEFAULT = XYES ]; then
+	echo \[`date`] 1>&2
 	lat_pagefault -P $SYNC_MAX $FILE
 fi
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_MMAP = XYES ]; then
+	echo \[`date`] 1>&2
 	echo "" 1>&2
 	echo \"mappings 1>&2
 	for i in $ALL
@@ -213,6 +235,7 @@ fi
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_FILE = XYES ]; then
 	if [ X$SLOWFS != XYES ]
 	then	date >> ${OUTPUT}
+		echo \[`date`] 1>&2
 		echo Calculating file system latency >> ${OUTPUT}
 		msleep 250
 		echo '"File system latency' 1>&2
@@ -248,27 +271,35 @@ DOCROOT=../../src/webpage-lm lmhttp 8008 &
 sleep 2;
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_UDP = XYES ]; then
+	echo \[`date`] 1>&2
 	lat_udp -P $SYNC_MAX localhost
 fi
 lat_udp -S localhost
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_TCP = XYES ]; then
+	echo \[`date`] 1>&2
 	lat_tcp -P $SYNC_MAX localhost
 fi
 lat_tcp -S localhost
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_RPC = XYES ]; then
+	echo \[`date`] 1>&2
 	lat_rpc -P $SYNC_MAX -p udp localhost
+	echo \[`date`] 1>&2
 	lat_rpc -P $SYNC_MAX -p tcp localhost
 fi
 lat_rpc -S localhost
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_CONNECT = XYES ]; then
-	if [ $SYNC_MAX = 1 ]; then lat_connect localhost; fi
+	if [ $SYNC_MAX = 1 ]; then 
+	    echo \[`date`] 1>&2
+	    lat_connect localhost
+	fi
 fi
 lat_connect -S localhost
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_TCP = XYES ]; then
+	echo \[`date`] 1>&2
 	echo "" 1>&2
 	echo "Socket bandwidth using localhost" 1>&2
 	for m in 1 64 128 256 512 1024 1437 10M; do
@@ -279,6 +310,7 @@ fi
 bw_tcp -S localhost
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_HTTP = XYES ]; then
+	echo \[`date`] 1>&2
 	# I want a hot cache number
 	lat_http localhost 8008 < ../../src/webpage-lm/URLS > /dev/null 2>&1
 	lat_http localhost 8008 < ../../src/webpage-lm/URLS
@@ -287,6 +319,7 @@ lat_http -S localhost 8008
 
 for remote in $REMOTE 
 do
+	echo \[`date`] 1>&2
 	echo Networking to $remote >> ${OUTPUT}
 	$RCP $SERVERS lmhttp ../../src/webpage-lm.tar ${remote}:/tmp
 	for server in $SERVERS
@@ -344,14 +377,17 @@ echo Bandwidth measurements >> ${OUTPUT}
 msleep 250
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_UNIX = XYES ]; then
+	echo \[`date`] 1>&2
 	bw_unix -P $SYNC_MAX 
 fi
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_PIPE = XYES ]; then
+	echo \[`date`] 1>&2
 	bw_pipe -P $SYNC_MAX 
 fi
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_FILE = XYES ]; then
+	echo \[`date`] 1>&2
 	echo "" 1>&2
 	echo \"read bandwidth 1>&2
 	for i in $ALL
@@ -359,6 +395,7 @@ if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_FILE = XYES ]; then
 	done
 	echo "" 1>&2
 	
+	echo \[`date`] 1>&2
 	echo \"read open2close bandwidth 1>&2
 	for i in $ALL
 	do	bw_file_rd -P $SYNC_MAX $i open2close $FILE
@@ -367,6 +404,7 @@ if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_FILE = XYES ]; then
 fi	
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_MMAP = XYES ]; then
+	echo \[`date`] 1>&2
 	echo "" 1>&2
 	echo \"Mmap read bandwidth 1>&2
 	for i in $ALL
@@ -374,6 +412,7 @@ if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_MMAP = XYES ]; then
 	done
 	echo "" 1>&2
 
+	echo \[`date`] 1>&2
 	echo \"Mmap read open2close bandwidth 1>&2
 	for i in $ALL
 	do	bw_mmap_rd -P $SYNC_MAX $i open2close $FILE
@@ -384,40 +423,51 @@ fi
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_HARDWARE = XYES \
      -o X$BENCHMARK_BCOPY = XYES ]; then
+	echo \[`date`] 1>&2
 	echo "" 1>&2
 	echo \"libc bcopy unaligned 1>&2
 	for i in $HALF; do bw_mem -P $SYNC_MAX $i bcopy; done; echo "" 1>&2
 
+	echo \[`date`] 1>&2
 	echo \"libc bcopy aligned 1>&2
 	for i in $HALF; do bw_mem -P $SYNC_MAX $i bcopy conflict; done; echo "" 1>&2
 
 	echo "Memory bzero bandwidth" 1>&2
+	echo \[`date`] 1>&2
 	for i in $ALL; do bw_mem -P $SYNC_MAX $i bzero; done; echo "" 1>&2
 
+	echo \[`date`] 1>&2
 	echo \"unrolled bcopy unaligned 1>&2
 	for i in $HALF; do bw_mem -P $SYNC_MAX $i fcp; done; echo "" 1>&2
 
+	echo \[`date`] 1>&2
 	echo \"unrolled partial bcopy unaligned 1>&2
 	for i in $HALF; do bw_mem -P $SYNC_MAX $i cp; done; echo "" 1>&2
 
+	echo \[`date`] 1>&2
 	echo "Memory read bandwidth" 1>&2
 	for i in $ALL; do bw_mem -P $SYNC_MAX $i frd; done; echo "" 1>&2
 
+	echo \[`date`] 1>&2
 	echo "Memory partial read bandwidth" 1>&2
 	for i in $ALL; do bw_mem -P $SYNC_MAX $i rd; done; echo "" 1>&2
 
+	echo \[`date`] 1>&2
 	echo "Memory write bandwidth" 1>&2
 	for i in $ALL; do bw_mem -P $SYNC_MAX $i fwr; done; echo "" 1>&2
 
+	echo \[`date`] 1>&2
 	echo "Memory partial write bandwidth" 1>&2
 	for i in $ALL; do bw_mem -P $SYNC_MAX $i wr; done; echo "" 1>&2
 
+	echo \[`date`] 1>&2
 	echo "Memory partial read/write bandwidth" 1>&2
 	for i in $ALL; do bw_mem -P $SYNC_MAX $i rdwr; done; echo "" 1>&2
 fi
 
 if [ X$BENCHMARK_OS = XYES -o X$BENCHMARK_CTX = XYES ]; then
 	date >> ${OUTPUT}
+	echo \[`date`] 1>&2
 	echo Calculating context switch overhead >> ${OUTPUT}
 	msleep 250
 	if [ $MB -ge 8 ]
@@ -438,15 +488,18 @@ fi
 
 if [ X$BENCHMARK_HARDWARE = XYES -o X$BENCHMARK_MEM = XYES ]; then
 	if [ $SYNC_MAX = 1 ]; then
+	    echo \[`date`] 1>&2
 	    date >> ${OUTPUT}
 	    echo Calculating effective TLB size >> ${OUTPUT}
 	    msleep 250
 	    tlb -L $LINE_SIZE -M ${MB}M
 	    echo "" 1>&2
 
+	    echo \[`date`] 1>&2
 	    date >> ${OUTPUT}
 	    echo Calculating memory load parallelism >> ${OUTPUT}
 	    msleep 250
+	    echo \[`date`] 1>&2
 	    echo "Memory load parallelism" 1>&2
 	    par_mem -L $LINE_SIZE -M ${MB}M
 	    echo "" 1>&2
@@ -457,15 +510,18 @@ if [ X$BENCHMARK_HARDWARE = XYES -o X$BENCHMARK_MEM = XYES ]; then
 #	    cache -L $LINE_SIZE -M ${MB}M
 	fi
 
+	echo \[`date`] 1>&2
 	date >> ${OUTPUT}
 	echo McCalpin\'s STREAM benchmark >> ${OUTPUT}
 	msleep 250
 	stream -P $SYNC_MAX -M ${MB}M
 	stream -P $SYNC_MAX -v 2 -M ${MB}M
 
+	echo \[`date`] 1>&2
 	date >> ${OUTPUT}
 	echo Calculating memory load latency >> ${OUTPUT}
 	msleep 250
+	echo \[`date`] 1>&2
 	echo "" 1>&2
 	echo "Memory load latency" 1>&2
 	if [ X$FASTMEM = XYES ]
@@ -473,6 +529,7 @@ if [ X$BENCHMARK_HARDWARE = XYES -o X$BENCHMARK_MEM = XYES ]; then
 	else    lat_mem_rd -P $SYNC_MAX $MB 16 32 64 128 256 512 1024 
 	fi
 	echo "" 1>&2
+	echo \[`date`] 1>&2
 	echo "Random load latency" 1>&2
 	lat_mem_rd -t -P $SYNC_MAX $MB 16
 	echo "" 1>&2
