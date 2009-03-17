@@ -27,10 +27,10 @@ void compute_times(struct mem_state* state, double* tlb_time, double* cache_time
 int
 main(int ac, char **av)
 {
-	int	i;
 	int	c;
 	int	warmup = 0;
 	int	repetitions = (1000000 <= get_enough(0) ? 1 : TRIES);
+	size_t	i;
 	size_t	maxlen = 64 * 1024 * 1024;
 	double	par;
 	struct mem_state state;
