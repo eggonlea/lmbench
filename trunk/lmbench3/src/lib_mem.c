@@ -291,7 +291,7 @@ thrash_initialize(iter_t iterations, void* cookie)
 void
 mem_initialize(iter_t iterations, void* cookie)
 {
-	int i, j, k, l, nw, nwords, nlines, npages, npointers;
+	size_t	  i, j, k, l, nw, nwords, nlines, npages, npointers;
 	size_t    *pages;
 	size_t    *lines;
 	size_t    *words;
@@ -364,7 +364,7 @@ mem_initialize(iter_t iterations, void* cookie)
 void
 line_initialize(iter_t iterations, void* cookie)
 {
-	int i, j, nlines, npages;
+	size_t     i, j, nlines, npages;
 	size_t    *pages;
 	size_t    *lines;
 	struct mem_state* state = (struct mem_state*)cookie;
@@ -429,8 +429,8 @@ line_initialize(iter_t iterations, void* cookie)
 void
 tlb_initialize(iter_t iterations, void* cookie)
 {
-	int i, nlines, npages, pagesize;
-	unsigned int r;
+	size_t i, nlines, npages, pagesize;
+	unsigned long r;
 	char **pages = NULL;
 	char **addr = NULL;
 	size_t    *lines = NULL;
@@ -668,7 +668,7 @@ line_test(size_t line, int warmup, int repetitions, struct mem_state* state)
 double
 par_mem(size_t len, int warmup, int repetitions, struct mem_state* state)
 {
-	int	i, j;
+	size_t	i, j;
 	iter_t	__n = 1;
 	double	baseline, max_par, par;
 
