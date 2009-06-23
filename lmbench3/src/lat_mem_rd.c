@@ -17,7 +17,7 @@ char	*id = "$Id: s.lat_mem_rd.c 1.13 98/06/30 16:13:49-07:00 lm@lm.bitmover.com 
 #include "bench.h"
 #define STRIDE  (512/sizeof(char *))
 #define	LOWER	512
-void	loads(size_t len, size_t range, size_t stride, 
+void	loads(size_t range, size_t stride, 
 	      int parallel, int warmup, int repetitions);
 size_t	step(size_t k);
 void	initialize(iter_t iterations, void* cookie);
@@ -66,16 +66,16 @@ main(int ac, char **av)
 
 	if (optind == ac - 1) {
 		fprintf(stderr, "\"stride=%d\n", (int)STRIDE);
-		for (range = LOWER; range <= len; range = step(range)) {
-			loads(len, range, STRIDE, parallel, 
+		for (range = LOWER; 0 < range && range <= len; range = step(range)) {
+			loads(range, STRIDE, parallel, 
 			      warmup, repetitions);
 		}
 	} else {
 		for (i = optind + 1; i < ac; ++i) {
 			stride = bytes(av[i]);
 			fprintf(stderr, "\"stride=%d\n", (int)stride);
-			for (range = LOWER; range <= len; range = step(range)) {
-				loads(len, range, stride, parallel, 
+			for (range = LOWER; 0 < range && range <= len; range = step(range)) {
+				loads(range, stride, parallel, 
 				      warmup, repetitions);
 			}
 			fprintf(stderr, "\n");
@@ -111,7 +111,7 @@ benchmark_loads(iter_t iterations, void *cookie)
 
 
 void
-loads(size_t len, size_t range, size_t stride, 
+loads(size_t range, size_t stride, 
 	int parallel, int warmup, int repetitions)
 {
 	double result;
@@ -122,7 +122,7 @@ loads(size_t len, size_t range, size_t stride,
 
 	state.width = 1;
 	state.len = range;
-	state.maxlen = len;
+	state.maxlen = range;
 	state.line = stride;
 	state.pagesize = getpagesize();
 	count = 100 * (state.len / (state.line * 100) + 1);
@@ -146,9 +146,10 @@ loads(size_t len, size_t range, size_t stride,
 
 	/* We want to get to nanoseconds / load. */
 	save_minimum();
-	result = (1000. * (double)gettime()) / (double)(count * get_n());
-	fprintf(stderr, "%.5f %.3f\n", range / (1024. * 1024.), result);
-
+	if (0 < gettime()) {
+		result = (1000. * (double)gettime()) / (double)(count * get_n());
+		fprintf(stderr, "%.5f %.3f\n", range / (1024. * 1024.), result);
+	}
 }
 
 size_t
@@ -159,10 +160,11 @@ step(size_t k)
         } else if (k < 4*1024) {
 		k += 1024;
 	} else {
-		size_t s;
+		uint64 s;
 
 		for (s = 4 * 1024; s <= k; s *= 2)
 			;
+		if (k + s / 4 < k) return (0);
 		k += s / 4;
 	}
 	return (k);
